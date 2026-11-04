@@ -45,6 +45,8 @@ Empty strings and empty lists are valid while authoring, and the renderer shows 
 
 Image, video, poster and caption URLs may be root-relative paths (no protocol-relative `//` URLs, backslashes or control characters) or HTTPS URLs without embedded credentials. Hero actions may also be a fragment pointing at a section. Empty optional URLs are allowed. The renderer checks schemes again before using any URL.
 
+A video `src` that is a recognised YouTube, Vimeo or Bunny Stream page renders as an external link that opens in a new tab. Every other `src` uses the native player, including files hosted by those providers. `experienceProviderPage` in `types.ts` lists the recognised URL shapes.
+
 Not allowed: arbitrary JavaScript, iframe documents, inline styles, server-side fetching of remote URLs, and access tokens.
 
 ## Rules for code that touches experiences

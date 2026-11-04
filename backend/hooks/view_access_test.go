@@ -27,8 +27,11 @@ func TestProjectFromViewNeedsAccessToThatView(t *testing.T) {
 	for _, v := range views {
 		inViews[v.Id] = true
 	}
-	f.create(t, "projects", map[string]any{"title": "Private project", "slug": "private-project", "description": "PRIVATE WRITEUP", "visibility": "private", "view_visibility": inViews})
-	f.create(t, "projects", map[string]any{"title": "Draft project", "slug": "draft-project", "description": "DRAFT WRITEUP", "visibility": "private", "is_draft": true, "view_visibility": inViews})
+	private := f.create(t, "projects", map[string]any{"title": "Private project", "slug": "private-project", "description": "PRIVATE WRITEUP", "visibility": "private", "view_visibility": inViews})
+	draft := f.create(t, "projects", map[string]any{"title": "Draft project", "slug": "draft-project", "description": "DRAFT WRITEUP", "visibility": "private", "is_draft": true, "view_visibility": inViews})
+	for _, v := range views {
+		setViewSection(t, f, v, `{"section":"projects","enabled":true,"items":`+idList(t, private.Id, draft.Id)+`}`)
+	}
 
 	shareToken := func(raw string, fields map[string]any) {
 		base := map[string]any{"view_id": views["unlisted"].Id, "token_hash": f.share.HMACToken(raw), "is_active": true}

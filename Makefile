@@ -207,6 +207,7 @@ test: test-scripts test-backend test-frontend
 test-scripts:
 	python3 scripts/ci/test-dev-server.py
 	python3 scripts/ci/test-push-validated-release.py
+	node --test scripts/ci/test-prepare-changelog.mjs
 
 test-backend:
 	cd backend && go test -v ./...

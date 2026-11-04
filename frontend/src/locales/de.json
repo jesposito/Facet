@@ -336,7 +336,18 @@
         "feature_disabled": "Zahlungsfunktionen sind nicht aktiviert. Aktivieren Sie sie in den Funktionseinstellungen."
       },
       "settings_saved": "Einstellungen gespeichert",
-      "settings_error": "Einstellungen konnten nicht gespeichert werden"
+      "settings_error": "Einstellungen konnten nicht gespeichert werden",
+      "recoverycopy": {
+        "load_error": "{resource} konnten nicht geladen werden. Ihre Einstellungen sind nicht verfügbar. Versuchen Sie es erneut, bevor Sie Änderungen vornehmen.",
+        "retry": "Erneut versuchen",
+        "retrying": "Wird erneut versucht…",
+        "loading": "Einstellungen werden geladen…",
+        "appearance": "Darstellungseinstellungen",
+        "email": "E-Mail-Einstellungen",
+        "features": "Funktionseinstellungen",
+        "payments": "Zahlungseinstellungen",
+        "providers": "KI-Anbieter"
+      }
     },
     "about_page": {
       "title": "Über Facet",
@@ -389,7 +400,8 @@
       "backup_busy": "Es läuft bereits eine andere Sicherung oder Wiederherstellung. Ihre vorhandenen Sicherungen bleiben unverändert. Warten Sie kurz und versuchen Sie es erneut.",
       "backup_failed": "Die Sicherung wurde nicht abgeschlossen. Ihre vorhandenen Sicherungen bleiben unverändert. Bitte versuchen Sie es erneut.",
       "backup_status_failed": "Sicherungsstatus konnte nicht geladen werden. Ihre Sicherungen wurden nicht verändert.",
-      "backup_status_retry": "Erneut versuchen"
+      "backup_status_retry": "Erneut versuchen",
+      "upgrade_notes": "Hinweise zum Upgrade"
     },
     "ai_assistant": {
       "title": "KI-Schreibassistent",
@@ -916,7 +928,22 @@
       "quiz_explanation": "Erklaerung (wird nach der Antwort angezeigt)",
       "quiz_points": "Punkte",
       "quiz_add_option": "Option hinzufuegen",
-      "quiz_correct_answer": "Richtig"
+      "quiz_correct_answer": "Richtig",
+      "curriculum_failed": "Der aktuelle Lehrplan dieses Kurses konnte nicht geladen werden. Änderungen an Modulen und Lektionen sind pausiert, bis er geladen ist.",
+      "quiz_read_failed": "Das Quiz dieser Lektion konnte nicht geladen werden. Änderungen am Quiz sind pausiert, bis es geladen ist. Deine anderen Änderungen an der Lektion bleiben erhalten.",
+      "quiz_needs_question": "Füge mindestens eine Frage hinzu und gib jeder Frage einen Text, bevor du dieses Quiz speicherst.",
+      "quiz_save_partial": "Die Lektion ist gespeichert, aber das Quiz ist nicht bestätigt. Deine Fragen sind noch da. Klicke erneut auf „Lektion speichern“. Dabei entsteht keine zweite Lektion und kein zweites Quiz.",
+      "quiz_save_conflict": "Die Lektion ist gespeichert, hat aber bereits ein anderes Quiz. Klicke auf „Lektion speichern“, um dieses Quiz durch die hier gezeigten Fragen zu ersetzen.",
+      "curriculum_order_partial": "{saved} von {total} Positionen gespeichert. Die Liste zeigt jetzt den gespeicherten Stand. Verschiebe das Element erneut, um fertig zu werden.",
+      "curriculum_order_unconfirmed": "{saved} von {total} Positionen gespeichert, aber der Lehrplan konnte nicht geprüft werden. Lade ihn erneut und verschiebe das Element noch einmal, falls es falsch steht.",
+      "lesson_create_unknown": "Facet konnte nicht bestätigen, ob diese Lektion gespeichert wurde. Alle deine Eingaben sind noch da. Klicke auf „Erneut versuchen“, um es zu prüfen. Dabei entsteht keine zweite Lektion.",
+      "lesson_create_differs": "Diese Lektion wurde aus einer früheren Fassung gespeichert, die hier gezeigten Änderungen sind also noch nicht gespeichert. Klicke auf „Lektion speichern“, um sie zu aktualisieren.",
+      "course_create_unknown": "Facet konnte nicht bestätigen, ob dieser Kurs gespeichert wurde. Alle deine Eingaben sind noch da. Klicke auf „Erneut versuchen“, um es zu prüfen. Dabei entsteht kein zweiter Kurs.",
+      "course_create_differs": "Dieser Kurs wurde aus einer früheren Fassung gespeichert, die hier gezeigten Änderungen sind also noch nicht gespeichert. Klicke auf „Speichern“, um ihn zu aktualisieren.",
+      "module_create_unknown": "Facet konnte nicht bestätigen, ob dieses Modul gespeichert wurde. Alle deine Eingaben sind noch da. Klicke auf „Erneut versuchen“, um es zu prüfen. Dabei entsteht kein zweites Modul.",
+      "module_create_differs": "Dieses Modul wurde aus einer früheren Fassung gespeichert, die hier gezeigten Änderungen sind also noch nicht gespeichert. Klicke auf „Modul speichern“, um es zu aktualisieren.",
+      "error_delete_module_attempts": "Dieses Modul kann nicht gelöscht werden, weil Lernende ein Quiz in einer seiner Lektionen bearbeitet haben.",
+      "error_delete_lesson_attempts": "Diese Lektion kann nicht gelöscht werden, weil Lernende ihr Quiz bearbeitet haben."
     },
     "pricing": {
       "page_title": "Massenpreise",
@@ -955,7 +982,10 @@
       "type_talks": "Vortraege",
       "type_courses": "Kurse",
       "type_projects": "Projekte",
-      "type_custom": "Benutzerdefiniert"
+      "type_custom": "Benutzerdefiniert",
+      "filter_type_name": "Nach Inhaltstyp filtern",
+      "filter_tier_name": "Nach Preisstufe filtern",
+      "bulk_tier_name": "Preisstufe für ausgewählte Elemente"
     },
     "coupons": {
       "page_title": "Gutscheincodes",
@@ -1051,7 +1081,13 @@
       },
       "stats": {
         "sr_only_icon": "{label}-Symbol"
-      }
+      },
+      "manage_facets": "Facetten verwalten",
+      "load_error_title": "Ihr Dashboard konnte nicht vollständig geladen werden",
+      "load_error_message": "Was unten fehlt, ist unbekannt und nicht null.",
+      "retry": "Erneut versuchen",
+      "retrying": "Wird erneut versucht...",
+      "metric_unavailable": "Nicht verfügbar"
     },
     "login": {
       "title": "Bei Facet anmelden",
@@ -1142,7 +1178,7 @@
     },
     "wizard": {
       "title": "Schnelleinrichtung",
-      "skip": "Einrichtung überspringen",
+      "skip": "Später fertigstellen",
       "back": "Zurück",
       "continue": "Weiter",
       "saving": "Wird gespeichert...",
@@ -1168,7 +1204,7 @@
       "facet_name_placeholder": "Meine Facette",
       "url_label": "URL:",
       "visibility_public": "Diese Facette wird öffentlich sein - jeder mit dem Link kann sie sehen",
-      "visibility_unlisted": "Diese Facette ist nicht gelistet - nur Personen mit dem Link können sie finden",
+      "visibility_unlisted": "Diese Facette ist nicht gelistet. Sie öffnet sich über einen von Ihnen erstellten Freigabelink, und jede Person mit diesem Link kann ihn weitergeben.",
       "visibility_private": "Diese Facette ist privat - nur Sie können sie sehen",
       "step3_title": "Sie sind startklar!",
       "step3_subtitle": "Hier ist, was Sie erstellt haben",
@@ -1176,12 +1212,24 @@
       "your_title_placeholder": "Ihre Berufsbezeichnung",
       "next_steps_title": "Empfohlene nächste Schritte:",
       "next_step_projects": "Fügen Sie Ihr erstes Projekt oder Ihre Berufserfahrung hinzu",
-      "next_step_share": "Teilen Sie Ihre neue Facette mit der Welt",
+      "next_step_share": "Teile diese Seite mit den gewünschten Personen oder füge sie deiner Website hinzu.",
       "next_step_import": "Versuchen Sie, von GitHub zu importieren oder Ihren Lebenslauf hochzuladen",
       "ai_features_title": "Möchten Sie KI-gestützte Funktionen?",
       "ai_features_description": "Lebenslauf-Parsing, Schreibhilfe und GitHub-Anreicherung erfordern einen API-Schlüssel von {openai}, {anthropic} oder einer lokalen {ollama}-Instanz.",
       "ai_features_settings": "Fügen Sie Ihren Schlüssel in {settings} hinzu, wenn Sie bereit sind.",
-      "required_field": "*"
+      "required_field": "*",
+      "resume_message": "Die Einrichtung ist noch nicht abgeschlossen. Ihre Eingaben sind in diesem Browser gespeichert.",
+      "resume_button": "Einrichtung fortsetzen",
+      "check_failed": "Facet konnte nicht prüfen, ob die Einrichtung abgeschlossen ist. Es ist nichts verloren gegangen.",
+      "check_retry": "Erneut versuchen",
+      "error_network": "Facet konnte den Server nicht erreichen. Ihr Entwurf ist noch da. Versuchen Sie es erneut, sobald Sie wieder online sind.",
+      "error_slug": "Diese URL kann nicht verwendet werden. Gehen Sie zu Schritt 2 zurück und wählen Sie einen anderen URL-Slug.",
+      "error_profile_saved": "Ihr Profil ist gespeichert, aber Ihre Facette wurde noch nicht erstellt.",
+      "step2_uses": "Dieselbe Facette kann für sich stehen, etwa als Lebenslauf für eine Personalvermittlung, als Kundenangebot oder als Ressourcenseite. Sie kann auch Teil Ihrer Website sein, und Sie können sie jederzeit zur Website-Navigation hinzufügen.",
+      "step2_templates": "Vorlagen sind Ausgangspunkte. Wählen Sie die passendste aus und ändern Sie Name, Bereiche und Zugriff, wann immer Sie möchten.",
+      "step2_access": "Wer eine Facette öffnen kann, ist eine eigene Einstellung. Die Website-Navigation listet nur öffentliche Facetten auf, private Facetten sehen nur Sie, und eine nicht gelistete Facette öffnet sich über einen Freigabelink, den jede Person mit dem Link weitergeben kann.",
+      "error_view_unknown": "Ihr Profil ist gespeichert, aber Facet konnte nicht prüfen, ob Ihre Facette erstellt wurde. Ihr Entwurf ist noch da. Klicken Sie auf „Erneut versuchen“, um es noch einmal zu prüfen. Dabei entsteht keine zweite Facette.",
+      "error_view_differs": "Ihre Facette wurde bereits mit anderen Angaben erstellt, und noch hat sich nichts geändert. Klicken Sie auf „Profil starten“, um sie durch die hier gezeigten Angaben zu ersetzen, auch dazu, wer sie sehen kann."
     },
     "content": {
       "common": {
@@ -1623,7 +1671,15 @@
         "facet_created": "Facette erfolgreich erstellt",
         "save_failed": "Facette konnte nicht gespeichert werden",
         "name_required": "Name ist erforderlich",
-        "slug_required": "URL-Slug ist erforderlich"
+        "slug_required": "URL-Slug ist erforderlich",
+        "unsaved_warning": "Dieses Facet hat ungespeicherte Änderungen. Trotzdem verlassen?",
+        "view_load_failed": "Dieses Facet konnte nicht geladen werden, daher gibt es noch nichts zu bearbeiten. Es wurde nichts geändert. Versuchen Sie es erneut oder kehren Sie zu Ihren Facets zurück.",
+        "content_load_failed": "Ihre Inhalte konnten nicht geladen werden. Abschnitte und Vorschau sind daher ausgeblendet, und das Speichern ist pausiert. Ihre Eingaben sind noch da, und Ihre gespeicherten Abschnitte sind unverändert.",
+        "content_refresh_failed": "Ihre Inhalte konnten nicht aktualisiert werden, daher ist das Speichern pausiert, bis sie neu geladen sind. Sie sehen die zuletzt geladenen Abschnitte, und Ihre Eingaben sind noch da.",
+        "save_paused": "Das Speichern ist pausiert, bis Ihre Inhalte geladen sind. Ihre Eingaben sind noch da.",
+        "supporting_failed": "Einige ergänzende Angaben konnten nicht geladen werden, etwa das Vorschauprofil, Freigabelinks, Exporte oder Lebenslauf-Werkzeuge. Fehlen sie hier, sind sie deshalb nicht verloren. Ihr Facet und Ihre Eingaben sind davon nicht betroffen.",
+        "create_unknown": "Facet konnte nicht bestätigen, ob dieses Facet erstellt wurde. Alle Ihre Eingaben sind noch da. Klicken Sie auf „Create“, um es zu prüfen. Dabei entsteht kein zweites Facet.",
+        "create_differs": "Dieses Facet wurde aus einer früheren Fassung erstellt, die hier gezeigten Änderungen sind also noch nicht gespeichert. Klicken Sie auf „Create“, um es mit den hier gezeigten Angaben zu aktualisieren, auch dazu, wer es sehen kann."
       },
       "share_link": {
         "title": "Freigabelink erstellen",
@@ -1648,7 +1704,11 @@
         "uses": "Nutzungen",
         "regenerate_title": "Link neu erstellen (widerruft alten, erstellt neuen)",
         "revoke_title": "Link widerrufen",
-        "more_links": "+{count} weitere — alle anzeigen"
+        "more_links": "+{count} weitere — alle anzeigen",
+        "private_notice": "Privat bedeutet, dass nur Sie dieses Facet öffnen können. Freigabelinks für Besucher sind daher nicht möglich. Wenn Sie es mit jemandem teilen möchten, wählen Sie „Nicht gelistet“ und speichern Sie.",
+        "unsaved_notice": "Speichern Sie dieses Facet, um die neue Sichtbarkeit zu übernehmen. Danach erscheinen hier die Freigabeoptionen.",
+        "public_notice": "Dieses Facet ist öffentlich. Jede Person mit dieser URL kann es öffnen, und die URL hat weder Ablaufdatum noch Nutzungslimit.",
+        "public_url_label": "Öffentliche URL"
       },
       "danger_zone": {
         "title": "Gefahrenzone",
@@ -1795,7 +1855,20 @@
         "courses": "Kurse",
         "featured_testimonial_label": "Ausgewählte Referenz",
         "primary_testimonial_label": "Primäre Referenz (wird zuerst im Karussell angezeigt)",
-        "use_global_featured": "Globale Auswahl verwenden (oder erste)"
+        "use_global_featured": "Globale Auswahl verwenden (oder erste)",
+        "section_width_name": "Breite des Abschnitts {section}",
+        "section_layout_name": "Layout des Abschnitts {section}",
+        "content_mode_legend": "Inhalte für {section}",
+        "content_mode_all_public": "Alle öffentlichen Inhalte (automatisch aktuell)",
+        "content_mode_selected": "Elemente auswählen",
+        "all_public_hint": "Veröffentlichte öffentliche Elemente erscheinen hier automatisch, auch später hinzugefügte. Private, nicht gelistete und Entwurfselemente bleiben ausgeschlossen.",
+        "all_public_hint_contacts": "Für dieses Facet verfügbare Kontaktmethoden erscheinen hier automatisch. Eine Seitenbeschränkung an einem Kontakt gilt weiterhin.",
+        "all_public_hint_testimonials": "Freigegebene öffentliche Testimonials erscheinen hier automatisch. Nicht freigegebene bleiben ausgeschlossen.",
+        "selected_empty_hint": "In diesem Bereich erscheint nichts, bis Sie Elemente auswählen.",
+        "choose_items_hint": "Wählen Sie die anzuzeigenden Elemente aus und ziehen Sie sie in die gewünschte Reihenfolge.",
+        "none_selected": "keine ausgewählt",
+        "all_public_skills_hint": "Öffentliche Fähigkeiten werden automatisch aufgenommen. Hier können Sie die Reihenfolge, aktive Kategorien und das Layout ändern.",
+        "private_grants_unconfirmed": "Ihr Facet ist gespeichert, aber wir konnten nicht bestätigen, dass seine privaten Elemente hinzugefügt wurden. Klicken Sie hier auf Speichern, um es erneut zu versuchen."
       },
       "category_reorder": {
         "title": "Fähigkeitskategorien neu ordnen",
@@ -1981,7 +2054,31 @@
       "keyboard_shortcut_delete_row": "Fokussierte Zeile löschen",
       "keyboard_shortcut_help": "Diese Hilfe anzeigen",
       "create_page_title": "Facette erstellen",
-      "edit_page_title": "Facette bearbeiten"
+      "edit_page_title": "Facette bearbeiten",
+      "share_links_note": "Freigabelinks öffnen nicht gelistete Facetten. Wer einen Link hat, kann die Facette öffnen und den Link weitergeben. Legen Sie daher ein Ablaufdatum fest oder widerrufen Sie Links, die Sie nicht mehr brauchen.",
+      "use_cases": {
+        "title": "Eine Facette, viele Einsatzzwecke",
+        "lead": "Jede Facette lässt sich einzeln teilen und bei Bedarf in Ihre Website-Navigation aufnehmen. Sie können sie jederzeit hinzufügen oder entfernen, ohne etwas umzuwandeln oder neu zu erstellen.",
+        "access_note": "Wer eine Facette öffnen darf, ist eine eigene Einstellung. Die Website-Navigation zeigt nur öffentliche, aktive Facetten. Wer einen Freigabelink zu einer nicht gelisteten Facette hat, kann sie öffnen. Private Facetten sehen nur Sie.",
+        "nav_link": "Website-Navigation verwalten",
+        "standalone_title": "Einzeln teilen",
+        "site_title": "In Ihrer Website nutzen",
+        "resume_title": "Digitaler Lebenslauf für Recruiter",
+        "resume_text": "Die Erfahrung und Fähigkeiten, die zu einer Stelle passen.",
+        "proposal_title": "Kundenangebot",
+        "proposal_text": "Passende Projekte und Empfehlungen für einen Kunden.",
+        "event_title": "Veranstaltungs- oder Ressourcenseite",
+        "event_text": "Vorträge, Beiträge und Links für einen Anlass.",
+        "project_title": "Projektseite",
+        "project_text": "Ein eigener Ort für ein Arbeitsgebiet.",
+        "about_title": "Über-mich-Seite",
+        "about_text": "Ihr Werdegang und wie man Sie erreicht.",
+        "writing_title": "Textseite",
+        "writing_text": "Ihre Beiträge an einem Ort.",
+        "compact_lead": "Ein digitaler Lebenslauf, ein Kundenangebot oder Seiten für deine Website. Teile ein Facet einzeln, füge es deiner Website hinzu oder nutze es für beides.",
+        "explore": "Einsatzmöglichkeiten für Facets entdecken"
+      },
+      "action_owner_url": "Eigentümer-URL kopieren"
     },
     "media": {
       "page_title": "Medienbibliothek | Facet Admin",
@@ -2144,7 +2241,7 @@
       "usage_warning_message": "\"{filename}\" wird von {count, plural, one {# Inhaltselement} other {# Inhaltselementen}} verwendet. Das Löschen entfernt es aus:",
       "usage_warning_more": "und {count} weitere",
       "toast_references_removed": "Medium gelöscht und {count, plural, one {# Referenz} other {# Referenzen}} entfernt",
-      "dropzone_label": "Dateien zum Hochladen ablegen",
+      "dropzone_label": "Dateien hierher ziehen oder klicken zum Durchsuchen",
       "dropzone_drag": "Dateien hierher ziehen",
       "dropzone_drop": "Zum Hochladen ablegen",
       "dropzone_or_click": "oder klicken zum Durchsuchen",
@@ -2239,6 +2336,11 @@
       "token_created_message": "Kopieren Sie diesen Token jetzt. Aus Sicherheitsgründen wird er nicht erneut angezeigt.",
       "copy_url": "URL kopieren",
       "loading_tokens": "Token werden geladen...",
+      "load_failed": "Freigabe-Links konnten nicht geladen werden. Ihre bestehenden Links wurden nicht geändert.",
+      "retry": "Erneut versuchen",
+      "views_load_failed": "Geeignete Facetten konnten nicht geladen werden. Versuchen Sie es erneut, bevor Sie einen Freigabe-Link erstellen.",
+      "status_unusable": "Nicht verfügbar",
+      "status_unusable_reason": "Dieser Link funktioniert nicht mehr, weil seine Facette fehlt, inaktiv oder nicht mehr ungelistet ist.",
       "no_tokens": "Noch keine Freigabe-Token.",
       "no_tokens_description": "Erstellen Sie einen Token, um eine nicht gelistete Ansicht mit bestimmten Personen zu teilen.",
       "create_unlisted_first": "Erstellen Sie zuerst {link}, um Token zu generieren.",
@@ -2301,13 +2403,16 @@
       "today": "Heute",
       "yesterday": "Gestern",
       "days_ago": "vor {count} Tagen",
-      "weeks_ago": "vor {count} Wochen"
+      "weeks_ago": "vor {count} Wochen",
+      "toast_invalid_expiry": "Geben Sie ein gültiges Ablaufdatum mit Uhrzeit ein.",
+      "toast_invalid_max_uses": "Die maximale Nutzung muss eine ganze Zahl von 0 bis 1.000.000 sein.",
+      "toast_copy_failed": "Der Link konnte nicht kopiert werden. Markiere die URL und kopiere sie manuell."
     },
     "password_modal": {
       "title": "Passwort ändern",
       "description": "Wählen Sie ein starkes, einzigartiges Passwort, um Ihr Konto zu sichern.",
       "current_password_label": "Aktuelles Passwort",
-      "current_password_hint": "Erforderlich zur Identitätsüberprüfung",
+      "current_password_hint": "Das Passwort, mit dem Sie sich gerade angemeldet haben",
       "new_password_label": "Neues Passwort",
       "new_password_placeholder": "Neues Passwort eingeben",
       "strength_weak": "Schwach",
@@ -2328,7 +2433,16 @@
       "selected_count": "{selected} von {total} ausgewählt",
       "select_all": "Alle auswählen",
       "clear": "Löschen",
-      "change_visibility": "Sichtbarkeit ändern"
+      "change_visibility": "Sichtbarkeit ändern",
+      "region_label": "Aktionen für Mehrfachauswahl",
+      "select_item": "{item} auswählen",
+      "result_updated": "{succeeded} von {total} Elementen auf {visibility} aktualisiert.",
+      "result_deleted": "{succeeded} von {total} Elementen gelöscht.",
+      "result_failed": "{count, plural, one {# Element ist fehlgeschlagen und bleibt für einen neuen Versuch ausgewählt.} other {# Elemente sind fehlgeschlagen und bleiben für einen neuen Versuch ausgewählt.}}",
+      "result_unconfirmed": "{count, plural, one {# Element konnte nicht bestätigt werden.} other {# Elemente konnten nicht bestätigt werden.}} Lade die Liste neu, bevor du es erneut versuchst.",
+      "confirm_public_title": "Elemente veröffentlichen?",
+      "confirm_public_message": "{count, plural, one {# privates oder nicht gelistetes Element wird öffentlich.} other {# private oder nicht gelistete Elemente werden öffentlich.}} Entwürfe bleiben verborgen, bis du sie veröffentlichst.",
+      "confirm_public_button": "Öffentlich machen"
     },
     "homepage": {
       "collapse_section": "{section}-Abschnitt einklappen",
@@ -2371,7 +2485,20 @@
       "page_title": "Startseite",
       "testimonial_list_label": "Testimonial-Liste",
       "testimonial_list_placeholder": "z. B. Kunden",
-      "testimonial_list_help": "Zeigt freigegebene Testimonials aus dieser Liste. Leer lassen, um alle anzuzeigen."
+      "testimonial_list_help": "Zeigt freigegebene Testimonials aus dieser Liste. Leer lassen, um alle anzuzeigen.",
+      "contact_link_type_name": "Kontaktlink {number}: Typ",
+      "contact_link_url_name": "Kontaktlink {number}: URL",
+      "contact_link_label_name": "Kontaktlink {number}: Bezeichnung",
+      "settings_load_failed": "Ihre Startseiten-Einstellungen konnten nicht geladen werden, daher ist das Speichern pausiert. Ihre gespeicherten Einstellungen sind unverändert, und Ihre Eingaben sind noch da.",
+      "nav_catalog_failed": "Ihre öffentlichen Facets konnten nicht geladen werden. Ihre gespeicherte Navigation ist unverändert.",
+      "nav_save_failed": "Ihre letzte Änderung an Navigation oder Handlungsaufruf konnte nicht gespeichert werden und wurde hier rückgängig gemacht. Eingegebene Button-Beschriftungen sind noch da.",
+      "retry": "Erneut versuchen",
+      "nav_item_show": "{name} in der Navigation anzeigen",
+      "nav_item_label": "Button-Beschriftung für {name}",
+      "nav_item_move_up": "{name} nach oben verschieben",
+      "nav_item_move_down": "{name} nach unten verschieben",
+      "profile_load_failed": "Ihr Profil konnte nicht geladen werden, daher sind seine Felder ausgeblendet und das Speichern ist pausiert. Ihr gespeichertes Profil ist unverändert.",
+      "catalog_load_failed": "Ihre Startseiten-Bereiche konnten nicht geladen werden, daher sind sie ausgeblendet und das Speichern ist pausiert. Ihre gespeicherten Bereiche sind unverändert, und Ihre Eingaben sind noch da."
     },
     "import": {
       "resume_dropzone_label": "Lebenslauf-Datei-Ablagebereich",
@@ -2602,6 +2729,11 @@
       "smtp_not_configured_hint": "Richten Sie in den Einstellungen Ihren eigenen SMTP-Server ein, um Newsletter zu versenden. Selbst gehostetes Facet versendet alle E-Mails ausschließlich über diesen Server. Sie können weiterhin Abonnenten sammeln.",
       "smtp_not_ready": "SMTP nicht versandbereit",
       "smtp_not_ready_hint": "SMTP ist konfiguriert, aber Newsletter können noch nicht versendet werden. Prüfen Sie die Absenderadresse in den SMTP-Einstellungen und die öffentliche Website-URL für Abmeldelinks.",
+      "smtp_checking": "SMTP-Status wird geprüft…",
+      "smtp_checking_hint": "Der Versand bleibt deaktiviert, bis der Server bestätigt, dass Ihr SMTP-Server bereit ist.",
+      "smtp_unavailable": "SMTP-Status nicht verfügbar",
+      "smtp_unavailable_hint": "Der Server konnte die SMTP-Bereitschaft nicht bestätigen. Prüfen Sie die Verbindung und versuchen Sie es erneut, bevor Sie senden.",
+      "smtp_retry": "SMTP-Prüfung wiederholen",
       "hub_title": "Newsletter",
       "hub_description": "Verwalten Sie Abonnenten, segmentieren Sie sie in Listen und senden Sie Rundschreiben.",
       "card_subscribers_title": "Abonnenten",
@@ -2876,6 +3008,16 @@
       "readonly_note": "Diese Vorschau ist schreibgeschützt und nicht per Tastatur bedienbar. Zum Ausblenden ausschalten.",
       "ready_announce": "Live-Vorschau bereit",
       "error_announce": "Live-Vorschau nicht verfügbar"
+    },
+    "list_status": {
+      "load_failed": "{type} konnten nicht geladen werden. Änderungen sind pausiert, bis die Liste geladen ist.",
+      "refresh_failed": "{type} konnten nicht aktualisiert werden. Du siehst die zuletzt geladene Liste. Änderungen sind pausiert, bis sie neu geladen ist.",
+      "changes_paused": "Änderungen sind pausiert, bis die Liste aktuell ist.",
+      "saving": "Änderungen werden gespeichert...",
+      "ancillary_failed": "Einige Zusatzdaten konnten nicht geladen werden, zum Beispiel Ansichtszuordnungen oder Tag-Optionen. Ein neuer Versuch verändert kein geöffnetes Formular.",
+      "retry_supporting": "Zusatzdaten erneut laden",
+      "order_partial": "{saved} von {total} Positionen gespeichert. Deine neue Reihenfolge ist noch sichtbar. Speichere erneut, um nur den Rest zu senden.",
+      "order_unconfirmed": "{saved} von {total} Positionen gespeichert, aber die Liste konnte nicht geprüft werden. Deine neue Reihenfolge ist noch sichtbar. Lade die Liste neu und speichere dann erneut."
     }
   },
   "public": {
@@ -3362,6 +3504,24 @@
         "quiz_no_answers": "Beantworten Sie die Fragen vor dem Absenden.",
         "quiz_failed": "Das Quiz hat nicht richtig geantwortet. Bitte versuchen Sie es erneut."
       }
+    },
+    "share_entry": {
+      "page_title": "Geteilter Link | Facet",
+      "home": "Zum Hauptprofil",
+      "retry": "Erneut versuchen",
+      "retry_in": "Erneut versuchen in {seconds} s",
+      "invalid": {
+        "title": "Link ungültig",
+        "message": "Ungültiger oder abgelaufener Freigabelink"
+      },
+      "rate_limited": {
+        "title": "Gerade zu viele Anfragen",
+        "message": "Wir konnten diesen Link noch nicht prüfen, weil zu viele Anfragen gleichzeitig eingegangen sind. Dieser Versuch hat ihn nicht verbraucht."
+      },
+      "unavailable": {
+        "title": "Link konnte nicht geprüft werden",
+        "message": "Auf dieser Website gab es ein vorübergehendes Problem, daher wissen wir nicht, ob der Link funktioniert. Dieser Versuch wurde möglicherweise als Nutzung gezählt, und ein weiterer Versuch kann erneut zählen."
+      }
     }
   },
   "shared": {
@@ -3522,5 +3682,13 @@
     "chars_remaining": "{count} Zeichen verbleibend",
     "replies": "Antworten",
     "just_now": "gerade eben"
-  }
+  },
+  "downloads": {
+    "title": "Downloads",
+    "load_failed": "Die Downloads konnten nicht geladen werden. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
+    "link_failed": "Dieser Download konnte nicht gestartet werden. Bitte versuchen Sie es erneut.",
+    "unavailable": "Diese Datei ist nicht mehr verfügbar.",
+    "retry": "Erneut versuchen"
+  },
+  "admin.courses.delete_course_confirm": "Diesen Kurs mit allen Modulen, Lektionen, Lernfortschritten, Quiz-Versuchen und Zertifikaten loeschen? Dies kann nicht rueckgaengig gemacht werden."
 }

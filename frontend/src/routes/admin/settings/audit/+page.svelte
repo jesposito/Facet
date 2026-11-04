@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { t } from 'svelte-i18n';
+	import { brandName } from '$lib/stores/plan';
 	import { pb } from '$lib/pocketbase';
 	import { confirm, toasts } from '$lib/stores';
 
@@ -155,6 +156,10 @@
 	}
 </script>
 
+<svelte:head>
+	<title>{$t('admin.audit.title')} | {$brandName}</title>
+</svelte:head>
+
 <div class="max-w-6xl mx-auto">
 	<div class="mb-6">
 		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">
@@ -243,7 +248,7 @@
 				<button
 					type="button"
 					onclick={clearAllLogs}
-					class="text-sm text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+					class="text-sm text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
 				>
 					{$t('admin.audit.clear_all')}
 				</button>
@@ -288,7 +293,13 @@
 			<p>{$t('admin.audit.no_entries')}</p>
 		</div>
 	{:else}
-		<div class="overflow-x-auto bg-white dark:bg-gray-800 rounded-lg shadow">
+		<!-- svelte-ignore a11y_no_noninteractive_tabindex (The table scroll container needs keyboard focus for horizontal scrolling.) -->
+		<div
+			role="region"
+			aria-label={$t('admin.audit.title')}
+			tabindex="0"
+			class="overflow-x-auto bg-white dark:bg-gray-800 rounded-lg shadow"
+		>
 			<table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
 				<thead class="bg-gray-50 dark:bg-gray-900/50">
 					<tr>

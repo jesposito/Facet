@@ -16,6 +16,7 @@ http.createServer((request, response) => {
     'x-forwarded-proto': 'http',
     'x-forwarded-host': request.headers.host,
     'x-forwarded-for': request.socket.remoteAddress,
+    'x-facet-client-ip': request.socket.remoteAddress,
   };
   delete headers['x-internal'];
   const upstream = http.request({

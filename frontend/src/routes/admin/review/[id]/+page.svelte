@@ -312,13 +312,13 @@
 					{#if diff[field] && diff[field].type === 'changed'}
 						<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
 							<div class="p-3 bg-red-50 dark:bg-red-900/20 rounded">
-								<span class="text-xs text-red-600 dark:text-red-400 font-medium">Current</span>
+								<span class="text-xs text-red-700 dark:text-red-400 font-medium">Current</span>
 								<pre class="mt-1 text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{formatValue(
 										diff[field].old
 									)}</pre>
 							</div>
 							<div class="p-3 bg-green-50 dark:bg-green-900/20 rounded">
-								<span class="text-xs text-green-600 dark:text-green-400 font-medium">Proposed</span>
+								<span class="text-xs text-green-700 dark:text-green-400 font-medium">Proposed</span>
 								<pre class="mt-1 text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{formatValue(
 										value
 									)}</pre>

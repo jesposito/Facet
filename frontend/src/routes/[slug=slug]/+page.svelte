@@ -111,14 +111,6 @@
 			root.style.setProperty('--font-heading', `'${pack.heading}', ${pack.headingFallback}`);
 			root.style.setProperty('--font-body', `'${pack.body}', ${pack.bodyFallback}`);
 			root.style.setProperty('--font-code', `'${pack.code}', ${pack.codeFallback}`);
-			// Load Google Fonts
-			const existing = document.getElementById('view-google-fonts');
-			if (existing) existing.remove();
-			const link = document.createElement('link');
-			link.id = 'view-google-fonts';
-			link.rel = 'stylesheet';
-			link.href = pack.googleFontsUrl;
-			document.head.appendChild(link);
 		}
 
 		// Check AI Print availability (always check - API handles auth)

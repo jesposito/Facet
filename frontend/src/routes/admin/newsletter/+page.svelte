@@ -21,7 +21,8 @@
 	let stats: Stats | null = $state(null);
 	let lists: ListSummary[] = $state([]);
 	let loading = $state(true);
-	let smtpStatus: SmtpReadiness = $state('ready');
+	let smtpStatus: SmtpReadiness = $state('checking');
+	let smtpChecking = $state(false);
 
 	function authHeaders(): Record<string, string> {
 		return pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {};
@@ -54,13 +55,18 @@
 	}
 
 	async function loadSmtp() {
+		if (smtpChecking) return;
+		smtpChecking = true;
+		smtpStatus = 'checking';
 		try {
 			const r = await fetch('/api/admin/newsletter/smtp-status', { headers: authHeaders() });
-			if (r.ok) {
-				smtpStatus = smtpReadiness(await r.json());
-			}
+			if (!r.ok) throw new Error(`SMTP status request failed with ${r.status}`);
+			smtpStatus = smtpReadiness(await r.json());
 		} catch (err) {
+			smtpStatus = 'unavailable';
 			console.debug('Failed to load SMTP status:', err);
+		} finally {
+			smtpChecking = false;
 		}
 	}
 </script>
@@ -104,13 +110,30 @@
 				<p class="text-sm font-medium text-amber-800 dark:text-amber-300">
 					{smtpStatus === 'not_ready'
 						? $t('admin.newsletter.smtp_not_ready')
-						: $t('admin.newsletter.smtp_not_configured')}
+						: smtpStatus === 'not_configured'
+							? $t('admin.newsletter.smtp_not_configured')
+							: smtpStatus === 'unavailable'
+								? $t('admin.newsletter.smtp_unavailable')
+								: $t('admin.newsletter.smtp_checking')}
 				</p>
 				<p class="text-sm text-amber-700 dark:text-amber-400 mt-0.5">
 					{smtpStatus === 'not_ready'
 						? $t('admin.newsletter.smtp_not_ready_hint')
-						: $t('admin.newsletter.smtp_not_configured_hint')}
+						: smtpStatus === 'not_configured'
+							? $t('admin.newsletter.smtp_not_configured_hint')
+							: smtpStatus === 'unavailable'
+								? $t('admin.newsletter.smtp_unavailable_hint')
+								: $t('admin.newsletter.smtp_checking_hint')}
 				</p>
+				<button
+					type="button"
+					class="btn btn-secondary text-xs mt-3"
+					onclick={loadSmtp}
+					disabled={smtpChecking}
+					aria-busy={smtpChecking ? 'true' : undefined}
+				>
+					{$t('admin.newsletter.smtp_retry')}
+				</button>
 			</div>
 		</div>
 	{/if}

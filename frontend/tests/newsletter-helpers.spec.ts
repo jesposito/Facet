@@ -167,9 +167,17 @@ test.describe('newsletter send outcomes', () => {
 		expect(smtpReadiness({ configured: true, ready: true, host: 'smtp.example' })).toBe('ready');
 		expect(smtpReadiness({ configured: true, ready: false })).toBe('not_ready');
 		expect(smtpReadiness({ configured: false, ready: false })).toBe('not_configured');
-		// The pre-readiness response shape is not enough to send.
-		expect(smtpReadiness({ configured: true })).toBe('not_ready');
-		expect(smtpReadiness(null)).toBe('not_configured');
+		// Incomplete status is unknown, so it cannot enable sending or claim
+		// that the operator has no SMTP configuration.
+		for (const unknown of [
+			null,
+			{},
+			{ configured: true },
+			{ ready: true },
+			{ configured: 'true', ready: true }
+		]) {
+			expect(smtpReadiness(unknown)).toBe('unavailable');
+		}
 	});
 
 	test('a fully accepted send offers nothing to resume', () => {

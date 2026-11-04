@@ -2,7 +2,7 @@
 	import { discoverySectionHref } from '$lib/discovery';
 	import { t } from 'svelte-i18n';
 	import type { Talk } from '$lib/pocketbase';
-	import { formatDate, parseMarkdown } from '$lib/utils';
+	import { formatCalendarDate, parseMarkdown } from '$lib/utils';
 
 	interface Props {
 		items: Talk[];
@@ -94,7 +94,7 @@
 									<span>{talk.event}</span>
 								{/if}
 								{#if talk.date}
-									<span>{formatDate(talk.date, { month: 'short', year: 'numeric' })}</span>
+									<span>{formatCalendarDate(talk.date, { month: 'short', year: 'numeric' })}</span>
 								{/if}
 								{#if talk.location}
 									<span>{talk.location}</span>
@@ -266,10 +266,9 @@
 						<h3 class="font-semibold text-gray-900 dark:text-white">{talk.title}</h3>
 						<div class="mt-1 text-sm text-gray-600 dark:text-gray-400">
 							{#if talk.event}<span>{talk.event}</span>{/if}
-							{#if talk.date}<span class="text-gray-400 dark:text-gray-500"> · </span>{formatDate(
-									talk.date,
-									{ month: 'short', year: 'numeric' }
-								)}{/if}
+							{#if talk.date}<span class="text-gray-400 dark:text-gray-500">
+									·
+								</span>{formatCalendarDate(talk.date, { month: 'short', year: 'numeric' })}{/if}
 						</div>
 						<div class="mt-3 flex gap-3">
 							{#if talk.video_url}
@@ -435,7 +434,11 @@
 												d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
 											/></svg
 										>
-										{formatDate(talk.date, { month: 'long', day: 'numeric', year: 'numeric' })}
+										{formatCalendarDate(talk.date, {
+											month: 'long',
+											day: 'numeric',
+											year: 'numeric'
+										})}
 									</span>
 								{/if}
 								{#if talk.location}

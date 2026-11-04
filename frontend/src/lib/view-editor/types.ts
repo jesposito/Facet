@@ -9,6 +9,7 @@ import type {
 	View,
 	ViewSection,
 	ItemConfig,
+	ItemSelection,
 	Profile,
 	SectionWidth,
 	ShareToken
@@ -33,6 +34,7 @@ export interface SectionDef {
 export interface SectionConfig {
 	enabled: boolean;
 	items: string[];
+	itemSelection?: ItemSelection;
 	expanded: boolean;
 	layout: string;
 	width: SectionWidth;

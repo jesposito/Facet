@@ -1,10 +1,9 @@
 <script lang="ts">
 	import { preventDefault } from 'svelte/legacy';
 
-	import { onMount } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import { afterNavigate } from '$app/navigation';
 	import {
-		pb,
 		type ContactMethod,
 		type ContactMethodType,
 		type ProtectionLevel,
@@ -12,21 +11,51 @@
 	} from '$lib/pocketbase';
 	import { t } from 'svelte-i18n';
 	import { brandName } from '$lib/stores/plan';
-	import { collection } from '$lib/stores/demo';
+	import { collection, getCollectionName } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
 	import { createAutosave } from '$lib/stores/autosave';
 	import { createFilterState } from '$lib/admin/filterState.svelte';
 	import AdminFilters from '$components/admin/AdminFilters.svelte';
 	import AutosaveRecoveryBanner from '$components/admin/AutosaveRecoveryBanner.svelte';
 	import PageHelp from '$components/admin/PageHelp.svelte';
+	import { createListLoader } from '$lib/admin/list-load';
+	import { readAllRecords } from '$lib/admin/read-all-records';
+	import {
+		DraftReadError,
+		findDraftRecord,
+		isRecordId,
+		mayHaveLanded,
+		newRecordId
+	} from '$lib/admin/create-record';
+	import ListLoadStatus from '$components/admin/ListLoadStatus.svelte';
+	import SettingsLoadError from '$components/admin/SettingsLoadError.svelte';
 
 	// State
 	let contacts: ContactMethod[] = $state([]);
 	let views: View[] = $state([]);
-	let loading = $state(true);
+	const listLoad = createListLoader('contacts');
+	let loading = $derived($listLoad.loading && !$listLoad.loaded);
+	let viewsLoading = $state(true);
+	let viewsReady = $state(false);
+	let viewsFailed = $state(false);
+	let canWrite = $derived(
+		$listLoad.loaded &&
+			!$listLoad.loading &&
+			!$listLoad.failed &&
+			!$listLoad.mutating &&
+			viewsReady &&
+			!viewsLoading &&
+			!viewsFailed
+	);
+	let formRun = $state(0);
+	let savingFormRun: number | null = $state(null);
+	let pendingContactId: string | null = $state(null);
+	let draftId: string | null = null;
+	let createSent = false;
 	let showForm = $state(false);
 	let editingContact: ContactMethod | null = $state(null);
 	let saving = $state(false);
+	let formSaving = $derived(saving && savingFormRun === formRun);
 	let memberships: Record<string, { id: string; name: string; slug: string }[]> = $state({});
 
 	// Form fields
@@ -62,7 +91,17 @@
 	);
 
 	function getFormData() {
-		return { type, value, label, icon, protectionLevel, viewVisibility, isPrimary, sortOrder };
+		return {
+			draftId,
+			type,
+			value,
+			label,
+			icon,
+			protectionLevel,
+			viewVisibility,
+			isPrimary,
+			sortOrder
+		};
 	}
 
 	function restoreFromDraft(data: Record<string, any>) {
@@ -71,7 +110,7 @@
 		label = data.label || '';
 		icon = data.icon || '';
 		protectionLevel = data.protectionLevel || 'none';
-		viewVisibility = data.viewVisibility || {};
+		viewVisibility = { ...(data.viewVisibility || {}) };
 		isPrimary = data.isPrimary || false;
 		sortOrder = data.sortOrder || 0;
 	}
@@ -82,16 +121,36 @@
 		}
 	}
 
-	function handleRestoreDraft() {
-		const draft = autosave.loadDraft();
-		if (draft?.data) {
-			restoreFromDraft(draft.data);
-			if (draft.isEditing && draft.editingId) {
-				const contact = contacts.find((c) => c.id === draft.editingId);
-				if (contact) editingContact = contact;
-			}
-			showForm = true;
+	function canChangeContacts() {
+		if (!listLoad.canMutate()) return false;
+		if (!viewsReady || viewsLoading || viewsFailed) {
+			toasts.add('error', $t('admin.list_status.changes_paused'));
+			return false;
 		}
+		return true;
+	}
+
+	function handleRestoreDraft() {
+		if (!canChangeContacts()) return;
+		const draft = autosave.loadDraft();
+		if (!draft?.data || saving) return;
+		const existing =
+			draft.isEditing && draft.editingId
+				? contacts.find((contact) => contact.id === draft.editingId)
+				: null;
+		if (draft.isEditing && !existing) {
+			toasts.add(
+				'error',
+				'This draft belongs to a contact that is no longer available. Your draft has been kept.'
+			);
+			return;
+		}
+		resetForm();
+		restoreFromDraft(draft.data);
+		editingContact = existing || null;
+		draftId = existing ? null : isRecordId(draft.data.draftId) ? draft.data.draftId : newRecordId();
+		createSent = !existing && isRecordId(draft.data.draftId);
+		showForm = true;
 		showRecoveryBanner = false;
 	}
 
@@ -101,12 +160,7 @@
 		recoveryData = null;
 	}
 
-	afterNavigate(({ shallow, type }) => {
-		if (shallow && type === 'goto') return;
-
-		showForm = false;
-		editingContact = null;
-
+	function checkRecoveryDraft() {
 		const draft = autosave.loadDraft();
 		if (
 			draft?.data &&
@@ -125,6 +179,17 @@
 			showRecoveryBanner = false;
 			recoveryData = null;
 		}
+	}
+
+	onMount(checkRecoveryDraft);
+
+	afterNavigate(({ shallow, type }) => {
+		if (shallow && type === 'goto') return;
+
+		showForm = false;
+		editingContact = null;
+
+		checkRecoveryDraft();
 	});
 
 	// Contact method type options with icons
@@ -209,49 +274,50 @@
 		loadViews();
 	});
 
-	// Data loading
-	async function loadContacts() {
-		loading = true;
-		try {
-			const [records, membershipResp] = await Promise.all([
-				await collection('contact_methods').getList(1, 100, {
-					sort: '-sort_order'
-				}),
-				fetch('/api/admin/view-memberships?collection=contact_methods', {
-					headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {}
-				}).then((r) => (r.ok ? r.json() : Promise.reject(new Error('Failed memberships'))))
-			]);
-			contacts = records.items as unknown as ContactMethod[];
-			memberships = (membershipResp.memberships as typeof memberships) || {};
-		} catch (err) {
-			console.error('Failed to load contacts:', err);
-			toasts.add('error', 'Failed to load contact methods');
-		} finally {
-			loading = false;
-		}
+	// A failed required read never stands in for an empty list.
+	function loadContacts() {
+		listLoad.loadMemberships('contact_methods', (value) => (memberships = value));
+		return listLoad.load(
+			(_requestKey, signal) =>
+				readAllRecords<ContactMethod>(
+					getCollectionName('contact_methods'),
+					{ sort: '-sort_order' },
+					signal
+				),
+			(records) => (contacts = records)
+		);
 	}
 
 	async function loadViews() {
-		try {
-			// Sort by id (time-ordered) - created field may not exist in older schemas
-			const records = await collection('views').getList(1, 100, {
-				sort: '-id'
-			});
-			// Reorder to put the default view first
-			const items = records.items as unknown as View[];
-			const defaultIndex = items.findIndex((v) => v.is_default);
-			if (defaultIndex > 0) {
-				const [defaultView] = items.splice(defaultIndex, 1);
-				items.unshift(defaultView);
+		viewsLoading = true;
+		await listLoad.read(
+			'views',
+			(_requestKey, signal) =>
+				readAllRecords<View>(getCollectionName('views'), { sort: '-id' }, signal),
+			(records) => {
+				views = [
+					...records.filter((view) => view.is_default),
+					...records.filter((view) => !view.is_default)
+				];
+				viewsReady = true;
+				viewsFailed = false;
+			},
+			() => {
+				viewsFailed = true;
 			}
-			views = items;
-		} catch (err) {
-			console.error('Failed to load views:', err);
-		}
+		);
+		viewsLoading = false;
 	}
+
+	onDestroy(() => {
+		formRun++;
+	});
 
 	// Form management
 	function resetForm() {
+		formRun++;
+		draftId = null;
+		createSent = false;
 		type = 'email';
 		value = '';
 		label = '';
@@ -264,22 +330,27 @@
 	}
 
 	function openNewForm() {
+		if (!canChangeContacts()) return;
 		resetForm();
+		draftId = newRecordId();
 		showForm = true;
 		showRecoveryBanner = false;
 	}
 
 	function openEditForm(contact: ContactMethod) {
+		if (!canChangeContacts() || pendingContactId === contact.id) return;
+		resetForm();
 		editingContact = contact;
 		type = contact.type;
 		value = contact.value;
 		label = contact.label || '';
 		icon = contact.icon || '';
 		protectionLevel = contact.protection_level;
-		viewVisibility = contact.view_visibility || {};
+		viewVisibility = { ...(contact.view_visibility || {}) };
 		isPrimary = contact.is_primary;
 		sortOrder = contact.sort_order;
 		showForm = true;
+		showRecoveryBanner = false;
 	}
 
 	function closeForm() {
@@ -290,6 +361,7 @@
 
 	// CRUD operations
 	async function handleSubmit() {
+		if (saving || !canChangeContacts()) return;
 		// Validation
 		if (!value.trim()) {
 			toasts.add('error', 'Contact value is required');
@@ -309,7 +381,16 @@
 			return;
 		}
 
+		const run = formRun;
+		const editingId = editingContact?.id;
+		const id = editingId || draftId || newRecordId();
+		if (!editingId) {
+			draftId = id;
+			autosave.saveNow(getFormData(), false);
+		}
 		saving = true;
+		savingFormRun = run;
+		pendingContactId = id;
 		try {
 			const data = {
 				type,
@@ -317,30 +398,77 @@
 				label: label.trim() || null,
 				icon: icon.trim() || null,
 				protection_level: protectionLevel,
-				view_visibility: viewVisibility,
+				view_visibility: { ...viewVisibility },
 				is_primary: isPrimary,
 				sort_order: sortOrder
 			};
 
-			if (editingContact) {
-				await await collection('contact_methods').update(editingContact.id, data);
-				toasts.add('success', 'Contact method updated successfully');
+			const records = collection('contact_methods');
+			const adoptStored = (stored: ContactMethod) => {
+				if (formRun === run) editingContact = stored;
+				const same = Object.entries(data).every(([key, expected]) => {
+					const actual = (stored as unknown as Record<string, unknown>)[key];
+					if (key === 'view_visibility') {
+						const left = Object.entries((actual || {}) as Record<string, boolean>).sort();
+						const right = Object.entries(expected as Record<string, boolean>).sort();
+						return JSON.stringify(left) === JSON.stringify(right);
+					}
+					return (actual ?? '') === (expected ?? '');
+				});
+				if (!same)
+					throw new Error(
+						'The contact was created, but its saved fields differ from this draft. Review your fields and press Update Contact to save them.'
+					);
+			};
+			if (editingId) {
+				await records.update(editingId, data, {
+					requestKey: null,
+					signal: AbortSignal.timeout(30_000)
+				});
 			} else {
-				await await collection('contact_methods').create(data);
-				toasts.add('success', 'Contact method added successfully');
+				const stored = createSent ? await findDraftRecord<ContactMethod>(records, id) : null;
+				if (stored) {
+					adoptStored(stored);
+				} else {
+					if (formRun === run) createSent = true;
+					try {
+						await records.create(
+							{ ...data, id },
+							{ requestKey: null, signal: AbortSignal.timeout(30_000) }
+						);
+					} catch (error) {
+						if (!mayHaveLanded(error)) throw error;
+						const found = await findDraftRecord<ContactMethod>(records, id);
+						if (!found) throw error;
+						adoptStored(found);
+					}
+				}
 			}
-
-			closeForm();
+			toasts.add(
+				'success',
+				editingId ? 'Contact method updated successfully' : 'Contact method added successfully'
+			);
+			if (formRun === run) closeForm();
 			await loadContacts();
 		} catch (err) {
 			console.error('Failed to save contact:', err);
-			toasts.add('error', 'Failed to save contact method');
+			toasts.add(
+				'error',
+				err instanceof DraftReadError
+					? "Couldn't confirm whether this contact was saved. Your draft has been kept; retry before creating another."
+					: err instanceof Error && err.message.startsWith('The contact was created')
+						? err.message
+						: 'Failed to save contact method'
+			);
 		} finally {
 			saving = false;
+			savingFormRun = null;
+			pendingContactId = null;
 		}
 	}
 
-	async function deleteContact(contact: ContactMethod) {
+	const deleteContact = listLoad.exclusive(async (contact: ContactMethod) => {
+		if (saving) return;
 		const displayValue = contact.label || contact.value;
 		const confirmed = await confirm({
 			title: 'Delete Contact Method',
@@ -348,31 +476,43 @@
 			confirmText: 'Delete',
 			danger: true
 		});
-		if (!confirmed) {
+		if (!confirmed || saving || !listLoad.canMutate()) {
 			return;
 		}
 
+		listLoad.setMutating(true);
 		try {
-			await await collection('contact_methods').delete(contact.id);
+			await collection('contact_methods').delete(contact.id, {
+				requestKey: null,
+				signal: AbortSignal.timeout(30_000)
+			});
 			toasts.add('success', 'Contact method deleted');
 			await loadContacts();
 		} catch (err) {
 			console.error('Failed to delete contact:', err);
 			toasts.add('error', 'Failed to delete contact method');
+		} finally {
+			listLoad.setMutating(false);
 		}
-	}
+	});
 
-	async function togglePrimary(contact: ContactMethod) {
+	const togglePrimary = listLoad.exclusive(async (contact: ContactMethod) => {
+		if (saving) return;
+		listLoad.setMutating(true);
 		try {
-			await await collection('contact_methods').update(contact.id, {
-				is_primary: !contact.is_primary
-			});
+			await collection('contact_methods').update(
+				contact.id,
+				{ is_primary: !contact.is_primary },
+				{ requestKey: null, signal: AbortSignal.timeout(30_000) }
+			);
 			await loadContacts();
 		} catch (err) {
 			console.error('Failed to update primary status:', err);
 			toasts.add('error', 'Failed to update primary status');
+		} finally {
+			listLoad.setMutating(false);
 		}
-	}
+	});
 
 	// View visibility helpers
 	function toggleViewVisibility(viewId: string) {
@@ -388,7 +528,10 @@
 	}
 
 	function deselectAllViews() {
-		viewVisibility = {};
+		const offered = new Set(views.map((view) => view.id));
+		viewVisibility = Object.fromEntries(
+			Object.entries(viewVisibility).filter(([id]) => !offered.has(id))
+		);
 	}
 
 	// Get display info for contact type
@@ -429,12 +572,12 @@
 		<p class="text-sm text-gray-600 dark:text-gray-400">
 			Add contact methods with per-view visibility and anti-scraping protection.
 		</p>
-		<button class="btn btn-primary" onclick={openNewForm}
+		<button class="btn btn-primary" onclick={openNewForm} disabled={!canWrite}
 			>{$t('admin.content.common.new_button', { values: { type: 'Contact' } })}</button
 		>
 	</div>
 
-	{#if showRecoveryBanner && recoveryData}
+	{#if showRecoveryBanner && recoveryData && canWrite}
 		<AutosaveRecoveryBanner
 			savedAt={recoveryData.savedAt}
 			isEditing={recoveryData.isEditing}
@@ -444,6 +587,18 @@
 		/>
 	{/if}
 
+	<ListLoadStatus
+		status={$listLoad}
+		label={$t('admin.content.contacts.title').toLowerCase()}
+		onretry={loadContacts}
+	/>
+	{#if viewsFailed}
+		<SettingsLoadError
+			message={$t('admin.list_status.load_failed', { values: { type: 'Facets' } })}
+			pending={viewsLoading}
+			onretry={loadViews}
+		/>
+	{/if}
 	<AdminFilters bind:showAdvanced={showAdvancedFilters} {filterStore} />
 
 	{#if loading}
@@ -468,189 +623,197 @@
 			</div>
 
 			<form onsubmit={preventDefault(handleSubmit)} oninput={handleFormChange} class="space-y-6">
-				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-					<div>
-						<label for="contact-type" class="label">
-							Contact Type <span class="text-red-500">*</span>
-						</label>
-						<select id="contact-type" bind:value={type} onchange={handleTypeChange} class="input">
-							{#each contactTypes as contactType}
-								<option value={contactType.value}>
-									{contactType.icon}
-									{contactType.label}
-								</option>
-							{/each}
-						</select>
-					</div>
-
-					<div>
-						<label for="contact-value" class="label">
-							Value <span class="text-red-500">*</span>
-						</label>
-						<input
-							id="contact-value"
-							type="text"
-							bind:value
-							placeholder={getContactTypeInfo(type).placeholder}
-							class="input"
-							required
-						/>
-					</div>
-				</div>
-
-				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-					<div>
-						<label for="contact-label" class="label">Label (optional)</label>
-						<input
-							id="contact-label"
-							type="text"
-							bind:value={label}
-							placeholder="e.g., 'Work Email' or 'Personal Phone'"
-							class="input"
-						/>
-						<p class="text-xs text-gray-500 mt-1">Custom display label for this contact</p>
-					</div>
-
-					<div>
-						<label for="contact-icon" class="label">Icon (optional)</label>
-						<input
-							id="contact-icon"
-							type="text"
-							bind:value={icon}
-							placeholder="Emoji or icon"
-							class="input"
-							maxlength="4"
-						/>
-						<p class="text-xs text-gray-500 mt-1">
-							Emoji or icon to display (defaults to type icon)
-						</p>
-					</div>
-				</div>
-
-				<fieldset>
-					<legend class="label">
-						Protection Level <span class="text-red-500">*</span>
-					</legend>
-					{#if protectionLevel === 'captcha'}
-						<div
-							class="mb-3 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-sm text-amber-900 dark:text-amber-200"
-							role="note"
-							data-testid="captcha-unavailable-note"
-						>
-							<p>
-								This contact uses CAPTCHA protection, which isn't available yet. Visitors can't
-								reveal it, so public pages show the label and keep the value private.
-							</p>
-							<button
-								type="button"
-								class="mt-2 underline font-medium"
-								onclick={() => (protectionLevel = 'click_to_reveal')}
-							>
-								Switch to Click to Reveal
-							</button>
-						</div>
-					{/if}
-					<div class="space-y-2">
-						{#each protectionLevels as level}
-							<label
-								class="flex items-start space-x-3 p-3 border rounded-lg transition-colors {protectionUnavailable(
-									level.value
-								)
-									? 'cursor-not-allowed opacity-60'
-									: 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800'} {protectionLevel ===
-								level.value
-									? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-									: 'border-gray-300 dark:border-gray-700'}"
-							>
-								<input
-									type="radio"
-									bind:group={protectionLevel}
-									value={level.value}
-									disabled={protectionUnavailable(level.value)}
-									class="mt-1"
-								/>
-								<div class="flex-1">
-									<div class="font-medium">{level.label}</div>
-									<div class="text-sm text-gray-600 dark:text-gray-400">{level.description}</div>
-								</div>
+				<fieldset class="contents" disabled={formSaving || !canWrite}>
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+						<div>
+							<label for="contact-type" class="label">
+								Contact Type <span class="text-red-500">*</span>
 							</label>
-						{/each}
+							<select id="contact-type" bind:value={type} onchange={handleTypeChange} class="input">
+								{#each contactTypes as contactType}
+									<option value={contactType.value}>
+										{contactType.icon}
+										{contactType.label}
+									</option>
+								{/each}
+							</select>
+						</div>
+
+						<div>
+							<label for="contact-value" class="label">
+								Value <span class="text-red-500">*</span>
+							</label>
+							<input
+								id="contact-value"
+								type="text"
+								bind:value
+								placeholder={getContactTypeInfo(type).placeholder}
+								class="input"
+								required
+							/>
+						</div>
 					</div>
-				</fieldset>
 
-				<fieldset>
-					<legend class="label">View Visibility</legend>
-					<p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
-						Select which views should display this contact method. Leave all unchecked to show on
-						all views.
-					</p>
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+						<div>
+							<label for="contact-label" class="label">Label (optional)</label>
+							<input
+								id="contact-label"
+								type="text"
+								bind:value={label}
+								placeholder="e.g., 'Work Email' or 'Personal Phone'"
+								class="input"
+							/>
+							<p class="text-xs text-gray-500 mt-1">Custom display label for this contact</p>
+						</div>
 
-					<div class="flex gap-2 mb-3">
-						<button type="button" class="btn btn-secondary text-sm" onclick={selectAllViews}>
-							Select All
-						</button>
-						<button type="button" class="btn btn-secondary text-sm" onclick={deselectAllViews}>
-							Deselect All
-						</button>
+						<div>
+							<label for="contact-icon" class="label">Icon (optional)</label>
+							<input
+								id="contact-icon"
+								type="text"
+								bind:value={icon}
+								placeholder="Emoji or icon"
+								class="input"
+								maxlength="4"
+							/>
+							<p class="text-xs text-gray-500 mt-1">
+								Emoji or icon to display (defaults to type icon)
+							</p>
+						</div>
 					</div>
 
-					{#if views.length === 0}
-						<p class="text-sm text-gray-500 italic">No views available. Create a view first.</p>
-					{:else}
-						<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-							{#each views as view}
+					<fieldset>
+						<legend class="label">
+							Protection Level <span class="text-red-500">*</span>
+						</legend>
+						{#if protectionLevel === 'captcha'}
+							<div
+								class="mb-3 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-sm text-amber-900 dark:text-amber-200"
+								role="note"
+								data-testid="captcha-unavailable-note"
+							>
+								<p>
+									This contact uses CAPTCHA protection, which isn't available yet. Visitors can't
+									reveal it, so public pages show the label and keep the value private.
+								</p>
+								<button
+									type="button"
+									class="mt-2 underline font-medium"
+									onclick={() => (protectionLevel = 'click_to_reveal')}
+								>
+									Switch to Click to Reveal
+								</button>
+							</div>
+						{/if}
+						<div class="space-y-2">
+							{#each protectionLevels as level}
 								<label
-									class="flex items-center space-x-2 p-2 border rounded cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors {viewVisibility[
-										view.id
-									]
+									class="flex items-start space-x-3 p-3 border rounded-lg transition-colors {protectionUnavailable(
+										level.value
+									)
+										? 'cursor-not-allowed opacity-60'
+										: 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800'} {protectionLevel ===
+									level.value
 										? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
 										: 'border-gray-300 dark:border-gray-700'}"
 								>
 									<input
-										type="checkbox"
-										checked={viewVisibility[view.id] || false}
-										onchange={() => toggleViewVisibility(view.id)}
+										type="radio"
+										bind:group={protectionLevel}
+										value={level.value}
+										disabled={protectionUnavailable(level.value)}
+										class="mt-1"
 									/>
-									<span class="text-sm">{view.name}</span>
-									{#if view.is_default}
-										<span
-											class="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 rounded"
-										>
-											Default
-										</span>
-									{/if}
+									<div class="flex-1">
+										<div class="font-medium">{level.label}</div>
+										<div class="text-sm text-gray-600 dark:text-gray-400">{level.description}</div>
+									</div>
 								</label>
 							{/each}
 						</div>
-					{/if}
+					</fieldset>
+
+					<fieldset>
+						<legend class="label">View Visibility</legend>
+						<p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+							{#if Object.keys(viewVisibility).some((id) => !views.some((view) => view.id === id))}
+								Saved visibility choices for unavailable Facets are retained. These choices still
+								control where this contact appears, even when no visible box is checked.
+							{:else}
+								Select which views should display this contact method. Leave all unchecked to show
+								on all views.
+							{/if}
+						</p>
+
+						<div class="flex gap-2 mb-3">
+							<button type="button" class="btn btn-secondary text-sm" onclick={selectAllViews}>
+								Select All
+							</button>
+							<button type="button" class="btn btn-secondary text-sm" onclick={deselectAllViews}>
+								Deselect All
+							</button>
+						</div>
+
+						{#if views.length === 0}
+							<p class="text-sm text-gray-500 italic">No views available. Create a view first.</p>
+						{:else}
+							<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+								{#each views as view}
+									<label
+										class="flex items-center space-x-2 p-2 border rounded cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors {viewVisibility[
+											view.id
+										]
+											? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+											: 'border-gray-300 dark:border-gray-700'}"
+									>
+										<input
+											type="checkbox"
+											checked={viewVisibility[view.id] || false}
+											onchange={() => toggleViewVisibility(view.id)}
+										/>
+										<span class="text-sm">{view.name}</span>
+										{#if view.is_default}
+											<span
+												class="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 rounded"
+											>
+												Default
+											</span>
+										{/if}
+									</label>
+								{/each}
+							</div>
+						{/if}
+					</fieldset>
+
+					<!-- Primary & Sort Order -->
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+						<div>
+							<label class="flex items-center space-x-2">
+								<input type="checkbox" bind:checked={isPrimary} />
+								<span class="label mb-0">Mark as primary contact</span>
+							</label>
+							<p class="text-xs text-gray-500 mt-1 ml-6">
+								Primary contacts are highlighted in views
+							</p>
+						</div>
+
+						<div>
+							<label for="contact-sort-order" class="label">Sort Order</label>
+							<input
+								id="contact-sort-order"
+								type="number"
+								bind:value={sortOrder}
+								placeholder="0"
+								class="input"
+							/>
+							<p class="text-xs text-gray-500 mt-1">Higher numbers appear first</p>
+						</div>
+					</div>
 				</fieldset>
-
-				<!-- Primary & Sort Order -->
-				<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-					<div>
-						<label class="flex items-center space-x-2">
-							<input type="checkbox" bind:checked={isPrimary} />
-							<span class="label mb-0">Mark as primary contact</span>
-						</label>
-						<p class="text-xs text-gray-500 mt-1 ml-6">Primary contacts are highlighted in views</p>
-					</div>
-
-					<div>
-						<label for="contact-sort-order" class="label">Sort Order</label>
-						<input
-							id="contact-sort-order"
-							type="number"
-							bind:value={sortOrder}
-							placeholder="0"
-							class="input"
-						/>
-						<p class="text-xs text-gray-500 mt-1">Higher numbers appear first</p>
-					</div>
-				</div>
-
 				<!-- Submit -->
 				<div class="flex gap-2 pt-4 border-t">
-					<button type="submit" class="btn btn-primary" disabled={saving}>
+					<button type="submit" class="btn btn-primary" disabled={saving || !canWrite}>
 						{#if saving}
 							Saving...
 						{:else}
@@ -661,6 +824,8 @@
 				</div>
 			</form>
 		</div>
+	{:else if !$listLoad.loaded}
+		<!-- The failed required read is shown above; it is not an empty list. -->
 	{:else if contacts.length === 0}
 		<!-- Empty State -->
 		<div class="card p-8 text-center">
@@ -681,7 +846,9 @@
 			<p class="text-gray-500 dark:text-gray-400 mb-4">
 				Add your first contact method with privacy protection settings.
 			</p>
-			<button class="btn btn-primary" onclick={openNewForm}>+ Add Your First Contact</button>
+			<button class="btn btn-primary" onclick={openNewForm} disabled={!canWrite}
+				>+ Add Your First Contact</button
+			>
 		</div>
 	{:else if filteredContacts.length === 0}
 		<div class="card p-8 text-center">
@@ -774,13 +941,30 @@
 							class="btn btn-secondary text-sm"
 							onclick={() => togglePrimary(contact)}
 							title="Toggle primary"
+							disabled={saving ||
+								!$listLoad.loaded ||
+								$listLoad.failed ||
+								$listLoad.loading ||
+								$listLoad.mutating}
 						>
 							{contact.is_primary ? '⭐' : '☆'}
 						</button>
-						<button class="btn btn-secondary text-sm" onclick={() => openEditForm(contact)}>
+						<button
+							class="btn btn-secondary text-sm"
+							onclick={() => openEditForm(contact)}
+							disabled={!canWrite || pendingContactId === contact.id}
+						>
 							Edit
 						</button>
-						<button class="btn btn-danger-ghost btn-sm" onclick={() => deleteContact(contact)}>
+						<button
+							class="btn btn-danger-ghost btn-sm"
+							onclick={() => deleteContact(contact)}
+							disabled={saving ||
+								!$listLoad.loaded ||
+								$listLoad.failed ||
+								$listLoad.loading ||
+								$listLoad.mutating}
+						>
 							Delete
 						</button>
 					</div>

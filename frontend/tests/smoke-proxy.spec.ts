@@ -62,8 +62,12 @@ test('smoke proxy uses configured ports and preserves the backend/frontend routi
 		}
 		response.end('backend response');
 	});
-	const frontend = http.createServer((_request, response) => {
+	const frontend = http.createServer((request, response) => {
 		response.setHeader('x-test-upstream', 'frontend');
+		if (request.url === '/headers') {
+			response.end(JSON.stringify(request.headers));
+			return;
+		}
 		response.end('frontend response');
 	});
 	const collision = http.createServer();
@@ -107,6 +111,11 @@ test('smoke proxy uses configured ports and preserves the backend/frontend routi
 		expect(page.status).toBe(200);
 		expect(page.headers.get('x-test-upstream')).toBe('frontend');
 		expect(await page.text()).toBe('frontend response');
+
+		const rendered = await fetch(`http://127.0.0.1:${proxyPort}/headers`, {
+			headers: { 'x-facet-client-ip': '203.0.113.99' }
+		}).then((response) => response.json());
+		expect(rendered['x-facet-client-ip']).toBe('127.0.0.1');
 
 		await close(backend);
 		const unavailable = await fetch(`http://127.0.0.1:${proxyPort}/api/posts`);

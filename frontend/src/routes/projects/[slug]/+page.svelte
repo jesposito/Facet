@@ -11,6 +11,7 @@
 	import ThemeToggle from '$components/shared/ThemeToggle.svelte';
 	import ShareButton from '$components/shared/ShareButton.svelte';
 	import VisibilityBadge from '$components/shared/VisibilityBadge.svelte';
+	import Downloads from '$components/public/Downloads.svelte';
 	import Footer from '$components/public/Footer.svelte';
 	import ExperienceRenderer from '$lib/experiences/ExperienceRenderer.svelte';
 	import { readExperience, safeExperienceUrl } from '$lib/experiences/types';
@@ -333,6 +334,10 @@
 						{@html parseMarkdown(data.project.description)}
 					</div>
 				</section>
+			{/if}
+
+			{#if data.project.has_downloads}
+				<Downloads contentType="projects" contentId={data.project.id} fromView={data.fromView} />
 			{/if}
 
 			<!-- Related experience / education -->

@@ -1,6 +1,7 @@
 <script lang="ts">
+	import { t } from 'svelte-i18n';
 	import type { ExperienceLesson } from './types';
-	import { safeExperienceUrl } from './types';
+	import { experienceProviderPage, safeExperienceUrl } from './types';
 	let {
 		title,
 		lessons,
@@ -12,6 +13,7 @@
 	} = $props();
 	let selected = $state('');
 	let active = $derived(lessons.find((l) => l.id === selected) || lessons[0]);
+	let providerPage = $derived(experienceProviderPage(active?.src));
 	let player: HTMLMediaElement | undefined = $state();
 	let failed = $state(false);
 	function choose(id: string) {
@@ -33,7 +35,25 @@
 	{#if active}
 		<div class="experience-player">
 			{#key active.id + active.src}
-				{#if safeExperienceUrl(active.src)}
+				{#if providerPage}
+					<div class="experience-provider-page">
+						{#if safeExperienceUrl(active.poster)}<img
+								src={safeExperienceUrl(active.poster)}
+								alt=""
+								loading="lazy"
+							/>{/if}
+						<a
+							class="experience-provider-link"
+							href={providerPage}
+							target="_blank"
+							rel="noopener noreferrer"
+						>
+							{$t('public.talks.watch_video')}
+							<span class="sr-only">{active.title} {$t('shared.aria.opens_in_new_tab')}</span>
+							<span aria-hidden="true">↗</span>
+						</a>
+					</div>
+				{:else if safeExperienceUrl(active.src)}
 					{#if /\.(mp3|m4a|wav|ogg|opus)(?:[?#]|$)/i.test(active.src)}
 						<audio
 							bind:this={player}
@@ -66,7 +86,7 @@
 				{:else}<p class="experience-empty">A video will appear here once it has been added.</p>{/if}
 			{/key}
 		</div>
-		{#if failed}<p class="experience-media-status" role="status">
+		{#if failed && !providerPage}<p class="experience-media-status" role="status">
 				This recording couldn't load.{#if active.transcript}
 					You can read the transcript below.{/if}
 			</p>{/if}

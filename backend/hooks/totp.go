@@ -91,7 +91,7 @@ func RegisterTOTPHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				"enabled":  enabled,
 				"verified": verified,
 			})
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		// POST /api/totp/begin-setup — generate TOTP secret and return QR URL
 		se.Router.POST("/api/totp/begin-setup", RateLimitMiddleware(rl, "strict")(func(e *core.RequestEvent) error {
@@ -131,7 +131,7 @@ func RegisterTOTPHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				"secret": key.Secret(),
 				"url":    key.URL(),
 			})
-		})).Bind(apis.RequireAuth())
+		})).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		// POST /api/totp/confirm-setup — validate code and enable 2FA
 		se.Router.POST("/api/totp/confirm-setup", RateLimitMiddleware(rl, "strict")(func(e *core.RequestEvent) error {
@@ -191,7 +191,7 @@ func RegisterTOTPHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			return e.JSON(http.StatusOK, map[string]any{
 				"recovery_codes": plaintextCodes,
 			})
-		})).Bind(apis.RequireAuth())
+		})).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		// POST /api/totp/verify — verify TOTP code or recovery code to establish session
 		se.Router.POST("/api/totp/verify", RateLimitMiddleware(rl, "strict")(func(e *core.RequestEvent) error {
@@ -278,7 +278,7 @@ func RegisterTOTPHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			return e.JSON(http.StatusOK, map[string]any{
 				"verified": true,
 			})
-		})).Bind(apis.RequireAuth())
+		})).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		// POST /api/totp/disable — disable 2FA (requires valid code)
 		se.Router.POST("/api/totp/disable", RateLimitMiddleware(rl, "strict")(func(e *core.RequestEvent) error {
@@ -338,7 +338,7 @@ func RegisterTOTPHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			WriteAuditLog(app, "totp_disabled", "auth", user.Id, user.Email(), GetIP(e), GetUserAgent(e), nil)
 
 			return e.JSON(http.StatusOK, map[string]any{"disabled": true})
-		})).Bind(apis.RequireAuth())
+		})).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		// POST /api/totp/regenerate-codes — generate new recovery codes (requires valid TOTP code)
 		se.Router.POST("/api/totp/regenerate-codes", RateLimitMiddleware(rl, "strict")(func(e *core.RequestEvent) error {
@@ -401,7 +401,7 @@ func RegisterTOTPHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			return e.JSON(http.StatusOK, map[string]any{
 				"recovery_codes": plaintextCodes,
 			})
-		})).Bind(apis.RequireAuth())
+		})).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		// POST /api/totp/clear-session — invalidate TOTP session (called on logout)
 		se.Router.POST("/api/totp/clear-session", func(e *core.RequestEvent) error {
@@ -419,7 +419,7 @@ func RegisterTOTPHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 			clearTOTPSessionCookie(e)
 
 			return e.JSON(http.StatusOK, map[string]any{"cleared": true})
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		return se.Next()
 	})

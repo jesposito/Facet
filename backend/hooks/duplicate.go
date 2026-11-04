@@ -14,7 +14,7 @@ func RegisterDuplicateHooks(app *pocketbase.PocketBase) {
 		// POST /api/admin/duplicate/{collection}/{id}
 		se.Router.POST("/api/admin/duplicate/{collection}/{id}", func(e *core.RequestEvent) error {
 			// Require authentication
-			if e.Auth == nil {
+			if !isSuperuser(e) {
 				return apis.NewUnauthorizedError("authentication required", nil)
 			}
 

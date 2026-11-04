@@ -736,51 +736,7 @@ func RegisterCourseHooks(app *pocketbase.PocketBase, planConfig *services.PlanCo
 			courseID := e.Request.PathValue("courseId")
 			moduleID := e.Request.PathValue("moduleId")
 
-			module, err := app.FindRecordById("modules", moduleID)
-			if err != nil {
-				return e.JSON(http.StatusNotFound, map[string]string{"error": "module not found"})
-			}
-			if module.GetString("course") != courseID {
-				return e.JSON(http.StatusBadRequest, map[string]string{"error": "module does not belong to course"})
-			}
-
-			// Cascade delete lessons
-			lessonRecords, err := app.FindRecordsByFilter(
-				"lessons",
-				"module = {:module}",
-				"",
-				1000,
-				0,
-				map[string]interface{}{"module": moduleID},
-			)
-			if err == nil {
-				for _, lesson := range lessonRecords {
-					lpRecords, lpErr := app.FindRecordsByFilter(
-						"lesson_progress",
-						"lesson = {:lesson}",
-						"",
-						1000,
-						0,
-						map[string]interface{}{"lesson": lesson.Id},
-					)
-					if lpErr == nil {
-						for _, lp := range lpRecords {
-							if err := app.Delete(lp); err != nil {
-								app.Logger().Error("Failed to delete lesson_progress during module cascade", "error", err, "lesson_progress_id", lp.Id)
-							}
-						}
-					}
-					if err := app.Delete(lesson); err != nil {
-						app.Logger().Error("Failed to delete lesson during module cascade", "error", err, "lesson_id", lesson.Id)
-					}
-				}
-			}
-
-			if err := app.Delete(module); err != nil {
-				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to delete module"})
-			}
-
-			return e.JSON(http.StatusOK, map[string]string{"status": "deleted"})
+			return respondCourseItemDelete(e, deleteCourseModule(app, courseID, moduleID), "failed to delete module")
 		})
 
 		// POST /api/admin/courses/{courseId}/modules/{moduleId}/lessons
@@ -955,43 +911,7 @@ func RegisterCourseHooks(app *pocketbase.PocketBase, planConfig *services.PlanCo
 			moduleID := e.Request.PathValue("moduleId")
 			lessonID := e.Request.PathValue("lessonId")
 
-			lesson, err := app.FindRecordById("lessons", lessonID)
-			if err != nil {
-				return e.JSON(http.StatusNotFound, map[string]string{"error": "lesson not found"})
-			}
-			if lesson.GetString("module") != moduleID {
-				return e.JSON(http.StatusBadRequest, map[string]string{"error": "lesson does not belong to module"})
-			}
-			module, err := app.FindRecordById("modules", moduleID)
-			if err != nil {
-				return e.JSON(http.StatusNotFound, map[string]string{"error": "module not found"})
-			}
-			if module.GetString("course") != courseID {
-				return e.JSON(http.StatusBadRequest, map[string]string{"error": "module does not belong to course"})
-			}
-
-			// Delete lesson_progress records
-			lpRecords, lpErr := app.FindRecordsByFilter(
-				"lesson_progress",
-				"lesson = {:lesson}",
-				"",
-				1000,
-				0,
-				map[string]interface{}{"lesson": lessonID},
-			)
-			if lpErr == nil {
-				for _, lp := range lpRecords {
-					if err := app.Delete(lp); err != nil {
-						app.Logger().Error("Failed to delete lesson_progress during lesson delete", "error", err, "lesson_progress_id", lp.Id)
-					}
-				}
-			}
-
-			if err := app.Delete(lesson); err != nil {
-				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to delete lesson"})
-			}
-
-			return e.JSON(http.StatusOK, map[string]string{"status": "deleted"})
+			return respondCourseItemDelete(e, deleteCourseLesson(app, courseID, moduleID, lessonID), "failed to delete lesson")
 		})
 
 		// PUT /api/admin/courses/{courseId}/modules/reorder
@@ -1490,67 +1410,8 @@ func RegisterCourseHooks(app *pocketbase.PocketBase, planConfig *services.PlanCo
 		return se.Next()
 	})
 
-	// Cascade delete: when a course is deleted, remove modules, lessons, progress, and related records
-	app.OnRecordAfterDeleteSuccess("courses").BindFunc(func(e *core.RecordEvent) error {
-		courseID := e.Record.Id
-
-		if cpRecords, err := app.FindRecordsByFilter("course_progress", "course = {:id}", "", 1000, 0, map[string]interface{}{"id": courseID}); err == nil {
-			for _, cp := range cpRecords {
-				if err := app.Delete(cp); err != nil {
-					app.Logger().Error("Failed to cascade delete course_progress", "error", err, "id", cp.Id)
-				}
-			}
-		}
-
-		if certRecords, err := app.FindRecordsByFilter("course_certificates", "course = {:id}", "", 1000, 0, map[string]interface{}{"id": courseID}); err == nil {
-			for _, cert := range certRecords {
-				if err := app.Delete(cert); err != nil {
-					app.Logger().Error("Failed to cascade delete course_certificate", "error", err, "id", cert.Id)
-				}
-			}
-		}
-
-		moduleRecords, err := app.FindRecordsByFilter("modules", "course = {:id}", "", 1000, 0, map[string]interface{}{"id": courseID})
-		if err == nil {
-			for _, module := range moduleRecords {
-				if lessons, err := app.FindRecordsByFilter("lessons", "module = {:id}", "", 1000, 0, map[string]interface{}{"id": module.Id}); err == nil {
-					for _, lesson := range lessons {
-						if quizzes, err := app.FindRecordsByFilter("quizzes", "lesson = {:id}", "", 1000, 0, map[string]interface{}{"id": lesson.Id}); err == nil {
-							for _, quiz := range quizzes {
-								if attempts, err := app.FindRecordsByFilter("quiz_attempts", "quiz = {:id}", "", 1000, 0, map[string]interface{}{"id": quiz.Id}); err == nil {
-									for _, attempt := range attempts {
-										if err := app.Delete(attempt); err != nil {
-											app.Logger().Error("Failed to cascade delete quiz_attempt", "error", err, "id", attempt.Id)
-										}
-									}
-								}
-								if questions, err := app.FindRecordsByFilter("quiz_questions", "quiz = {:id}", "", 1000, 0, map[string]interface{}{"id": quiz.Id}); err == nil {
-									for _, question := range questions {
-										if err := app.Delete(question); err != nil {
-											app.Logger().Error("Failed to cascade delete quiz_question", "error", err, "id", question.Id)
-										}
-									}
-								}
-								if err := app.Delete(quiz); err != nil {
-									app.Logger().Error("Failed to cascade delete quiz", "error", err, "id", quiz.Id)
-								}
-							}
-						}
-
-						if lpRecords, err := app.FindRecordsByFilter("lesson_progress", "lesson = {:id}", "", 1000, 0, map[string]interface{}{"id": lesson.Id}); err == nil {
-							for _, lp := range lpRecords {
-								_ = app.Delete(lp)
-							}
-						}
-						_ = app.Delete(lesson)
-					}
-				}
-				_ = app.Delete(module)
-			}
-		}
-
-		return e.Next()
-	})
+	// Deleting a course takes its curriculum and learner records with it.
+	app.OnRecordDeleteExecute("courses").BindFunc(deleteCourseWithDependents)
 }
 
 // canAccessLesson checks if buyer can access a lesson when sequential access is enabled

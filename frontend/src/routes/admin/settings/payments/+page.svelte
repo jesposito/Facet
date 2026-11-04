@@ -1,10 +1,12 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onDestroy, onMount, tick } from 'svelte';
 	import { pb } from '$lib/pocketbase';
 	import { t } from 'svelte-i18n';
 	import { brandName } from '$lib/stores/plan';
 	import { toasts } from '$lib/stores';
 	import { hasFeature } from '$lib/stores/plan';
+	import { fetchSettingsJson } from '$lib/admin/settings-load';
+	import SettingsLoadError from '$components/admin/SettingsLoadError.svelte';
 
 	const hasPricing = hasFeature('pricing');
 
@@ -16,12 +18,13 @@
 	};
 
 	let loading = $state(true);
-	let status = $state<StripeStatus>({
-		configured: false,
-		secret_key_set: false,
-		webhook_secret_set: false,
-		source: 'none'
-	});
+	let loaded = $state(false);
+	let loadFailed = $state(false);
+	let status = $state<StripeStatus | null>(null);
+	let statusHeading: HTMLHeadingElement | null = $state(null);
+	let loadSequence = 0;
+	let statusRequest: AbortController | null = null;
+	let mounted = false;
 
 	// Secret key state
 	let secretKey = $state('');
@@ -38,30 +41,72 @@
 	// Test connection state
 	let testing = $state(false);
 
-	onMount(async () => {
-		if ($hasPricing) {
-			await loadStatus();
-		}
+	onMount(() => {
+		mounted = true;
+		if ($hasPricing) void loadStatus();
 	});
 
+	onDestroy(() => {
+		mounted = false;
+		loadSequence += 1;
+		statusRequest?.abort();
+	});
+
+	function parseStripeStatus(data: Record<string, unknown>): StripeStatus {
+		const { configured, secret_key_set, webhook_secret_set, source } = data;
+		if (
+			typeof configured !== 'boolean' ||
+			typeof secret_key_set !== 'boolean' ||
+			typeof webhook_secret_set !== 'boolean' ||
+			(source !== 'database' && source !== 'environment' && source !== 'none')
+		) {
+			throw new Error('Invalid Stripe settings response');
+		}
+		return { configured, secret_key_set, webhook_secret_set, source };
+	}
+
+	function statusUnavailable(): boolean {
+		return !loaded || loadFailed || loading || !status;
+	}
+
 	async function loadStatus() {
+		const sequence = ++loadSequence;
+		statusRequest?.abort();
+		statusRequest = new AbortController();
 		loading = true;
 		try {
-			const response = await fetch('/api/stripe-settings', {
-				headers: { Authorization: pb.authStore.token }
+			const data = await fetchSettingsJson('/api/stripe-settings', {
+				headers: { Authorization: pb.authStore.token },
+				signal: statusRequest.signal
 			});
-			if (response.ok) {
-				status = await response.json();
-			}
+			const nextStatus = parseStripeStatus(data);
+			if (!mounted || sequence !== loadSequence) return;
+			status = nextStatus;
+			loaded = true;
+			loadFailed = false;
 		} catch (err) {
+			if (!mounted || sequence !== loadSequence) return;
 			console.error('Failed to load Stripe settings:', err);
+			loadFailed = true;
 		} finally {
-			loading = false;
+			if (mounted && sequence === loadSequence) {
+				loading = false;
+				statusRequest = null;
+			}
+		}
+	}
+
+	async function retryStatus() {
+		if (loading) return;
+		await loadStatus();
+		if (!loadFailed) {
+			await tick();
+			statusHeading?.focus();
 		}
 	}
 
 	async function saveSecretKey() {
-		if (!secretKey.trim()) return;
+		if (statusUnavailable() || secretKeySaving || !secretKey.trim()) return;
 		secretKeySaving = true;
 		try {
 			const response = await fetch('/api/stripe-settings', {
@@ -90,7 +135,7 @@
 	}
 
 	async function saveWebhookSecret() {
-		if (!webhookSecret.trim()) return;
+		if (statusUnavailable() || webhookSecretSaving || !webhookSecret.trim()) return;
 		webhookSecretSaving = true;
 		try {
 			const response = await fetch('/api/stripe-settings', {
@@ -119,6 +164,7 @@
 	}
 
 	async function clearSettings() {
+		if (statusUnavailable() || secretKeyClearing || webhookSecretClearing) return;
 		secretKeyClearing = true;
 		webhookSecretClearing = true;
 		try {
@@ -147,6 +193,7 @@
 	}
 
 	async function testConnection() {
+		if (statusUnavailable() || testing) return;
 		testing = true;
 		try {
 			const response = await fetch('/api/stripe-settings/test', {
@@ -176,8 +223,8 @@
 	}
 
 	let statusColor = $derived.by(() => {
-		if (status.source === 'database') return 'green';
-		if (status.source === 'environment') return 'yellow';
+		if (status?.source === 'database') return 'green';
+		if (status?.source === 'environment') return 'yellow';
 		return 'gray';
 	});
 </script>
@@ -188,6 +235,7 @@
 
 <div class="max-w-4xl mx-auto">
 	{#if !$hasPricing}
+		<h1 class="sr-only">{$t('admin.settings_page.payments.title')}</h1>
 		<!-- Feature not available -->
 		<div class="card p-8 text-center">
 			<div
@@ -216,23 +264,37 @@
 		<div class="space-y-6">
 			<!-- Page header -->
 			<div>
-				<p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+				<h1 class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
 					{$t('admin.settings_page.payments.title')}
-				</p>
+				</h1>
 				<p class="text-sm text-gray-600 dark:text-gray-400">
 					{$t('admin.settings_page.payments.description')}
 				</p>
 			</div>
 
+			{#if loadFailed}
+				<SettingsLoadError
+					message={$t('admin.settings_page.recoverycopy.load_error', {
+						values: { resource: $t('admin.settings_page.recoverycopy.payments') }
+					})}
+					pending={loading}
+					onretry={retryStatus}
+				/>
+			{/if}
+
 			<!-- Status card -->
 			<div class="card p-6">
-				<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+				<h2
+					bind:this={statusHeading}
+					tabindex="-1"
+					class="text-lg font-semibold text-gray-900 dark:text-white mb-4 outline-none"
+				>
 					{$t('admin.settings_page.payments.status')}
 				</h2>
 
-				{#if loading}
+				{#if loading && !status}
 					<div class="animate-pulse h-6 bg-gray-200 dark:bg-gray-700 rounded w-48"></div>
-				{:else}
+				{:else if status}
 					<div class="flex items-center gap-3">
 						<span
 							class="inline-block w-3 h-3 rounded-full shrink-0
@@ -256,191 +318,197 @@
 			</div>
 
 			<!-- Keys configuration -->
-			<div class="card p-6 space-y-6">
-				<!-- Secret Key -->
-				<div>
-					<label for="stripe-secret-key" class="label"
-						>{$t('admin.settings_page.payments.secret_key')}</label
-					>
-					{#if status.secret_key_set && !secretKeyEditing}
-						<div class="flex items-center gap-3">
-							<span class="text-sm text-green-600 dark:text-green-400 flex items-center gap-1.5">
-								<svg
-									class="w-4 h-4 shrink-0"
-									fill="none"
-									viewBox="0 0 24 24"
-									stroke="currentColor"
-									aria-hidden="true"
-								>
-									<path
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										stroke-width="2"
-										d="M5 13l4 4L19 7"
-									/>
-								</svg>
-								{$t('admin.settings_page.payments.secret_key_set')}
-							</span>
-							<button
-								type="button"
-								class="btn btn-sm btn-secondary"
-								onclick={() => {
-									secretKeyEditing = true;
-								}}
-							>
-								{$t('admin.settings_page.payments.change')}
-							</button>
-						</div>
-					{:else}
-						<div class="flex gap-2">
-							<input
-								type="password"
-								id="stripe-secret-key"
-								bind:value={secretKey}
-								class="input flex-1"
-								placeholder={$t('admin.settings_page.payments.secret_key_placeholder')}
-								disabled={secretKeySaving}
-								autocomplete="off"
-							/>
-							<button
-								type="button"
-								class="btn btn-primary btn-sm"
-								onclick={saveSecretKey}
-								disabled={secretKeySaving || !secretKey.trim()}
-							>
-								{secretKeySaving ? '...' : $t('admin.settings_page.payments.save')}
-							</button>
-							{#if secretKeyEditing}
-								<button
-									type="button"
-									class="btn btn-secondary btn-sm"
-									onclick={() => {
-										secretKeyEditing = false;
-										secretKey = '';
-									}}
-									disabled={secretKeySaving}
-								>
-									{$t('admin.settings_page.payments.change')}
-								</button>
-							{/if}
-						</div>
-					{/if}
-				</div>
-
-				<!-- Webhook Secret -->
-				<div>
-					<label for="stripe-webhook-secret" class="label"
-						>{$t('admin.settings_page.payments.webhook_secret')}</label
-					>
-					{#if status.webhook_secret_set && !webhookSecretEditing}
-						<div class="flex items-center gap-3">
-							<span class="text-sm text-green-600 dark:text-green-400 flex items-center gap-1.5">
-								<svg
-									class="w-4 h-4 shrink-0"
-									fill="none"
-									viewBox="0 0 24 24"
-									stroke="currentColor"
-									aria-hidden="true"
-								>
-									<path
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										stroke-width="2"
-										d="M5 13l4 4L19 7"
-									/>
-								</svg>
-								{$t('admin.settings_page.payments.webhook_secret_set')}
-							</span>
-							<button
-								type="button"
-								class="btn btn-sm btn-secondary"
-								onclick={() => {
-									webhookSecretEditing = true;
-								}}
-							>
-								{$t('admin.settings_page.payments.change')}
-							</button>
-						</div>
-					{:else}
-						<div class="flex gap-2">
-							<input
-								type="password"
-								id="stripe-webhook-secret"
-								bind:value={webhookSecret}
-								class="input flex-1"
-								placeholder={$t('admin.settings_page.payments.webhook_secret_placeholder')}
-								disabled={webhookSecretSaving}
-								autocomplete="off"
-							/>
-							<button
-								type="button"
-								class="btn btn-primary btn-sm"
-								onclick={saveWebhookSecret}
-								disabled={webhookSecretSaving || !webhookSecret.trim()}
-							>
-								{webhookSecretSaving ? '...' : $t('admin.settings_page.payments.save')}
-							</button>
-							{#if webhookSecretEditing}
-								<button
-									type="button"
-									class="btn btn-secondary btn-sm"
-									onclick={() => {
-										webhookSecretEditing = false;
-										webhookSecret = '';
-									}}
-									disabled={webhookSecretSaving}
-								>
-									{$t('admin.settings_page.payments.change')}
-								</button>
-							{/if}
-						</div>
-					{/if}
-				</div>
-
-				<!-- Actions -->
-				<div
-					class="flex flex-wrap items-center gap-3 pt-2 border-t border-gray-200 dark:border-gray-700"
-				>
-					{#if status.configured}
-						<button
-							type="button"
-							class="btn btn-secondary"
-							onclick={testConnection}
-							disabled={testing}
+			{#if status}
+				<fieldset class="card p-6 space-y-6" disabled={loading || loadFailed}>
+					<!-- Secret Key -->
+					<div>
+						<label for="stripe-secret-key" class="label"
+							>{$t('admin.settings_page.payments.secret_key')}</label
 						>
-							{#if testing}
-								<svg class="animate-spin h-4 w-4 mr-2 inline-block" fill="none" viewBox="0 0 24 24">
-									<circle
-										class="opacity-25"
-										cx="12"
-										cy="12"
-										r="10"
+						{#if status.secret_key_set && !secretKeyEditing}
+							<div class="flex items-center gap-3">
+								<span class="text-sm text-green-700 dark:text-green-400 flex items-center gap-1.5">
+									<svg
+										class="w-4 h-4 shrink-0"
+										fill="none"
+										viewBox="0 0 24 24"
 										stroke="currentColor"
-										stroke-width="4"
-									></circle>
-									<path
-										class="opacity-75"
-										fill="currentColor"
-										d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-									></path>
-								</svg>
-							{/if}
-							{$t('admin.settings_page.payments.test_connection')}
-						</button>
+										aria-hidden="true"
+									>
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M5 13l4 4L19 7"
+										/>
+									</svg>
+									{$t('admin.settings_page.payments.secret_key_set')}
+								</span>
+								<button
+									type="button"
+									class="btn btn-sm btn-secondary"
+									onclick={() => {
+										secretKeyEditing = true;
+									}}
+								>
+									{$t('admin.settings_page.payments.change')}
+								</button>
+							</div>
+						{:else}
+							<div class="flex gap-2">
+								<input
+									type="password"
+									id="stripe-secret-key"
+									bind:value={secretKey}
+									class="input flex-1"
+									placeholder={$t('admin.settings_page.payments.secret_key_placeholder')}
+									disabled={secretKeySaving}
+									autocomplete="off"
+								/>
+								<button
+									type="button"
+									class="btn btn-primary btn-sm"
+									onclick={saveSecretKey}
+									disabled={secretKeySaving || !secretKey.trim()}
+								>
+									{secretKeySaving ? '...' : $t('admin.settings_page.payments.save')}
+								</button>
+								{#if secretKeyEditing}
+									<button
+										type="button"
+										class="btn btn-secondary btn-sm"
+										onclick={() => {
+											secretKeyEditing = false;
+											secretKey = '';
+										}}
+										disabled={secretKeySaving}
+									>
+										{$t('admin.settings_page.payments.change')}
+									</button>
+								{/if}
+							</div>
+						{/if}
+					</div>
 
-						{#if status.source === 'database'}
+					<!-- Webhook Secret -->
+					<div>
+						<label for="stripe-webhook-secret" class="label"
+							>{$t('admin.settings_page.payments.webhook_secret')}</label
+						>
+						{#if status.webhook_secret_set && !webhookSecretEditing}
+							<div class="flex items-center gap-3">
+								<span class="text-sm text-green-700 dark:text-green-400 flex items-center gap-1.5">
+									<svg
+										class="w-4 h-4 shrink-0"
+										fill="none"
+										viewBox="0 0 24 24"
+										stroke="currentColor"
+										aria-hidden="true"
+									>
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M5 13l4 4L19 7"
+										/>
+									</svg>
+									{$t('admin.settings_page.payments.webhook_secret_set')}
+								</span>
+								<button
+									type="button"
+									class="btn btn-sm btn-secondary"
+									onclick={() => {
+										webhookSecretEditing = true;
+									}}
+								>
+									{$t('admin.settings_page.payments.change')}
+								</button>
+							</div>
+						{:else}
+							<div class="flex gap-2">
+								<input
+									type="password"
+									id="stripe-webhook-secret"
+									bind:value={webhookSecret}
+									class="input flex-1"
+									placeholder={$t('admin.settings_page.payments.webhook_secret_placeholder')}
+									disabled={webhookSecretSaving}
+									autocomplete="off"
+								/>
+								<button
+									type="button"
+									class="btn btn-primary btn-sm"
+									onclick={saveWebhookSecret}
+									disabled={webhookSecretSaving || !webhookSecret.trim()}
+								>
+									{webhookSecretSaving ? '...' : $t('admin.settings_page.payments.save')}
+								</button>
+								{#if webhookSecretEditing}
+									<button
+										type="button"
+										class="btn btn-secondary btn-sm"
+										onclick={() => {
+											webhookSecretEditing = false;
+											webhookSecret = '';
+										}}
+										disabled={webhookSecretSaving}
+									>
+										{$t('admin.settings_page.payments.change')}
+									</button>
+								{/if}
+							</div>
+						{/if}
+					</div>
+
+					<!-- Actions -->
+					<div
+						class="flex flex-wrap items-center gap-3 pt-2 border-t border-gray-200 dark:border-gray-700"
+					>
+						{#if status.configured}
 							<button
 								type="button"
-								class="btn btn-danger-ghost"
-								onclick={clearSettings}
-								disabled={secretKeyClearing || webhookSecretClearing}
+								class="btn btn-secondary"
+								onclick={testConnection}
+								disabled={testing || loading || loadFailed}
 							>
-								{$t('admin.settings_page.payments.clear')}
+								{#if testing}
+									<svg
+										class="animate-spin h-4 w-4 mr-2 inline-block"
+										fill="none"
+										viewBox="0 0 24 24"
+									>
+										<circle
+											class="opacity-25"
+											cx="12"
+											cy="12"
+											r="10"
+											stroke="currentColor"
+											stroke-width="4"
+										></circle>
+										<path
+											class="opacity-75"
+											fill="currentColor"
+											d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+										></path>
+									</svg>
+								{/if}
+								{$t('admin.settings_page.payments.test_connection')}
 							</button>
+
+							{#if status.source === 'database'}
+								<button
+									type="button"
+									class="btn btn-danger-ghost"
+									onclick={clearSettings}
+									disabled={secretKeyClearing || webhookSecretClearing || loading || loadFailed}
+								>
+									{$t('admin.settings_page.payments.clear')}
+								</button>
+							{/if}
 						{/if}
-					{/if}
-				</div>
-			</div>
+					</div>
+				</fieldset>
+			{/if}
 
 			<!-- Info box -->
 			<div

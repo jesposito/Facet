@@ -14,16 +14,16 @@ docker compose up -d
 
 Docker Compose reads `.env` to fill in `${VARIABLES}` in the Compose file. The container itself only sees variables listed under `environment:`.
 
-- The [Compose file in the install guide](SETUP.md#option-1-published-image-with-docker-compose-recommended) lists every variable on this page.
+- The [Compose file in the install guide](SETUP.md#option-1-published-image-with-docker-compose-recommended) is a minimal installation example. Add any other setting you use to its `environment:` list; putting a name in `.env` alone does not pass it to the container.
 - The repository's own [`docker-compose.yml`](../docker-compose.yml) passes through the core, proxy, OAuth, SMTP, AI, Stripe, backup, `PUID`/`PGID` and tuning variables, plus `SEED_DATA`. It doesn't pass `FACET_FEATURE_COURSES`, `FACET_MANAGED` or `PORT` (which only sets the published host port). Add any variable that's missing to its `environment:` list.
 
 To check what the container actually received:
 
 ```bash
-docker exec facet printenv | sort
+docker exec facet printenv APP_URL PUBLIC_APP_URL TRUST_PROXY TRUSTED_PROXIES
 ```
 
-That prints secrets too, so don't paste the output anywhere public.
+This shows only selected address and proxy settings. Check other non-secret settings by naming them explicitly, rather than printing the entire environment.
 
 ## Core settings
 
@@ -71,6 +71,8 @@ Headers a visitor can set themselves, such as `CF-Connecting-IP` and `X-Real-IP`
 
 With the default `TRUSTED_PROXIES`, Caddy takes every connection at face value. Behind a proxy that means every visitor looks like the proxy and shares one rate-limit bucket, so set it when you add a proxy. The client address also feeds view deduplication and the access log.
 
+A native install without Caddy has to do the frontend's part itself. Set `ADDRESS_HEADER` to a header your proxy always overwrites, and let only that proxy reach the frontend. Without `ADDRESS_HEADER`, share-link checks see the proxy's address, so visitors share one rate-limit bucket.
+
 Neither variable affects how links are built. That's what `APP_URL` is for.
 
 ### `PORT`
@@ -85,7 +87,7 @@ Host folders mounted at `/data` and `/uploads` by the Compose files. Defaults: `
 
 ### `PUID` and `PGID`
 
-The user and group IDs the app runs as inside the container. Default: `1000` for both. At startup the container changes ownership of `/app`, `/data` and `/uploads` to this user, then drops root ([start script](../docker/start.sh)). Set them to match the owner of your host folders, which is common on Unraid and Synology.
+The user and group IDs the app runs as inside the container. Default: `1000` for both. At startup the container changes ownership of `/data`, `/uploads` and the `facet` user's home folder to this user, then drops root ([start script](../docker/start.sh)). Set them to match the owner of your host folders, which is common on Unraid and Synology.
 
 ### `ADMIN_ENABLED`
 
@@ -161,7 +163,7 @@ See [Upgrades, backups and recovery](UPGRADE.md#built-in-backups) for what these
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `FACET_FEATURE_COURSES` | `true` | Courses are on for self-hosted sites. `false` or `0` turns off the catalogue and new enrolments; people who already bought or enrolled keep access. A value that isn't a boolean keeps the default ([source](../backend/services/plan.go)). Not passed through by the repository's `docker-compose.yml`. |
+| `FACET_FEATURE_COURSES` | `true` | Courses are on for self-hosted sites. `false` or `0` stops the course and quiz endpoints being registered, so course pages stop working, including for existing learners. To close the catalogue and new enrolments while existing learners keep access, use **Settings → Features** instead ([details](AUDIENCE.md#courses)). A value that isn't a boolean keeps the default ([source](../backend/services/plan.go)). Not passed through by the repository's `docker-compose.yml`. |
 | `FACET_MANAGED` | `false` | Compatibility switch for managed hosting. Unknown features default to off in this mode. It isn't a supported way to run self-hosted Facet, and it doesn't make this repository a cloud product. |
 | `NEWSLETTER_SEND_INTERVAL_MS` | `1000` | Pause between newsletter messages, in milliseconds. Newsletters go out one campaign at a time, one message after another; raise this to stay within your SMTP provider's rate limits ([details](AUDIENCE.md#delivery-pacing-and-resume)). Passed through by the repository's `docker-compose.yml`. Values from `0` (no pause) through `3600000` (one hour) are accepted. |
 | `NEWSLETTER_MAX_CONCURRENT_SENDS` | (legacy) | No longer allows parallel campaigns. Only one newsletter campaign runs at a time whatever this is set to. |
@@ -177,8 +179,9 @@ You normally leave these alone. The [Dockerfile](../docker/Dockerfile) and [star
 | `DATA_DIR` | `/data` | PocketBase data directory |
 | `UPLOADS_DIR` | `/uploads` | Where uploaded files are stored. `/data/storage` is a symlink to it. |
 | `POCKETBASE_URL` | `http://localhost:8090` | How the SvelteKit server reaches the backend |
-| `PORT`, `HOST` | `3000`, `0.0.0.0` | SvelteKit server address inside the container |
+| `PORT`, `HOST` | `3000`, `127.0.0.1` | SvelteKit server address inside the container. Only Caddy can reach it. |
 | `PROTOCOL_HEADER`, `HOST_HEADER` | `x-forwarded-proto`, `x-forwarded-host` | Headers SvelteKit trusts for the original scheme and host |
+| `ADDRESS_HEADER` | `x-facet-client-ip` | Header SvelteKit trusts for the client address. Caddy overwrites it on every request. |
 | `NODE_ENV` | `production` | |
 | `FACET_VERSION`, `BUILD_DATE`, `GIT_COMMIT` | build arguments | Shown in the startup banner and **About Facet** |
 
@@ -193,7 +196,7 @@ These are for working on Facet, not running it. See the [development guide](DEV.
 | `DEV_MODE` | `true` skips the HTTPS startup warning |
 | `VITE_POCKETBASE_URL` | Backend URL for a Vite dev server on another host or port |
 | `VITE_DISABLE_LIVE_PREVIEW` | Turns off the admin live-preview pane in development builds |
-| `PLAYWRIGHT_BASE_URL`, `API_BASE_URL`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `PB_SUPERUSER_EMAIL`, `PB_SUPERUSER_PASSWORD` | Browser test settings. See [frontend/tests/README.md](../frontend/tests/README.md). |
+| `PLAYWRIGHT_BASE_URL`, `API_BASE_URL`, `ADMIN_EMAIL`, `ADMIN_PASSWORD` | Browser test settings. See [frontend/tests/README.md](../frontend/tests/README.md). |
 
 `FACET_MANAGED` and `FACET_DEMO_MODE` exist for compatibility with the hosted service and have no use in a self-hosted install.
 

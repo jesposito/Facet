@@ -51,7 +51,7 @@ services:
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:-}
       APP_URL: ${APP_URL:-http://localhost:8080}
       ADMIN_EMAILS: ${ADMIN_EMAILS:-}
-      TRUST_PROXY: ${TRUST_PROXY:-false}
+      TRUST_PROXY: ${TRUST_PROXY:-true}
       TRUSTED_PROXIES: ${TRUSTED_PROXIES:-127.0.0.1/32}
       ADMIN_ENABLED: ${ADMIN_ENABLED:-false}
       # Optional sign-in providers
@@ -101,7 +101,7 @@ docker compose up -d
 docker compose logs -f facet
 ```
 
-The log prints a banner with the version, the storage location and the default login. When you see `Facet is running!`, press Ctrl+C to stop following the log (the container keeps running) and open `http://localhost:8080`.
+The log prints a banner with the version, the storage location, the admin email and where to find the password, but never the password itself. When you see `Facet is running!`, press Ctrl+C to stop following the log (the container keeps running) and open `http://localhost:8080`.
 
 The `:3` tag follows the latest 3.x release. You can pin an exact release (for example `:3.6.0`) or use `:latest`. [Upgrades](UPGRADE.md#choosing-an-image-tag) explains the trade-off.
 
@@ -145,7 +145,7 @@ When you fill in the template:
 - Map `/data` to `/mnt/user/appdata/facet` and `/uploads` to wherever you keep larger files, for example `/mnt/user/appdata/facet/uploads`.
 - Set **ADMIN_EMAILS** to your email address.
 - Set **APP_URL** to the address you'll use, such as `http://tower.local:8080` on your network or `https://facet.example.com` behind a tunnel.
-- Set **TRUST_PROXY** to `true` only if traffic reaches Facet through a reverse proxy or tunnel. See [Configuration](CONFIGURATION.md#trust_proxy).
+- Keep **TRUST_PROXY** set to `true`. If traffic reaches Facet through a reverse proxy or tunnel, also set `TRUSTED_PROXIES`. See [Configuration](CONFIGURATION.md#trust_proxy).
 
 The container honours `PUID` and `PGID` (both default to `1000`) so files in your appdata share are owned by the user you choose. To include Facet in Unraid's appdata backups, make sure both mapped folders are covered. [Backups](UPGRADE.md#back-up-your-data) explains what each folder contains.
 
@@ -186,7 +186,7 @@ The automatic key lives inside `/data`, so a complete backup of `/data` includes
 
 - **Profile:** add your name, headline and photo under **Profile**.
 - **Content:** fill in **Experience**, **Projects** and the other sections, or upload a résumé under **Import & AI** if you've [set up an AI provider](AI_FEATURES.md).
-- **Views:** create a view for each audience under **Views**. [Features](FEATURES.md#views) explains how views work.
+- **Facets:** make a page for an audience or purpose under **Facets**. Share it directly, add it to site navigation, or use it both ways. [Ways to use Facets](FACETS.md) walks through examples.
 - **Try the demo:** the demo toggle in the admin header loads a sample profile so you can see a full site. Your own content is kept separately and comes back when you switch the demo off. While the demo is on, your public pages show the demo profile too ([Features](FEATURES.md#demo-mode)).
 - **Two-factor sign-in:** turn it on in **Account & Security**.
 - **Email:** if you want newsletters or email notifications, set up your own SMTP server with a sender address, and set `APP_URL` to your public address. Self-hosted Facet sends all email through that server only. A successful test means the server accepted it; check that it actually arrives ([Newsletter](AUDIENCE.md#before-you-start)).

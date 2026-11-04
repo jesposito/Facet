@@ -266,7 +266,8 @@
 	}
 
 	function getFeaturedId(sectionKey: string): string | undefined {
-		const val = data.sectionFeaturedIds?.[sectionKey];
+		const val =
+			data.sectionFeaturedIds?.[sectionKey] ?? data.homepageSections?.[sectionKey]?.featuredId;
 		return typeof val === 'string' ? val : undefined;
 	}
 
@@ -345,13 +346,6 @@
 			root.style.setProperty('--font-heading', `'${pack.heading}', ${pack.headingFallback}`);
 			root.style.setProperty('--font-body', `'${pack.body}', ${pack.bodyFallback}`);
 			root.style.setProperty('--font-code', `'${pack.code}', ${pack.codeFallback}`);
-			const existing = document.getElementById('view-google-fonts');
-			if (existing) existing.remove();
-			const link = document.createElement('link');
-			link.id = 'view-google-fonts';
-			link.rel = 'stylesheet';
-			link.href = pack.googleFontsUrl;
-			document.head.appendChild(link);
 		}
 
 		// Check AI Print availability

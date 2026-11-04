@@ -99,6 +99,25 @@ export function safeExperienceUrl(value: unknown, link = false): string {
 	}
 }
 
+// Hosts and paths are exact, so lookalike domains and media files on provider CDNs stay native.
+const providerPages = [
+	/^(?:(?:www|m)\.)?youtube\.com\/watch\?(?:.*&)?v=[\w-]+(?:&|$)/,
+	/^(?:(?:www|m)\.)?youtube\.com\/(?:shorts|live|embed)\/[\w-]+\/?(?:\?|$)/,
+	/^(?:www\.)?youtube-nocookie\.com\/embed\/[\w-]+\/?(?:\?|$)/,
+	/^youtu\.be\/[\w-]+\/?(?:\?|$)/,
+	/^(?:www\.)?vimeo\.com\/(?:channels\/[\w-]+\/)?\d+(?:\/[\da-f]+)?\/?(?:\?|$)/,
+	/^player\.vimeo\.com\/video\/\d+\/?(?:\?|$)/,
+	/^(?:iframe|player)\.mediadelivery\.net\/(?:embed|play)\/\d+\/[\w-]+\/?(?:\?|$)/
+];
+
+/** The safe URL of a video page that only plays on its provider's site, otherwise ''. */
+export function experienceProviderPage(value: unknown): string {
+	const safe = safeExperienceUrl(value);
+	if (!safe || safe.startsWith('/')) return '';
+	const { host, pathname, search } = new URL(safe);
+	return providerPages.some((page) => page.test(host + pathname + search)) ? safe : '';
+}
+
 /** Fail closed on old, malformed or future documents; keep the classic project available. */
 export function readExperience(value: unknown): ProjectExperience | null {
 	const object = (v: unknown): v is Record<string, any> =>

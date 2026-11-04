@@ -25,9 +25,10 @@
 
 	interface Props {
 		isMobile?: boolean;
+		onClose?: () => void;
 	}
 
-	let { isMobile = false }: Props = $props();
+	let { isMobile = false, onClose }: Props = $props();
 
 	// State for dynamically loaded facets
 	let facets: Array<Record<string, unknown>> = $state([]);
@@ -517,6 +518,24 @@
 			: 'left-0 w-16'}"
 	aria-label={$t('shared.aria.admin_navigation')}
 >
+	{#if isMobile && $adminSidebarOpen}
+		<button
+			type="button"
+			class="shrink-0 self-end m-2 mb-0 p-3 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 sp:text-[var(--ink)] sp:hover:bg-[var(--chip)] transition-colors"
+			onclick={onClose}
+			aria-label={$t('admin.layout.close_navigation')}
+		>
+			<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+				<path
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					stroke-width="2"
+					d="M6 18L18 6M6 6l12 12"
+				></path>
+			</svg>
+		</button>
+	{/if}
+
 	<nav
 		class="p-3 space-y-1 flex-1 min-h-0 overflow-y-auto overscroll-contain"
 		aria-label={$t('shared.aria.main_menu')}
@@ -770,7 +789,7 @@
 	{#if $adminSidebarOpen}
 		<div class="shrink-0 px-3 pb-3 pt-2 border-t border-gray-200 dark:border-gray-700">
 			<div class="flex items-center justify-center gap-1.5">
-				<span class="text-xs text-gray-400 dark:text-gray-500">{appVersion}</span>
+				<span class="text-xs text-gray-600 dark:text-gray-400">{appVersion}</span>
 				<button
 					type="button"
 					class="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded transition-colors disabled:opacity-50"

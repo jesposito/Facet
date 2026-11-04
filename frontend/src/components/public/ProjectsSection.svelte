@@ -160,7 +160,7 @@
 							<div class="mt-4 flex flex-wrap gap-2">
 								{#each featuredItem.tech_stack as tech}
 									<span
-										class="px-2.5 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded"
+										class="px-2.5 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded"
 									>
 										{tech}
 									</span>
@@ -254,13 +254,13 @@
 									<div class="mt-3 flex flex-wrap gap-1.5">
 										{#each project.tech_stack.slice(0, 3) as tech}
 											<span
-												class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded"
+												class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded"
 											>
 												{tech}
 											</span>
 										{/each}
 										{#if project.tech_stack.length > 3}
-											<span class="px-2 py-0.5 text-xs text-gray-500">
+											<span class="px-2 py-0.5 text-xs text-gray-500 dark:text-gray-400">
 												+{project.tech_stack.length - 3}
 											</span>
 										{/if}
@@ -341,13 +341,13 @@
 									<div class="flex flex-wrap gap-1.5">
 										{#each project.tech_stack.slice(0, 5) as tech}
 											<span
-												class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded"
+												class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded"
 											>
 												{tech}
 											</span>
 										{/each}
 										{#if project.tech_stack.length > 5}
-											<span class="px-2 py-0.5 text-xs text-gray-500">
+											<span class="px-2 py-0.5 text-xs text-gray-500 dark:text-gray-400">
 												+{project.tech_stack.length - 5}
 											</span>
 										{/if}
@@ -449,13 +449,13 @@
 							<div class="mt-4 flex flex-wrap gap-2">
 								{#each project.tech_stack.slice(0, 5) as tech}
 									<span
-										class="px-2.5 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded"
+										class="px-2.5 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded"
 									>
 										{tech}
 									</span>
 								{/each}
 								{#if project.tech_stack.length > 5}
-									<span class="px-2.5 py-1 text-sm text-gray-500">
+									<span class="px-2.5 py-1 text-sm text-gray-500 dark:text-gray-400">
 										+{project.tech_stack.length - 5}
 									</span>
 								{/if}
@@ -555,13 +555,13 @@
 							<div class="mt-3 flex flex-wrap gap-1.5">
 								{#each project.tech_stack.slice(0, 4) as tech}
 									<span
-										class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded"
+										class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded"
 									>
 										{tech}
 									</span>
 								{/each}
 								{#if project.tech_stack.length > 4}
-									<span class="px-2 py-0.5 text-xs text-gray-500">
+									<span class="px-2 py-0.5 text-xs text-gray-500 dark:text-gray-400">
 										+{project.tech_stack.length - 4}
 									</span>
 								{/if}

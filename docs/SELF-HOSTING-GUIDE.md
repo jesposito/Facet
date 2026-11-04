@@ -65,7 +65,7 @@ A tunnel makes an outbound connection from your machine to Cloudflare, so you do
    ```
 5. Set `APP_URL=https://facet.example.com` and `TRUST_PROXY=true`, then `docker compose up -d`.
 
-Cloudflare adds a `CF-Connecting-IP` header, which Facet uses for per-visitor rate limits.
+Facet ignores `CF-Connecting-IP`. Set `TRUSTED_PROXIES` to the tunnel connector’s source address or network, and keep `TRUST_PROXY=true`, so Caddy can resolve the visitor address from the cleaned `X-Forwarded-For` header. Without that trust configuration, visitors may share the connector’s rate-limit bucket ([configuration](CONFIGURATION.md#trust_proxy)).
 
 ## Option B: a reverse proxy you run
 
@@ -74,7 +74,7 @@ Use this if you already run Nginx Proxy Manager, Caddy, Traefik or nginx for oth
 Two things trip people up:
 
 - **Upload size.** Facet accepts request bodies up to 25 MB ([Caddyfile](../docker/Caddyfile)). Many proxies default to 1 MB, which makes image and résumé uploads fail with a 413 error. Raise your proxy's limit to at least 25 MB.
-- **Forwarded headers.** Pass the original host and scheme (`X-Forwarded-Host`, `X-Forwarded-Proto`) and the client IP (`X-Real-IP` or `X-Forwarded-For`). Most proxies do this by default.
+- **Forwarded headers.** Pass the original host and scheme (`X-Forwarded-Host`, `X-Forwarded-Proto`) and the client IP in `X-Forwarded-For`. Facet ignores `X-Real-IP`. Most proxies do this by default.
 
 ### Nginx Proxy Manager
 
@@ -130,7 +130,7 @@ server {
 
 ## Option C: stay on your network
 
-If Facet only needs to work at home, skip all of this. Set `APP_URL` to the address you use, such as `http://192.168.1.20:8080` or `http://tower.local:8080`, and leave `TRUST_PROXY=false`.
+If Facet only needs to work at home, skip all of this. Set `APP_URL` to the address you use, such as `http://192.168.1.20:8080` or `http://tower.local:8080`, and leave `TRUST_PROXY=true` and `TRUSTED_PROXIES` at its default.
 
 Without HTTPS, passwords travel unencrypted across your network, and Facet logs a reminder about that at startup. On a home network that's usually an accepted trade-off. Don't forward port 8080 from your router to the internet without HTTPS in front.
 
@@ -153,7 +153,7 @@ OAuth is optional. Password sign-in keeps working alongside it.
    GITHUB_CLIENT_ID=...
    GITHUB_CLIENT_SECRET=...
    ```
-   If you use the repository's `docker-compose.yml`, also add these four names to its `environment:` list. That file doesn't pass them through by default ([why](CONFIGURATION.md#does-the-variable-reach-the-container)).
+   The repository's `docker-compose.yml` already passes these OAuth variables through. If you use the minimal installation example or your own Compose file, add any missing names to its `environment:` list ([details](CONFIGURATION.md#does-the-variable-reach-the-container)).
 4. Recreate the container (`docker compose up -d`). The log should include `OAuth env config: providers enabled`.
 5. Make sure the email on your Google or GitHub account is listed in `ADMIN_EMAILS`. OAuth sign-in is refused for any other address, and refused entirely when `ADMIN_EMAILS` is empty and an account already exists ([source](../backend/hooks/auth.go)).
 

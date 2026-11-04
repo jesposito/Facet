@@ -3,7 +3,7 @@
  *
  * Curated font pairings for typography customization.
  * Each pack includes heading, body, and code fonts with
- * pre-built Google Fonts URLs for performance.
+ * locally bundled faces for every pack.
  */
 
 export type FontPack =
@@ -28,7 +28,6 @@ export interface FontPackInfo {
 	bodyFallback: string;
 	code: string;
 	codeFallback: string;
-	googleFontsUrl: string;
 }
 
 export const FONT_PACKS: Record<FontPack, FontPackInfo> = {
@@ -41,9 +40,7 @@ export const FONT_PACKS: Record<FontPack, FontPackInfo> = {
 		body: 'Plus Jakarta Sans',
 		bodyFallback: 'Inter, system-ui, sans-serif',
 		code: 'JetBrains Mono',
-		codeFallback: 'monospace',
-		googleFontsUrl:
-			'https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap'
+		codeFallback: 'monospace'
 	},
 	modern: {
 		name: 'modern',
@@ -54,9 +51,7 @@ export const FONT_PACKS: Record<FontPack, FontPackInfo> = {
 		body: 'Inter',
 		bodyFallback: 'system-ui, sans-serif',
 		code: 'JetBrains Mono',
-		codeFallback: 'monospace',
-		googleFontsUrl:
-			'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap'
+		codeFallback: 'monospace'
 	},
 	classic: {
 		name: 'classic',
@@ -67,9 +62,7 @@ export const FONT_PACKS: Record<FontPack, FontPackInfo> = {
 		body: 'Source Sans 3',
 		bodyFallback: 'Inter, system-ui, sans-serif',
 		code: 'Source Code Pro',
-		codeFallback: 'monospace',
-		googleFontsUrl:
-			'https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Source+Sans+3:wght@400;500;600;700&family=Source+Code+Pro:wght@400;500&display=swap'
+		codeFallback: 'monospace'
 	},
 	technical: {
 		name: 'technical',
@@ -80,9 +73,7 @@ export const FONT_PACKS: Record<FontPack, FontPackInfo> = {
 		body: 'IBM Plex Sans',
 		bodyFallback: 'system-ui, sans-serif',
 		code: 'IBM Plex Mono',
-		codeFallback: 'monospace',
-		googleFontsUrl:
-			'https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap'
+		codeFallback: 'monospace'
 	},
 	'editorial-bold': {
 		name: 'editorial-bold',
@@ -93,9 +84,7 @@ export const FONT_PACKS: Record<FontPack, FontPackInfo> = {
 		body: 'Nunito Sans',
 		bodyFallback: 'Inter, system-ui, sans-serif',
 		code: 'Fira Code',
-		codeFallback: 'monospace',
-		googleFontsUrl:
-			'https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=Nunito+Sans:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap'
+		codeFallback: 'monospace'
 	},
 	humanist: {
 		name: 'humanist',
@@ -106,9 +95,7 @@ export const FONT_PACKS: Record<FontPack, FontPackInfo> = {
 		body: 'Lato',
 		bodyFallback: 'Inter, system-ui, sans-serif',
 		code: 'Source Code Pro',
-		codeFallback: 'monospace',
-		googleFontsUrl:
-			'https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Lato:wght@400;700&family=Source+Code+Pro:wght@400;500&display=swap'
+		codeFallback: 'monospace'
 	},
 	geometric: {
 		name: 'geometric',
@@ -119,9 +106,7 @@ export const FONT_PACKS: Record<FontPack, FontPackInfo> = {
 		body: 'DM Sans',
 		bodyFallback: 'system-ui, sans-serif',
 		code: 'DM Mono',
-		codeFallback: 'monospace',
-		googleFontsUrl:
-			'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap'
+		codeFallback: 'monospace'
 	},
 	'soft-premium': {
 		name: 'soft-premium',
@@ -134,10 +119,7 @@ export const FONT_PACKS: Record<FontPack, FontPackInfo> = {
 		body: 'Hanken Grotesk',
 		bodyFallback: "'Plus Jakarta Sans', system-ui, sans-serif",
 		code: 'JetBrains Mono',
-		codeFallback: 'monospace',
-		// Includes Newsreader for the --font-accent editorial flourishes.
-		googleFontsUrl:
-			'https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Newsreader:ital,wght@0,400;0,500;1,400;1,500&family=JetBrains+Mono:wght@400;500&display=swap'
+		codeFallback: 'monospace'
 	}
 };
 
@@ -182,11 +164,4 @@ export function generateFontCSSVars(packName?: string | null): string {
     --font-body: '${pack.body}', ${pack.bodyFallback};
     --font-code: '${pack.code}', ${pack.codeFallback};
   }`;
-}
-
-/**
- * Get the Google Fonts URL for a given font pack.
- */
-export function getGoogleFontsUrl(packName?: string | null): string {
-	return getFontPack(packName).googleFontsUrl;
 }

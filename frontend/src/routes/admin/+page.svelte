@@ -1,124 +1,194 @@
 <script lang="ts">
-	import { pb } from '$lib/pocketbase';
-	import { collection } from '$lib/stores/demo';
-	import { toasts } from '$lib/stores';
-	import { onMount, onDestroy } from 'svelte';
+	import type { ListResult } from 'pocketbase';
+	import { pb, type Experience, type Project, type View } from '$lib/pocketbase';
+	import { collection, demoMode } from '$lib/stores/demo';
+	import { onMount, onDestroy, tick } from 'svelte';
 	import { t } from 'svelte-i18n';
 	import { brandName } from '$lib/stores/plan';
+	import FacetUseCases from '$components/admin/FacetUseCases.svelte';
 
-	let stats = $state({
-		projects: 0,
-		experience: 0,
-		totalVisitors: 0,
-		pendingProposals: 0
-	});
+	type Timestamped = { updated?: string };
+	type DashboardView = View & Timestamped & { view_count?: number; last_viewed_at?: string };
 
-	let viewMetrics: Array<{
-		id: string;
-		name: string;
-		slug: string;
-		view_count: number;
-		last_viewed_at: string;
-	}> = $state([]);
-	let homepageMetrics = $state({ view_count: 0, last_viewed_at: '' });
-	let recentActivity: Array<{ type: string; title: string }> = $state([]);
+	interface SiteMetrics {
+		homepage_view_count?: number;
+		homepage_last_viewed_at?: string;
+	}
+
+	// The SDK cancels by method and path unless given a key, so without these the
+	// layout's and sidebar's calls to the same collections cancel each other's.
+	const REQUEST_KEYS = {
+		projects: 'admin-dashboard-projects',
+		experience: 'admin-dashboard-experience',
+		views: 'admin-dashboard-views',
+		proposals: 'admin-dashboard-proposals'
+	};
+
+	// null means "not known yet", which is different from a confirmed zero.
+	let projects = $state<ListResult<Project & Timestamped> | null>(null);
+	let experience = $state<ListResult<Experience & Timestamped> | null>(null);
+	let views = $state<DashboardView[] | null>(null);
+	let pendingProposals = $state<number | null>(null);
+	let pendingProposalId = $state('');
+	let siteMetrics = $state<SiteMetrics | null>(null);
 	let loading = $state(true);
-	let mounted = false;
+	let loadFailed = $state(false);
+	let heading: HTMLHeadingElement | null = $state(null);
+
+	let loadSequence = 0;
+	let settingsRequest: AbortController | null = null;
 
 	// Simple pattern - admin layout handles auth
 	onMount(() => {
-		mounted = true;
 		loadDashboard();
 	});
 
 	onDestroy(() => {
-		mounted = false;
+		loadSequence += 1;
+		settingsRequest?.abort();
+		Object.values(REQUEST_KEYS).forEach((key) => pb.cancelRequest(key));
 	});
 
+	async function fetchSiteMetrics(signal: AbortSignal): Promise<SiteMetrics> {
+		const response = await fetch('/api/site-settings', { signal });
+		if (!response.ok) {
+			throw new Error(`Site settings request failed with status ${response.status}`);
+		}
+		return response.json();
+	}
+
 	async function loadDashboard() {
-		if (!mounted) return;
+		const sequence = ++loadSequence;
+		settingsRequest?.abort();
+		settingsRequest = new AbortController();
+		loading = true;
+		const timeout = setTimeout(() => {
+			if (sequence !== loadSequence) return;
+			settingsRequest?.abort();
+			Object.values(REQUEST_KEYS).forEach((key) => pb.cancelRequest(key));
+		}, 20_000);
 
-		try {
-			const [projectsRes, experienceRes, viewsRes, proposalsRes, settingsRes] = await Promise.all([
-				collection('projects').getList(1, 1),
-				collection('experience').getList(1, 1),
-				collection('views').getFullList({ sort: '-view_count' }),
-				pb.collection('import_proposals').getList(1, 1, { filter: "status = 'pending'" }),
-				fetch('/api/site-settings')
-					.then((r) => (r.ok ? r.json() : null))
-					.catch(() => null)
-			]);
+		// Demo collections were cloned before created/updated existed.
+		const recentSort = $demoMode ? {} : { sort: '-updated' };
 
-			if (!mounted) return;
+		const results = await Promise.allSettled([
+			collection('projects').getList<Project & Timestamped>(1, 3, {
+				...recentSort,
+				requestKey: REQUEST_KEYS.projects
+			}),
+			collection('experience').getList<Experience & Timestamped>(1, 3, {
+				...recentSort,
+				requestKey: REQUEST_KEYS.experience
+			}),
+			collection('views').getFullList<DashboardView>({
+				sort: '-view_count',
+				requestKey: REQUEST_KEYS.views
+			}),
+			pb.collection('import_proposals').getList(1, 1, {
+				filter: "status = 'pending'",
+				requestKey: REQUEST_KEYS.proposals
+			}),
+			fetchSiteMetrics(settingsRequest.signal)
+		]);
+		clearTimeout(timeout);
 
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			const views = viewsRes as any[];
+		// Left the page, or a newer load took over.
+		if (sequence !== loadSequence) return;
 
-			const hpViewCount = settingsRes?.homepage_view_count || 0;
-			homepageMetrics = {
-				view_count: hpViewCount,
-				last_viewed_at: settingsRes?.homepage_last_viewed_at || ''
-			};
+		const [projectsResult, experienceResult, viewsResult, proposalsResult, settingsResult] =
+			results;
 
-			stats = {
-				projects: projectsRes.totalItems,
-				experience: experienceRes.totalItems,
-				totalVisitors: views.reduce((sum, v) => sum + (v.view_count || 0), 0) + hpViewCount,
-				pendingProposals: proposalsRes.totalItems
-			};
+		// Each source updates on success only, so a failed retry keeps what's known.
+		if (projectsResult.status === 'fulfilled') projects = projectsResult.value;
+		if (experienceResult.status === 'fulfilled') experience = experienceResult.value;
+		if (viewsResult.status === 'fulfilled') views = viewsResult.value;
+		if (proposalsResult.status === 'fulfilled') {
+			pendingProposals = proposalsResult.value.totalItems;
+			pendingProposalId = proposalsResult.value.items[0]?.id ?? '';
+		}
+		if (settingsResult.status === 'fulfilled') siteMetrics = settingsResult.value;
 
-			viewMetrics = views.map((v) => ({
-				id: v.id,
-				name: v.name || '',
-				slug: v.slug || '',
-				view_count: v.view_count || 0,
-				last_viewed_at: v.last_viewed_at || ''
-			}));
+		const failures = results.filter((result) => result.status === 'rejected');
+		failures.forEach((failure) => console.error('Failed to load dashboard data:', failure.reason));
+		loadFailed = failures.length > 0;
+		loading = false;
+	}
 
-			// Get recent projects and experience for activity feed
-			const [recentProjects, recentExperience] = await Promise.all([
-				collection('projects').getList(1, 3, { sort: '-id' }),
-				collection('experience').getList(1, 3, { sort: '-id' })
-			]);
-
-			if (!mounted) return;
-
-			recentActivity = [
-				...recentProjects.items.map((p) => ({
-					type: 'project',
-					title: p.title,
-					id: p.id
-				})),
-				...recentExperience.items.map((e) => ({
-					type: 'experience',
-					title: `${e.title} at ${e.company}`,
-					id: e.id
-				}))
-			]
-				.sort((a, b) => b.id.localeCompare(a.id))
-				.slice(0, 5);
-		} catch (err) {
-			if (err instanceof Error && err.message.includes('autocancelled')) {
-				return;
-			}
-			console.error('Failed to load dashboard stats:', err);
-			if (mounted) {
-				toasts.error('Failed to load dashboard stats');
-			}
-		} finally {
-			if (mounted) {
-				loading = false;
-			}
+	async function retryDashboard() {
+		if (loading) return;
+		await loadDashboard();
+		if (!loadFailed) {
+			// The Retry button is gone, so keep keyboard focus somewhere useful.
+			await tick();
+			heading?.focus();
 		}
 	}
 
 	let isEmpty = $derived(
-		!loading && stats.projects === 0 && stats.experience === 0 && viewMetrics.length === 0
+		!loadFailed && projects?.totalItems === 0 && experience?.totalItems === 0 && views?.length === 0
 	);
 
-	function formatRelativeDate(dateStr: string): string {
-		if (!dateStr) return '';
-		const date = new Date(dateStr);
+	let showSkeleton = $derived(
+		loading &&
+			!loadFailed &&
+			projects === null &&
+			experience === null &&
+			views === null &&
+			pendingProposals === null &&
+			siteMetrics === null
+	);
+
+	let homepageViewCount = $derived(siteMetrics?.homepage_view_count ?? 0);
+
+	let metrics = $derived([
+		{ label: $t('admin.dashboard.stats_projects'), value: projects?.totalItems ?? null },
+		{ label: $t('admin.dashboard.stats_experience'), value: experience?.totalItems ?? null },
+		{
+			label: $t('admin.dashboard.stats_total_visitors'),
+			value:
+				views && siteMetrics
+					? views.reduce((sum, view) => sum + (view.view_count ?? 0), homepageViewCount)
+					: null
+		},
+		{ label: $t('admin.dashboard.pending_reviews'), value: pendingProposals }
+	]);
+
+	let recentFacets = $derived(
+		[...(views ?? [])]
+			.sort((a, b) => parseTimestamp(b.updated) - parseTimestamp(a.updated))
+			.slice(0, 4)
+	);
+
+	let recentActivity = $derived(
+		[
+			...(projects?.items ?? []).map((p) => ({
+				type: 'project',
+				title: p.title,
+				id: p.id,
+				updated: p.updated
+			})),
+			...(experience?.items ?? []).map((e) => ({
+				type: 'experience',
+				title: `${e.title} at ${e.company}`,
+				id: e.id,
+				updated: e.updated
+			}))
+		]
+			.sort((a, b) => parseTimestamp(b.updated) - parseTimestamp(a.updated))
+			.slice(0, 5)
+	);
+
+	// PocketBase separates date and time with a space, which only some browsers parse.
+	function parseTimestamp(dateStr?: string): number {
+		if (!dateStr) return 0;
+		const parsed = Date.parse(dateStr.replace(' ', 'T'));
+		return Number.isNaN(parsed) ? 0 : parsed;
+	}
+
+	function formatRelativeDate(dateStr?: string): string {
+		const timestamp = parseTimestamp(dateStr);
+		if (!timestamp) return '';
+		const date = new Date(timestamp);
 		const now = new Date();
 		const diffMs = now.getTime() - date.getTime();
 		const diffMins = Math.floor(diffMs / 60000);
@@ -141,80 +211,48 @@
 </svelte:head>
 
 <div class="max-w-6xl mx-auto">
-	{#if loading}
-		<!-- Loading skeleton that matches content structure -->
-		<div class="animate-fade-in">
-			<!-- Title skeleton -->
-			<div class="h-8 bg-gray-200 dark:bg-gray-700 rounded w-48 mb-6 relative overflow-hidden">
-				<div class="absolute inset-0 animate-shimmer"></div>
-			</div>
+	<header class="flex flex-wrap items-center justify-between gap-3 mb-4">
+		<h1
+			bind:this={heading}
+			tabindex="-1"
+			class="text-2xl font-bold text-gray-900 dark:text-white outline-none"
+		>
+			{isEmpty ? $t('admin.dashboard.welcome_title') : $t('admin.dashboard.title')}
+		</h1>
+		<a href="/admin/views/new" class="btn btn-primary">{$t('admin.views.create_facet')}</a>
+	</header>
 
-			<!-- Stats grid skeleton -->
-			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-				{#each Array(4) as _}
-					<div class="card p-6">
-						<div class="flex items-center justify-between">
-							<div class="space-y-2">
-								<div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-20 relative overflow-hidden">
-									<div class="absolute inset-0 animate-shimmer"></div>
-								</div>
-								<div class="h-8 bg-gray-200 dark:bg-gray-700 rounded w-12 relative overflow-hidden">
-									<div class="absolute inset-0 animate-shimmer"></div>
-								</div>
-							</div>
-							<div
-								class="w-12 h-12 rounded-lg bg-gray-200 dark:bg-gray-700 relative overflow-hidden"
-							>
-								<div class="absolute inset-0 animate-shimmer"></div>
-							</div>
-						</div>
-					</div>
-				{/each}
-			</div>
-
-			<!-- Quick actions and activity skeleton -->
-			<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-				<div class="card p-6">
-					<div class="h-6 bg-gray-200 dark:bg-gray-700 rounded w-32 mb-4 relative overflow-hidden">
-						<div class="absolute inset-0 animate-shimmer"></div>
-					</div>
-					<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-						{#each Array(6) as _}
-							<div class="h-10 bg-gray-200 dark:bg-gray-700 rounded-lg relative overflow-hidden">
-								<div class="absolute inset-0 animate-shimmer"></div>
-							</div>
-						{/each}
-					</div>
+	{#if loadFailed}
+		<div
+			class="mb-4 card p-4 border-l-4 border-red-500 bg-red-50 dark:bg-red-900/20"
+			role="alert"
+			aria-busy={loading}
+		>
+			<div class="flex flex-wrap items-center gap-3">
+				<div class="flex-1 min-w-[12rem]">
+					<p class="font-medium text-red-800 dark:text-red-200">
+						{$t('admin.dashboard.load_error_title')}
+					</p>
+					<p class="text-sm text-red-700 dark:text-red-300">
+						{$t('admin.dashboard.load_error_message')}
+					</p>
 				</div>
-				<div class="card p-6">
-					<div class="h-6 bg-gray-200 dark:bg-gray-700 rounded w-32 mb-4 relative overflow-hidden">
-						<div class="absolute inset-0 animate-shimmer"></div>
-					</div>
-					<div class="space-y-3">
-						{#each Array(3) as _}
-							<div class="flex items-center gap-3">
-								<div
-									class="w-10 h-10 rounded-lg bg-gray-200 dark:bg-gray-700 relative overflow-hidden"
-								>
-									<div class="absolute inset-0 animate-shimmer"></div>
-								</div>
-								<div
-									class="flex-1 h-4 bg-gray-200 dark:bg-gray-700 rounded relative overflow-hidden"
-								>
-									<div class="absolute inset-0 animate-shimmer"></div>
-								</div>
-							</div>
-						{/each}
-					</div>
-				</div>
+				<!-- aria-disabled, not disabled: a disabled button would drop keyboard focus. -->
+				<button
+					type="button"
+					class="btn btn-sm btn-secondary"
+					aria-disabled={loading}
+					onclick={retryDashboard}
+				>
+					{loading ? $t('admin.dashboard.retrying') : $t('admin.dashboard.retry')}
+				</button>
 			</div>
 		</div>
-	{:else if isEmpty}
-		<!-- Welcome state for first-time users -->
-		<div class="card p-8 mb-8">
-			<h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-3">
-				{$t('admin.dashboard.welcome_title')}
-			</h1>
+	{/if}
+
+	{#if isEmpty}
+		<!-- Welcome copy for first-time users -->
+		<div class="mb-6">
 			<p class="text-gray-600 dark:text-gray-400">
 				{@html $t('admin.dashboard.welcome_description', {
 					values: {
@@ -227,142 +265,129 @@
 				{$t('admin.dashboard.no_rush')}
 			</p>
 		</div>
-	{:else}
-		<h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-			{$t('admin.dashboard.title')}
-		</h1>
-
-		<!-- Stats grid (overview band under soft-premium: flat, typographic) -->
-		<dl class="stat-band grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-			<div class="stat-cell card p-6">
-				<div class="flex items-center justify-between">
-					<div>
-						<dt class="stat-label text-sm text-gray-500 dark:text-gray-400">
-							{$t('admin.dashboard.stats_projects')}
-						</dt>
-						<dd class="stat-figure text-2xl font-bold text-gray-900 dark:text-white">
-							{stats.projects}
-						</dd>
-					</div>
-					<div
-						class="stat-icon w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900 flex items-center justify-center"
-					>
-						<svg
-							class="w-6 h-6 text-blue-600 dark:text-blue-400"
-							fill="none"
-							viewBox="0 0 24 24"
-							stroke="currentColor"
-							aria-hidden="true"
-						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
-							/>
-						</svg>
-					</div>
-				</div>
-			</div>
-
-			<div class="stat-cell card p-6">
-				<div class="flex items-center justify-between">
-					<div>
-						<dt class="stat-label text-sm text-gray-500 dark:text-gray-400">
-							{$t('admin.dashboard.stats_experience')}
-						</dt>
-						<dd class="stat-figure text-2xl font-bold text-gray-900 dark:text-white">
-							{stats.experience}
-						</dd>
-					</div>
-					<div
-						class="stat-icon w-12 h-12 rounded-lg bg-green-100 dark:bg-green-900 flex items-center justify-center"
-					>
-						<svg
-							class="w-6 h-6 text-green-600 dark:text-green-400"
-							fill="none"
-							viewBox="0 0 24 24"
-							stroke="currentColor"
-							aria-hidden="true"
-						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-							/>
-						</svg>
-					</div>
-				</div>
-			</div>
-
-			<div class="stat-cell card p-6">
-				<div class="flex items-center justify-between">
-					<div>
-						<dt class="stat-label text-sm text-gray-500 dark:text-gray-400">
-							{$t('admin.dashboard.stats_total_visitors')}
-						</dt>
-						<dd class="stat-figure text-2xl font-bold text-gray-900 dark:text-white">
-							{stats.totalVisitors.toLocaleString()}
-						</dd>
-					</div>
-					<div
-						class="stat-icon w-12 h-12 rounded-lg bg-purple-100 dark:bg-purple-900 flex items-center justify-center"
-					>
-						<svg
-							class="w-6 h-6 text-purple-600 dark:text-purple-400"
-							fill="none"
-							viewBox="0 0 24 24"
-							stroke="currentColor"
-							aria-hidden="true"
-						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"
-							/>
-						</svg>
-					</div>
-				</div>
-			</div>
-
-			<div class="stat-cell card p-6">
-				<div class="flex items-center justify-between">
-					<div>
-						<dt class="stat-label text-sm text-gray-500 dark:text-gray-400">
-							{$t('admin.dashboard.pending_reviews')}
-						</dt>
-						<dd class="stat-figure text-2xl font-bold text-gray-900 dark:text-white">
-							{stats.pendingProposals}
-						</dd>
-					</div>
-					<div
-						class="stat-icon w-12 h-12 rounded-lg bg-yellow-100 dark:bg-yellow-900 flex items-center justify-center"
-					>
-						<svg
-							class="w-6 h-6 text-yellow-600 dark:text-yellow-400"
-							fill="none"
-							viewBox="0 0 24 24"
-							stroke="currentColor"
-							aria-hidden="true"
-						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-							/>
-						</svg>
-					</div>
-				</div>
-			</div>
-		</dl>
 	{/if}
 
-	<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+	<!-- Pending proposals alert -->
+	{#if pendingProposals !== null && pendingProposals > 0}
+		<div class="mb-4 card p-4 border-l-4 border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20">
+			<div class="flex flex-wrap items-center gap-3">
+				<svg
+					class="w-6 h-6 text-yellow-600 dark:text-yellow-400"
+					fill="none"
+					viewBox="0 0 24 24"
+					stroke="currentColor"
+					aria-hidden="true"
+				>
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="2"
+						d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+					/>
+				</svg>
+				<div class="flex-1 min-w-[12rem]">
+					<p class="font-medium text-yellow-800 dark:text-yellow-200">
+						{$t('admin.dashboard.pending_alert', { values: { count: pendingProposals } })}
+					</p>
+				</div>
+				<a
+					href="/admin/review/{pendingProposalId}"
+					class="btn btn-sm bg-yellow-700 text-white hover:bg-yellow-800"
+				>
+					{$t('admin.dashboard.review_now')}
+				</a>
+			</div>
+		</div>
+	{/if}
+
+	{#if showSkeleton}
+		<!-- Loading skeleton that matches content structure -->
+		<div
+			class="animate-fade-in space-y-4 mb-6"
+			role="status"
+			aria-label={$t('admin.layout.loading')}
+		>
+			<div class="card p-4 space-y-3">
+				{#each Array(3) as _}
+					<div class="h-10 bg-gray-200 dark:bg-gray-700 rounded relative overflow-hidden">
+						<div class="absolute inset-0 animate-shimmer"></div>
+					</div>
+				{/each}
+			</div>
+			<div class="card p-4 grid grid-cols-2 lg:grid-cols-4 gap-4">
+				{#each Array(4) as _}
+					<div class="h-12 bg-gray-200 dark:bg-gray-700 rounded relative overflow-hidden">
+						<div class="absolute inset-0 animate-shimmer"></div>
+					</div>
+				{/each}
+			</div>
+		</div>
+	{:else}
+		<!-- Existing Facets: the owner's work, ahead of the numbers -->
+		{#if recentFacets.length > 0}
+			<section class="card mb-4" aria-labelledby="dashboard-facets-heading">
+				<div class="flex items-center justify-between gap-3 px-4 pt-3 pb-2">
+					<h2
+						id="dashboard-facets-heading"
+						class="text-lg font-semibold text-gray-900 dark:text-white"
+					>
+						{$t('admin.views.title')}
+					</h2>
+					<a
+						href="/admin/views"
+						class="text-sm text-primary-700 dark:text-primary-400 hover:underline"
+					>
+						{$t('admin.dashboard.manage_facets')}
+					</a>
+				</div>
+				<ul class="divide-y divide-gray-100 dark:divide-gray-700">
+					{#each recentFacets as facet (facet.id)}
+						<li class="px-4 py-2 min-w-0">
+							<a
+								href="/admin/views/{facet.id}"
+								class="block truncate text-sm font-medium text-gray-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400"
+							>
+								{facet.name}
+							</a>
+							<p class="truncate text-xs text-gray-500 dark:text-gray-400">
+								/{facet.slug} · {$t(
+									`admin.views.filter_visibility_${facet.visibility}`
+								)}{facet.is_active ? '' : ` · ${$t('admin.views.pill_inactive')}`}
+							</p>
+						</li>
+					{/each}
+				</ul>
+			</section>
+		{/if}
+
+		<!-- Stats (overview band under soft-premium: flat, typographic) -->
+		{#if metrics.some((metric) => metric.value !== null)}
+			<dl class="stat-band card grid grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-3 p-4 mb-6">
+				{#each metrics as metric (metric.label)}
+					<div class="stat-cell min-w-0">
+						<dt class="stat-label text-sm text-gray-500 dark:text-gray-400">{metric.label}</dt>
+						<dd class="stat-figure text-xl font-bold tabular-nums text-gray-900 dark:text-white">
+							{#if metric.value === null}
+								<span aria-hidden="true">—</span>
+								<span class="sr-only">{$t('admin.dashboard.metric_unavailable')}</span>
+							{:else}
+								{metric.value.toLocaleString()}
+							{/if}
+						</dd>
+					</div>
+				{/each}
+			</dl>
+		{/if}
+
+		<FacetUseCases
+			variant={views?.length === 0 ? 'full' : 'compact'}
+			showCreate={views?.length === 0}
+		/>
+	{/if}
+
+	<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
 		<!-- Quick actions -->
-		<div class="card p-6">
+		<div class="card p-4 sm:p-6">
 			<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
 				{$t('admin.dashboard.quick_actions')}
 			</h2>
@@ -418,29 +443,6 @@
 					</svg>
 					{$t('admin.dashboard.import_github')}
 				</a>
-				<a href="/admin/views/new" class="group btn btn-secondary justify-start">
-					<svg
-						class="w-5 h-5 mr-2 transition-transform duration-200 group-hover:scale-110"
-						fill="none"
-						viewBox="0 0 24 24"
-						stroke="currentColor"
-						aria-hidden="true"
-					>
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-						/>
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-						/>
-					</svg>
-					{$t('admin.dashboard.create_view')}
-				</a>
 				<a href="/rss.xml" target="_blank" class="group btn btn-secondary justify-start">
 					<svg
 						class="w-5 h-5 mr-2 transition-transform duration-200 group-hover:scale-110"
@@ -479,84 +481,42 @@
 		</div>
 
 		<!-- Recent activity -->
-		<div class="card p-6">
-			<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-				{$t('admin.dashboard.recent_activity')}
-			</h2>
-			{#if loading}
-				<div class="space-y-3">
-					{#each Array(3) as _}
-						<div class="animate-pulse flex items-center gap-3">
-							<div class="w-10 h-10 rounded-lg bg-gray-200 dark:bg-gray-700"></div>
-							<div class="flex-1">
-								<div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
-							</div>
-						</div>
-					{/each}
-				</div>
-			{:else if recentActivity.length === 0}
-				<p class="text-gray-500 dark:text-gray-400 text-sm">{$t('admin.dashboard.nothing_yet')}</p>
-			{:else}
-				<div class="space-y-3">
-					{#each recentActivity as activity}
-						<div class="flex items-center gap-3">
-							<div
-								class="w-10 h-10 rounded-lg {activity.type === 'project'
-									? 'bg-blue-100 dark:bg-blue-900'
-									: 'bg-green-100 dark:bg-green-900'} flex items-center justify-center"
-							>
-								{#if activity.type === 'project'}
-									<svg
-										class="w-5 h-5 text-blue-600 dark:text-blue-400"
-										fill="none"
-										viewBox="0 0 24 24"
-										stroke="currentColor"
-										aria-hidden="true"
-									>
-										<path
-											stroke-linecap="round"
-											stroke-linejoin="round"
-											stroke-width="2"
-											d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
-										/>
-									</svg>
-								{:else}
-									<svg
-										class="w-5 h-5 text-green-600 dark:text-green-400"
-										fill="none"
-										viewBox="0 0 24 24"
-										stroke="currentColor"
-										aria-hidden="true"
-									>
-										<path
-											stroke-linecap="round"
-											stroke-linejoin="round"
-											stroke-width="2"
-											d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-										/>
-									</svg>
-								{/if}
-							</div>
-							<div class="flex-1 min-w-0">
+		{#if projects || experience}
+			<div class="card p-4 sm:p-6">
+				<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+					{$t('admin.dashboard.recent_activity')}
+				</h2>
+				{#if recentActivity.length === 0}
+					{#if projects && experience}
+						<p class="text-gray-500 dark:text-gray-400 text-sm">
+							{$t('admin.dashboard.nothing_yet')}
+						</p>
+					{/if}
+				{:else}
+					<ul class="divide-y divide-gray-100 dark:divide-gray-700">
+						{#each recentActivity as activity (`${activity.type}-${activity.id}`)}
+							<li class="py-2 min-w-0">
 								<p class="text-sm font-medium text-gray-900 dark:text-white truncate">
 									{activity.title}
 								</p>
 								<p class="text-xs text-gray-500 dark:text-gray-400">
 									{activity.type === 'project'
 										? $t('admin.dashboard.activity_project')
-										: $t('admin.dashboard.activity_experience')}
+										: $t('admin.dashboard.activity_experience')}{activity.updated
+										? ` · ${formatRelativeDate(activity.updated)}`
+										: ''}
 								</p>
-							</div>
-						</div>
-					{/each}
-				</div>
-			{/if}
-		</div>
+							</li>
+						{/each}
+					</ul>
+				{/if}
+			</div>
+		{/if}
 	</div>
 
 	<!-- Visitor stats -->
-	{#if !loading && (viewMetrics.length > 0 || homepageMetrics.view_count > 0)}
-		<div class="mt-6 card p-6">
+	{#if views && siteMetrics && (views.length > 0 || homepageViewCount > 0)}
+		<div class="mt-6 card p-4 sm:p-6">
 			<h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
 				{$t('admin.dashboard.visitor_stats')}
 			</h2>
@@ -606,15 +566,15 @@
 								</a>
 							</td>
 							<td class="text-right py-2.5 px-4 font-medium text-gray-900 dark:text-white">
-								{homepageMetrics.view_count.toLocaleString()}
+								{homepageViewCount.toLocaleString()}
 							</td>
 							<td class="text-right py-2.5 pl-4 text-gray-500 dark:text-gray-400">
-								{homepageMetrics.last_viewed_at
-									? formatRelativeDate(homepageMetrics.last_viewed_at)
+								{siteMetrics.homepage_last_viewed_at
+									? formatRelativeDate(siteMetrics.homepage_last_viewed_at)
 									: $t('admin.dashboard.visitor_never')}
 							</td>
 						</tr>
-						{#each viewMetrics as view}
+						{#each views as view (view.id)}
 							<tr class="border-b border-gray-100 dark:border-gray-800 last:border-0">
 								<td class="py-2.5 pr-4">
 									<a
@@ -625,7 +585,7 @@
 									</a>
 								</td>
 								<td class="text-right py-2.5 px-4 font-medium text-gray-900 dark:text-white">
-									{view.view_count.toLocaleString()}
+									{(view.view_count ?? 0).toLocaleString()}
 								</td>
 								<td class="text-right py-2.5 pl-4 text-gray-500 dark:text-gray-400">
 									{view.last_viewed_at
@@ -639,75 +599,35 @@
 			</div>
 		</div>
 	{/if}
-
-	<!-- Pending proposals alert -->
-	{#if stats.pendingProposals > 0}
-		<div class="mt-6 card p-4 border-l-4 border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20">
-			<div class="flex items-center gap-3">
-				<svg
-					class="w-6 h-6 text-yellow-600 dark:text-yellow-400"
-					fill="none"
-					viewBox="0 0 24 24"
-					stroke="currentColor"
-					aria-hidden="true"
-				>
-					<path
-						stroke-linecap="round"
-						stroke-linejoin="round"
-						stroke-width="2"
-						d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-					/>
-				</svg>
-				<div class="flex-1">
-					<p class="font-medium text-yellow-800 dark:text-yellow-200">
-						{$t('admin.dashboard.pending_alert', { values: { count: stats.pendingProposals } })}
-					</p>
-				</div>
-				<a href="/admin/proposals" class="btn btn-sm bg-yellow-600 text-white hover:bg-yellow-700">
-					{$t('admin.dashboard.review_now')}
-				</a>
-			</div>
-		</div>
-	{/if}
 </div>
 
 <style>
 	/* ── Soft Premium dashboard composition ──────────────────────────────────
 	   Composition principle: chrome is an affordance, not a grouping device.
-	   The top stats are display-only data, so under soft-premium they read as a
-	   flat "overview band" (typography + whitespace + a hairline) instead of four
-	   identical bordered cards. The clickable quick-action / activity cards keep
-	   their card chrome (they ARE affordances). Classic renders these styles never
-	   (every rule is gated on [data-design='soft-premium']) so it stays byte-identical.
+	   The stats are display-only data, so under soft-premium they read as a flat
+	   "overview band" (typography + whitespace + a hairline) instead of a card.
+	   The clickable quick-action / activity cards keep their card chrome (they
+	   ARE affordances). Every rule is gated on [data-design='soft-premium'].
 
 	   :global(...) is required: .card / .stat-* live on elements Svelte does not
 	   scope-hash (utility classes), and the gate lives on <html>. */
 
-	/* Flatten the stat cells: strip card border/background/shadow/padding so the
-	   figures sit in open space. Specificity (attribute + two classes) beats the
-	   global .card utility without !important. */
-	:global([data-design='soft-premium'] .stat-band .stat-cell.card) {
+	/* Flatten the band: strip card border/background/shadow/padding so the figures
+	   sit in open space. Specificity (attribute + two classes) beats the global
+	   .card utility without !important. */
+	:global([data-design='soft-premium'] .stat-band.card) {
 		background: transparent;
 		border: 0;
 		box-shadow: none;
 		padding: 0.25rem 0;
 	}
 
-	/* Hairline rhythm between cells on the wide (single-row) layout — one quiet
-	   divider, not four boxes. Vertical rule on lg, horizontal on the stacked
-	   layouts so the band still reads as one grouping. */
-	:global([data-design='soft-premium'] .stat-band .stat-cell + .stat-cell) {
-		border-top: 1px solid var(--border-hairline);
-		padding-top: 0.75rem;
-		margin-top: 0.25rem;
-	}
+	/* Hairline rhythm between cells on the wide (single-row) layout: one quiet
+	   divider, not four boxes. The two-column layout groups by alignment alone. */
 	@media (min-width: 1024px) {
 		:global([data-design='soft-premium'] .stat-band .stat-cell + .stat-cell) {
-			border-top: 0;
 			border-left: 1px solid var(--border-hairline);
-			padding-top: 0.25rem;
 			padding-left: 1.5rem;
-			margin-top: 0;
 		}
 	}
 
@@ -721,14 +641,8 @@
 		font-family: var(--font-accent);
 		font-variant-numeric: tabular-nums;
 		font-weight: 600;
-		font-size: 2rem;
+		font-size: 1.5rem;
 		line-height: 1.1;
 		margin-top: 0.125rem;
-	}
-
-	/* The colored icon tiles are decorative chrome; one anchor per screen means
-	   the overview band stays quiet. Hide them under soft-premium only. */
-	:global([data-design='soft-premium'] .stat-band .stat-icon) {
-		display: none;
 	}
 </style>

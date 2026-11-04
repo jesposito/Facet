@@ -183,7 +183,7 @@ func RegisterResumeUploadHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 				"filename": header.Filename,
 				"parsed":   parsed,
 			})
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		// POST /api/resume/import
 		// Body: { filename, visibility, parsed: <ParsedResume from /upload, with items the user chose> }
@@ -258,7 +258,7 @@ func RegisterResumeUploadHooks(app *pocketbase.PocketBase, crypto *services.Cryp
 					"talks":          len(imported["talks"]),
 				},
 			})
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		return se.Next()
 	})

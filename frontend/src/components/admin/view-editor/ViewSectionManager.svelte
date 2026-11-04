@@ -15,9 +15,11 @@
 		getValidWidthsForLayout,
 		isWidthValidForLayout,
 		type ViewSection,
+		type ItemSelection,
 		type SectionWidth,
 		type ItemConfig
 	} from '$lib/pocketbase';
+	import { allPublicHintKey, isAllPublicItem } from '$lib/facet-content';
 	import { locale, t } from 'svelte-i18n';
 
 	// Import DnD safely - only in browser
@@ -290,6 +292,7 @@
 			{
 				enabled: boolean;
 				items: string[];
+				itemSelection?: ItemSelection;
 				expanded: boolean;
 				layout: string;
 				width: SectionWidth;
@@ -350,6 +353,12 @@
 		updateSections();
 	}
 
+	// Picks stay in place across a mode change, so going back restores them.
+	function setItemSelection(key: string, mode: ItemSelection) {
+		sections[key].itemSelection = mode;
+		updateSections();
+	}
+
 	function toggleItem(sectionKey: string, itemId: string) {
 		const idx = sections[sectionKey].items.indexOf(itemId);
 		if (idx === -1) {
@@ -360,9 +369,18 @@
 		updateSections();
 	}
 
-	function selectAllItems(sectionKey: string, filteredOnly?: { id: string }[]) {
+	// Bulk selection adds public, published items after the current picks, so
+	// private items stay a per-item choice and existing order is kept.
+	function selectAllItems(
+		sectionKey: string,
+		filteredOnly?: { id: string; visibility: string; is_draft?: boolean }[]
+	) {
 		const source = filteredOnly ?? sectionItems[sectionKey] ?? [];
-		sections[sectionKey].items = source.map((i) => i.id);
+		const selected = new Set(sections[sectionKey].items);
+		const additions = source
+			.filter((i) => i.visibility === 'public' && !i.is_draft && !selected.has(i.id))
+			.map((i) => i.id);
+		sections[sectionKey].items = [...sections[sectionKey].items, ...additions];
 		updateSections();
 	}
 
@@ -533,7 +551,9 @@
 			<h2 class="text-lg font-semibold text-gray-900 dark:text-white">
 				{$t('admin.view_editor.sections.title')}
 			</h2>
-			<p class="text-sm text-gray-500">{$t('admin.view_editor.sections.description')}</p>
+			<p class="text-sm text-gray-500 dark:text-gray-400">
+				{$t('admin.view_editor.sections.description')}
+			</p>
 		</div>
 	</div>
 
@@ -565,6 +585,12 @@
 				{@const selectedPublicCount = sectionConfig.items.filter((id) =>
 					publicItemIds.has(id)
 				).length}
+				{@const isAllPublic = sections[sectionKey]?.itemSelection === 'all_public'}
+				{@const allPublicItems = items.filter((i) => isAllPublicItem(sectionKey, i, viewId))}
+				{@const allPublicCount = allPublicItems.length}
+				{@const nothingChosen =
+					sectionConfig.items.length === 0 &&
+					!(sectionKey === 'testimonials' && sectionConfig.list)}
 				{@const layoutKey = isCustom ? 'custom' : sectionKey}
 
 				<div
@@ -646,13 +672,15 @@
 							</button>
 							<span class="font-medium text-gray-900 dark:text-white">{sectionLabel}</span>
 							{#if !isCustom}
-								<span class="text-xs text-gray-500">
-									{#if selectedPublicCount > 0}
+								<span class="text-xs text-gray-500 dark:text-gray-400">
+									{#if isAllPublic}
+										{$t('admin.view_editor.sections.all_items', {
+											values: { count: allPublicCount }
+										})}
+									{:else if selectedPublicCount > 0}
 										{selectedPublicCount} {$t('admin.view_editor.sections.selected')}
 									{:else if sectionConfig.enabled}
-										{$t('admin.view_editor.sections.all_items', {
-											values: { count: publicItems.length }
-										})}
+										{$t('admin.view_editor.sections.none_selected')}
 									{:else}
 										{publicItems.length} {$t('admin.view_editor.sections.available')}
 									{/if}
@@ -689,6 +717,9 @@
 												value={sectionConfig.width}
 												onchange={(e) => updateSectionWidth(sectionKey, e.currentTarget.value)}
 												onclick={stopPropagation(bubble('click'))}
+												aria-label={$t('admin.view_editor.sections.section_width_name', {
+													values: { section: sectionLabel }
+												})}
 											>
 												{#each validWidths as widthOption}
 													<option value={widthOption.value}>{widthOption.label}</option>
@@ -707,6 +738,9 @@
 										onchange={(e) => updateSectionLayout(sectionKey, e.currentTarget.value)}
 										onclick={stopPropagation(bubble('click'))}
 										title="Section layout"
+										aria-label={$t('admin.view_editor.sections.section_layout_name', {
+											values: { section: sectionLabel }
+										})}
 									>
 										{#each layoutConfig.layouts as layoutOption}
 											<option value={layoutOption}
@@ -751,6 +785,57 @@
 						</div>
 					</div>
 
+					{#if sectionConfig.enabled && !isCustom}
+						<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+						<fieldset
+							class="px-3 py-2 border-t border-gray-200 dark:border-gray-700"
+							aria-describedby="item-selection-hint-{sectionKey}"
+							onpointerdown={(e) => e.stopPropagation()}
+							onmousedown={(e) => e.stopPropagation()}
+							ontouchstart={(e) => e.stopPropagation()}
+						>
+							<legend class="sr-only">
+								{$t('admin.view_editor.sections.content_mode_legend', {
+									values: { section: sectionLabel }
+								})}
+							</legend>
+							<div class="flex flex-wrap gap-x-4 gap-y-1">
+								<label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+									<input
+										type="radio"
+										name="item-selection-{sectionKey}"
+										checked={isAllPublic}
+										onchange={() => setItemSelection(sectionKey, 'all_public')}
+										class="w-4 h-4 text-primary-600 border-gray-300"
+									/>
+									{$t('admin.view_editor.sections.content_mode_all_public')}
+								</label>
+								<label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+									<input
+										type="radio"
+										name="item-selection-{sectionKey}"
+										checked={!isAllPublic}
+										onchange={() => setItemSelection(sectionKey, 'selected')}
+										class="w-4 h-4 text-primary-600 border-gray-300"
+									/>
+									{$t('admin.view_editor.sections.content_mode_selected')}
+								</label>
+							</div>
+							<p
+								id="item-selection-hint-{sectionKey}"
+								class="mt-1 text-xs text-gray-500 dark:text-gray-400"
+							>
+								{#if isAllPublic}
+									{$t(allPublicHintKey(sectionKey))}
+								{:else if nothingChosen}
+									{$t('admin.view_editor.sections.selected_empty_hint')}
+								{:else}
+									{$t('admin.view_editor.sections.choose_items_hint')}
+								{/if}
+							</p>
+						</fieldset>
+					{/if}
+
 					<!-- Section Items (only for non-custom sections) -->
 					{#if sectionConfig.enabled && sectionConfig.expanded && items.length > 0 && !isCustom}
 						<div class="p-3 border-t border-gray-200 dark:border-gray-700">
@@ -764,7 +849,7 @@
 										<div>
 											<label
 												for="width-mobile-{sectionKey}"
-												class="text-xs font-medium text-gray-500 uppercase mb-1 block"
+												class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase mb-1 block"
 												>{$t('admin.view_editor.sections.width_label')}</label
 											>
 											<div class="flex items-center gap-2">
@@ -799,7 +884,7 @@
 										<div>
 											<label
 												for="layout-mobile-{sectionKey}"
-												class="text-xs font-medium text-gray-500 uppercase mb-1 block"
+												class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase mb-1 block"
 												>{$t('admin.view_editor.sections.layout_label')}</label
 											>
 											<select
@@ -819,7 +904,24 @@
 								{/if}
 							</div>
 
-							{#if sectionKey === 'skills'}
+							{#if sectionKey === 'skills' && isAllPublic}
+								<!-- selectedItems isn't bound, so the picks kept for Choose items stay as
+								     they are. Category order, on/off and layout still save. -->
+								<p class="mb-2 text-xs text-gray-500 dark:text-gray-400">
+									{$t('admin.view_editor.sections.all_public_skills_hint')}
+								</p>
+								<SkillsCategoryManager
+									items={allPublicItems}
+									selectionReadOnly
+									selectedItems={allPublicItems.map((i) => i.id)}
+									bind:categoryOrder={sections['skills'].categoryOrder}
+									bind:disabledCategories={sections['skills'].disabledCategories}
+									bind:categoryDisplayModes={sections['skills'].categoryDisplayModes}
+									sectionLayout={sections['skills'].layout || 'grouped'}
+									showAllVisibilities={true}
+									onUpdate={updateSections}
+								/>
+							{:else if sectionKey === 'skills'}
 								<!-- Skills use category-based management -->
 								<SkillsCategoryManager
 									items={sectionItems['skills'] || []}
@@ -840,7 +942,7 @@
 								{@const sectionTags = getSectionTags(sectionKey)}
 
 								<!-- Search & Tag Filter (progressive disclosure: only for 5+ items) -->
-								{#if items.length >= SEARCH_THRESHOLD}
+								{#if !isAllPublic && items.length >= SEARCH_THRESHOLD}
 									<div class="mb-3 space-y-2">
 										<div class="flex items-center gap-2">
 											<div class="relative flex-1">
@@ -908,14 +1010,14 @@
 									</div>
 								{/if}
 
-								<div class="flex items-center justify-between mb-2">
-									<p class="text-xs text-gray-500">
+								<div class="{isAllPublic ? 'hidden' : 'flex'} items-center justify-between mb-2">
+									<p class="text-xs text-gray-500 dark:text-gray-400">
 										{#if isFiltering}
 											{$t('admin.view_editor.sections.showing_filtered', {
 												values: { shown: filteredItems.length, total: items.length }
 											})}
-										{:else if selectedPublicCount === 0}
-											{$t('admin.view_editor.sections.select_all_hint')}
+										{:else if sectionConfig.items.length === 0}
+											{$t('admin.view_editor.sections.choose_items_hint')}
 										{:else}
 											{$t('admin.view_editor.sections.items_selected', {
 												values: { count: selectedPublicCount, total: publicItems.length }
@@ -950,9 +1052,9 @@
 									</div>
 								</div>
 
-								{#if isFiltering && filteredItems.length === 0}
+								{#if !isAllPublic && isFiltering && filteredItems.length === 0}
 									<div class="py-6 text-center">
-										<p class="text-sm text-gray-500">
+										<p class="text-sm text-gray-500 dark:text-gray-400">
 											{$t('admin.view_editor.sections.no_results')}
 										</p>
 										<button
@@ -963,7 +1065,7 @@
 											{$t('admin.view_editor.sections.clear_filters')}
 										</button>
 									</div>
-								{:else}
+								{:else if !isAllPublic}
 									<div
 										class="space-y-1 max-h-64 overflow-y-auto"
 										use:dndzone={{
@@ -1162,7 +1264,7 @@
 												{#if isSelected && canOverride}
 													<button
 														type="button"
-														class="text-xs text-primary-600 hover:text-primary-700 hover:underline whitespace-nowrap"
+														class="text-xs text-primary-700 dark:text-primary-400 hover:underline whitespace-nowrap"
 														onclick={stopPropagation(() =>
 															onOpenOverrideEditor(sectionKey, item.id)
 														)}
@@ -1175,6 +1277,34 @@
 											</div>
 										{/each}
 									</div>
+								{:else if OVERRIDABLE_FIELDS[sectionKey]?.length > 0}
+									<!-- Overrides still apply to what all_public publishes. Private items stay out. -->
+									<ul
+										class="space-y-1 max-h-64 overflow-y-auto"
+										aria-label={$t('admin.view_editor.sections.content_mode_legend', {
+											values: { section: sectionLabel }
+										})}
+									>
+										{#each allPublicItems as item (item.id)}
+											{@const itemHasOverrides = hasOverrides(sectionKey, item.id)}
+											<li class="flex items-center gap-2 p-2 rounded bg-white dark:bg-gray-900">
+												<span
+													class="flex-1 min-w-0 truncate text-sm text-gray-700 dark:text-gray-300"
+												>
+													{item.label}
+												</span>
+												<button
+													type="button"
+													class="text-xs text-primary-700 dark:text-primary-400 hover:underline whitespace-nowrap"
+													onclick={() => onOpenOverrideEditor(sectionKey, item.id)}
+												>
+													{itemHasOverrides
+														? $t('admin.view_editor.sections.edit')
+														: $t('admin.view_editor.sections.customize')}
+												</button>
+											</li>
+										{/each}
+									</ul>
 								{/if}
 
 								{#if sectionKey === 'testimonials'}
@@ -1212,7 +1342,9 @@
 
 								{#if sectionKey === 'testimonials' && (sectionConfig.layout === 'featured' || sectionConfig.layout === 'carousel')}
 									{@const selectedTestimonials = (sectionItems['testimonials'] || []).filter((t) =>
-										sectionConfig.items.includes(t.id)
+										isAllPublic
+											? isAllPublicItem('testimonials', t, viewId)
+											: sectionConfig.items.includes(t.id)
 									)}
 									{#if selectedTestimonials.length > 0}
 										<div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">

@@ -38,10 +38,10 @@ Without views you'd have three bad options: show everything to everyone, keep se
 
 Some rules follow from that:
 
-- **An empty selection means "everything visible".** A view with no hand-picked items in a section shows all eligible items, so adding new content doesn't mean editing every view.
+- **Content selection is explicit.** A section can follow all eligible public content or show selected items. An empty manual selection stays empty, including on older pages; opening or saving a Facet never silently broadens what it publishes.
 - **Framing can change; facts can't.** A view can override how an item is described: a job title emphasis, a summary, bullets. It can't change facts such as company names, dates, institutions or issuers.
 - **Identity is shared.** Your name, avatar and contact links come from the profile. A view can change the headline, summary, hero image, call to action and accent colour.
-- **One default.** Exactly one view is the default for `/`. Facet clears the flag from others when you set it.
+- **The homepage has its own configuration.** `/` uses the Homepage settings. Facets have their own addresses and may be included in site navigation; a stored legacy default flag does not replace the homepage.
 
 ### Example: a career pivot
 

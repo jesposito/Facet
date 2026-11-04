@@ -6,11 +6,16 @@
 	import { pb, type Experience } from '$lib/pocketbase';
 	import { t, locale } from 'svelte-i18n';
 	import { brandName } from '$lib/stores/plan';
-	import { collection } from '$lib/stores/demo';
+	import { collection, getCollectionName } from '$lib/stores/demo';
+	import { readAllRecords } from '$lib/admin/read-all-records';
 	import { toasts, confirm } from '$lib/stores';
 	import { createAutosave } from '$lib/stores/autosave';
 	import { formatDate, toDateInputValue } from '$lib/utils';
 	import { createFilterState } from '$lib/admin/filterState.svelte';
+	import { pruneSelection, toggleSelection } from '$lib/admin/selection';
+	import { createBulkActions } from '$lib/admin/bulk-mutation';
+	import { createListLoader } from '$lib/admin/list-load';
+	import ListLoadStatus from '$components/admin/ListLoadStatus.svelte';
 	import AIContentHelper from '$components/admin/AIContentHelper.svelte';
 	import AutosaveRecoveryBanner from '$components/admin/AutosaveRecoveryBanner.svelte';
 	import BulkActionBar from '$components/admin/BulkActionBar.svelte';
@@ -24,7 +29,18 @@
 	import AccordionSection from '$components/admin/forms/AccordionSection.svelte';
 
 	let experiences: Experience[] = $state([]);
-	let loading = $state(true);
+	const listLoad = createListLoader('experience');
+	const bulk = createBulkActions(listLoad, {
+		records: () => collection('experience'),
+		items: () => experiences,
+		reload: loadExperiences,
+		finish: (remaining) => {
+			selectedIds = remaining;
+			selectMode = remaining.size > 0;
+		}
+	});
+	let loading = $derived($listLoad.loading && !$listLoad.loaded);
+	let listLocked = $derived($listLoad.mutating || $listLoad.failed || $listLoad.loading);
 	let showForm = $state(false);
 	let editingExp: Experience | null = $state(null);
 	let memberships: Record<string, { id: string; name: string; slug: string }[]> = $state({});
@@ -106,14 +122,7 @@
 		}
 	}
 
-	afterNavigate(({ shallow, type }) => {
-		if (shallow && type === 'goto') return;
-
-		showForm = false;
-		editingExp = null;
-		selectMode = false;
-		selectedIds = new Set();
-
+	function checkRecoveryDraft() {
 		const draft = autosave.loadDraft();
 		if (draft?.data && Object.values(draft.data).some((v) => v !== '' && v !== false && v !== 0)) {
 			recoveryData = { savedAt: draft.savedAt, isEditing: draft.isEditing || false };
@@ -122,6 +131,19 @@
 			showRecoveryBanner = false;
 			recoveryData = null;
 		}
+	}
+
+	onMount(checkRecoveryDraft);
+
+	afterNavigate(({ shallow, type }) => {
+		if (shallow && type === 'goto') return;
+
+		showForm = false;
+		editingExp = null;
+		selectMode = false;
+		selectedIds = new Set();
+
+		checkRecoveryDraft();
 	});
 
 	onMount(() => {
@@ -129,18 +151,23 @@
 		loadAvailableTags();
 	});
 
-	async function loadAvailableTags() {
-		try {
-			const records = await collection('admin_tags').getList(1, 100, { sort: 'sort_order,name' });
-
-			availableTags = records.items.map((tag) => ({
-				id: tag.id,
-				name: tag.name,
-				color: tag.color
-			}));
-		} catch (err) {
-			console.error('Failed to load available tags:', err);
-		}
+	function loadAvailableTags() {
+		return listLoad.loadAncillary(
+			'tags',
+			(_requestKey, signal) =>
+				readAllRecords<{ id: string; name: string; color: string }>(
+					getCollectionName('admin_tags'),
+					{ sort: 'sort_order,name' },
+					signal
+				),
+			(records) => {
+				availableTags = records.map((tag) => ({
+					id: tag.id,
+					name: tag.name,
+					color: tag.color
+				}));
+			}
+		);
 	}
 
 	// Computed filtered experiences
@@ -154,26 +181,17 @@
 		)
 	);
 
-	async function loadExperiences() {
-		loading = true;
-		try {
-			const [records, membershipResp] = await Promise.all([
-				await collection('experience').getList(1, 100, {
-					sort: '-sort_order,-start_date',
-					expand: 'admin_tags'
-				}),
-				fetch('/api/admin/view-memberships?collection=experience', {
-					headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {}
-				}).then((r) => (r.ok ? r.json() : Promise.reject(new Error('Failed memberships'))))
-			]);
-			experiences = records.items as unknown as Experience[];
-			memberships = (membershipResp.memberships as typeof memberships) || {};
-		} catch (err) {
-			console.error('Failed to load experiences:', err);
-			toasts.add('error', 'Failed to load experiences');
-		} finally {
-			loading = false;
-		}
+	function loadExperiences() {
+		listLoad.loadMemberships('experience', (value) => (memberships = value));
+		return listLoad.load(
+			(_requestKey, signal) =>
+				readAllRecords<Experience>(
+					getCollectionName('experience'),
+					{ sort: '-sort_order,-start_date', expand: 'admin_tags' },
+					signal
+				),
+			(records) => (experiences = records)
+		);
 	}
 
 	function resetForm() {
@@ -205,6 +223,7 @@
 	}
 
 	function handleRestoreDraft() {
+		if (!listLoad.canMutate()) return;
 		const draft = autosave.loadDraft();
 		if (draft?.data) {
 			restoreFromDraft(draft.data);
@@ -251,7 +270,7 @@
 		autosave.clearDraft();
 	}
 
-	async function handleSubmit() {
+	const handleSubmit = listLoad.exclusive(async () => {
 		if (!company.trim() || !title.trim()) {
 			toasts.add('error', 'Company and title are required');
 			return;
@@ -344,9 +363,9 @@
 		} finally {
 			saving = false;
 		}
-	}
+	});
 
-	async function duplicateExperience(exp: Experience) {
+	const duplicateExperience = listLoad.exclusive(async (exp: Experience) => {
 		try {
 			const response = await fetch(`/api/admin/duplicate/experience/${exp.id}`, {
 				method: 'POST',
@@ -371,9 +390,9 @@
 				`Failed to duplicate experience: ${err instanceof Error ? err.message : 'Unknown error'}`
 			);
 		}
-	}
+	});
 
-	async function deleteExperience(exp: Experience) {
+	const deleteExperience = listLoad.exclusive(async (exp: Experience) => {
 		const confirmed = await confirm({
 			title: 'Delete Experience',
 			message: `Are you sure you want to delete your experience at "${exp.company}"? This action cannot be undone.`,
@@ -389,9 +408,9 @@
 			console.error('Failed to delete experience:', err);
 			toasts.add('error', 'Failed to delete experience');
 		}
-	}
+	});
 
-	async function togglePublish(exp: Experience) {
+	const togglePublish = listLoad.exclusive(async (exp: Experience) => {
 		try {
 			await collection('experience').update(exp.id, {
 				is_draft: !exp.is_draft
@@ -402,7 +421,7 @@
 			console.error('Failed to toggle publish:', err);
 			toasts.add('error', 'Failed to update experience');
 		}
-	}
+	});
 
 	function formatDateRange(start: string | undefined, end: string | undefined): string {
 		if (!start) return '';
@@ -413,66 +432,45 @@
 		return `${startStr} - ${endStr}`;
 	}
 
+	$effect(() => {
+		const visibleSelection = pruneSelection(
+			selectedIds,
+			filteredExperiences.map((exp) => exp.id)
+		);
+		if (visibleSelection !== selectedIds) selectedIds = visibleSelection;
+	});
+
 	function toggleSelectMode() {
 		selectMode = !selectMode;
 		if (!selectMode) selectedIds = new Set();
 	}
 
 	function toggleSelect(id: string) {
-		if (selectedIds.has(id)) {
-			selectedIds.delete(id);
-		} else {
-			selectedIds.add(id);
-		}
-		selectedIds = selectedIds;
+		selectedIds = toggleSelection(selectedIds, id);
 	}
 
 	function selectAll() {
-		selectedIds = new Set(experiences.map((e) => e.id));
+		selectedIds = new Set(filteredExperiences.map((exp) => exp.id));
 	}
 
 	function clearSelection() {
 		selectedIds = new Set();
 	}
 
-	async function bulkSetVisibility(visibility: 'public' | 'unlisted' | 'private') {
-		const ids = Array.from(selectedIds);
-		try {
-			for (const id of ids) {
-				await collection('experience').update(id, { visibility });
-			}
-			toasts.add('success', `Updated ${ids.length} items to ${visibility}`);
-			selectedIds = new Set();
-			selectMode = false;
-			await loadExperiences();
-		} catch (err) {
-			console.error('Failed to update visibility:', err);
-			toasts.add('error', 'Failed to update visibility');
-		}
+	function bulkSetVisibility(visibility: 'public' | 'unlisted' | 'private') {
+		return bulk.setVisibility(Array.from(selectedIds), visibility);
 	}
 
-	async function bulkDelete() {
+	function bulkDelete() {
 		const ids = Array.from(selectedIds);
-		const confirmed = await confirm({
-			title: 'Delete Experiences',
-			message: `Are you sure you want to delete ${ids.length} experience(s)? This action cannot be undone.`,
-			confirmText: 'Delete All',
-			danger: true
-		});
-		if (!confirmed) return;
-
-		try {
-			for (const id of ids) {
-				await collection('experience').delete(id);
-			}
-			toasts.add('success', `Deleted ${ids.length} items`);
-			selectedIds = new Set();
-			selectMode = false;
-			await loadExperiences();
-		} catch (err) {
-			console.error('Failed to delete:', err);
-			toasts.add('error', 'Failed to delete items');
-		}
+		return bulk.delete(ids, () =>
+			confirm({
+				title: 'Delete Experiences',
+				message: `Are you sure you want to delete ${ids.length} experience(s)? This action cannot be undone.`,
+				confirmText: 'Delete All',
+				danger: true
+			})
+		);
 	}
 </script>
 
@@ -487,16 +485,18 @@
 		<p>{@html $t('admin.content.experience.help_tip_2')}</p>
 	</PageHelp>
 
-	{#if selectMode && selectedIds.size > 0}
-		<BulkActionBar
-			selectedCount={selectedIds.size}
-			totalCount={experiences.length}
-			on:selectAll
-			on:clearSelection
-			on:setVisibility={(e) => bulkSetVisibility(e.detail)}
-			on:delete={bulkDelete}
-			on:cancel={toggleSelectMode}
-		/>
+	{#if selectMode}
+		<fieldset class="contents" disabled={listLocked}>
+			<BulkActionBar
+				selectedCount={selectedIds.size}
+				totalCount={filteredExperiences.length}
+				on:selectAll={selectAll}
+				on:clearSelection={clearSelection}
+				on:setVisibility={(e) => bulkSetVisibility(e.detail)}
+				on:delete={bulkDelete}
+				on:cancel={toggleSelectMode}
+			/>
+		</fieldset>
 	{/if}
 
 	<div class="flex items-center justify-between mb-6">
@@ -505,11 +505,15 @@
 		</h1>
 		<div class="flex items-center gap-2">
 			{#if experiences.length > 0}
-				<button class="btn {selectMode ? 'btn-secondary' : 'btn-ghost'}" onclick={toggleSelectMode}>
+				<button
+					class="btn {selectMode ? 'btn-secondary' : 'btn-ghost'}"
+					disabled={$listLoad.mutating}
+					onclick={toggleSelectMode}
+				>
 					{selectMode ? $t('admin.content.common.cancel') : $t('admin.content.common.select')}
 				</button>
 			{/if}
-			<button class="btn btn-primary" onclick={openNewForm}>
+			<button class="btn btn-primary" disabled={$listLoad.failed} onclick={openNewForm}>
 				{$t('admin.content.common.new_button', {
 					values: { type: $t('admin.content.experience.title') }
 				})}
@@ -517,7 +521,7 @@
 		</div>
 	</div>
 
-	{#if showRecoveryBanner && recoveryData}
+	{#if showRecoveryBanner && recoveryData && $listLoad.loaded && !$listLoad.loading && !$listLoad.failed && !$listLoad.mutating}
 		<AutosaveRecoveryBanner
 			savedAt={recoveryData.savedAt}
 			isEditing={recoveryData.isEditing}
@@ -528,6 +532,17 @@
 	{/if}
 
 	<AdminFilters bind:showAdvanced={showAdvancedFilters} {filterStore} {availableTags} />
+
+	<ListLoadStatus
+		status={$listLoad}
+		label={$t('admin.content.experience.title').toLowerCase()}
+		onretry={loadExperiences}
+	/>
+	{#if $listLoad.ancillaryFailed}
+		<button type="button" class="btn btn-secondary btn-sm mb-4" onclick={listLoad.retryAncillary}>
+			{$t('admin.list_status.retry_supporting')}
+		</button>
+	{/if}
 
 	{#if loading}
 		<div class="card p-8 text-center">
@@ -807,7 +822,7 @@
 						{$t('admin.content.common.duplicate_button')}
 					</button>
 				{/if}
-				<button type="submit" class="btn btn-primary" disabled={saving}>
+				<button type="submit" class="btn btn-primary" disabled={saving || $listLoad.failed}>
 					{#if saving}
 						<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
 							<circle
@@ -835,6 +850,8 @@
 				</button>
 			</div>
 		</form>
+	{:else if !$listLoad.loaded}
+		<!-- ListLoadStatus above owns the unavailable state. -->
 	{:else if experiences.length === 0}
 		<div class="card p-8 text-center">
 			<svg
@@ -900,223 +917,228 @@
 				</button>
 			</div>
 		{:else}
-			<div class="space-y-4">
-				{#each filteredExperiences as exp (exp.id)}
-					<div
-						class="card p-4 {selectMode && selectedIds.has(exp.id)
-							? 'ring-2 ring-primary-500'
-							: ''}"
-					>
-						<div class="flex items-start justify-between gap-4">
-							{#if selectMode}
-								<input
-									type="checkbox"
-									checked={selectedIds.has(exp.id)}
-									onchange={() => toggleSelect(exp.id)}
-									class="mt-1 w-5 h-5 text-primary-600 rounded border-gray-300"
-								/>
-							{/if}
-							<div class="flex-1 min-w-0">
-								<div class="flex items-center gap-2 flex-wrap">
-									<h3 class="font-medium text-gray-900 dark:text-white">
-										{exp.title}
-									</h3>
-									<span class="text-gray-500 dark:text-gray-400"
-										>{$t('admin.content.experience.at')}</span
-									>
-									<span class="font-medium text-gray-800 dark:text-gray-200">{exp.company}</span>
-									{#if exp.is_draft}
-										<span
-											class="px-2 py-0.5 text-xs bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 rounded"
+			<fieldset class="contents" disabled={listLocked}>
+				<div class="space-y-4">
+					{#each filteredExperiences as exp (exp.id)}
+						<div
+							class="card p-4 {selectMode && selectedIds.has(exp.id)
+								? 'ring-2 ring-primary-500'
+								: ''}"
+						>
+							<div class="flex items-start justify-between gap-4">
+								{#if selectMode}
+									<input
+										type="checkbox"
+										aria-label={$t('admin.bulk_actions.select_item', {
+											values: { item: exp.title }
+										})}
+										checked={selectedIds.has(exp.id)}
+										onchange={() => toggleSelect(exp.id)}
+										class="mt-1 w-5 h-5 text-primary-600 rounded border-gray-300"
+									/>
+								{/if}
+								<div class="flex-1 min-w-0">
+									<div class="flex items-center gap-2 flex-wrap">
+										<h3 class="font-medium text-gray-900 dark:text-white">
+											{exp.title}
+										</h3>
+										<span class="text-gray-500 dark:text-gray-400"
+											>{$t('admin.content.experience.at')}</span
 										>
-											{$t('admin.content.common.badge_draft')}
-										</span>
-									{/if}
-									{#if exp.visibility !== 'public'}
-										<span
-											class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded"
-										>
-											{exp.visibility}
-										</span>
-									{/if}
-									{#if !exp.end_date}
-										<span
-											class="px-2 py-0.5 text-xs bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded"
-										>
-											{$t('admin.content.common.badge_current')}
-										</span>
-									{/if}
-									{#if (exp as any).expand?.admin_tags && (exp as any).expand.admin_tags.length > 0}
-										{#each (exp as any).expand.admin_tags as tag (tag.id)}
-											<AdminTagBadge name={tag.name} color={tag.color} />
-										{/each}
-									{/if}
-								</div>
-
-								{#if memberships[exp.id]?.length}
-									<div class="flex flex-wrap gap-1 mt-2">
-										{#each memberships[exp.id].slice(0, 3) as viewRef}
-											<a
-												href={`/admin/views/${viewRef.id}`}
-												target="_blank"
-												class="px-2 py-0.5 text-xs rounded bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-												title={`Open view: ${viewRef.name}`}
+										<span class="font-medium text-gray-800 dark:text-gray-200">{exp.company}</span>
+										{#if exp.is_draft}
+											<span
+												class="px-2 py-0.5 text-xs bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 rounded"
 											>
-												{viewRef.slug || viewRef.name}
-											</a>
-										{/each}
-										{#if memberships[exp.id].length > 3}
-											<span class="px-2 py-0.5 text-xs text-gray-500 dark:text-gray-400">
-												+{memberships[exp.id].length - 3}
+												{$t('admin.content.common.badge_draft')}
 											</span>
 										{/if}
-									</div>
-								{:else}
-									<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-										{$t('admin.content.common.not_in_view')}
-									</p>
-								{/if}
-
-								<div
-									class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-sm text-gray-500 dark:text-gray-400"
-								>
-									{#if exp.location}
-										<span class="flex items-center gap-1">
-											<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-												<path
-													stroke-linecap="round"
-													stroke-linejoin="round"
-													stroke-width="2"
-													d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-												></path>
-
-												<path
-													stroke-linecap="round"
-													stroke-linejoin="round"
-													stroke-width="2"
-													d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-												></path>
-											</svg>
-											{exp.location}
-										</span>
-									{/if}
-									{#if exp.start_date}
-										<span class="flex items-center gap-1">
-											<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-												<path
-													stroke-linecap="round"
-													stroke-linejoin="round"
-													stroke-width="2"
-													d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-												></path>
-											</svg>
-											{formatDateRange(exp.start_date, exp.end_date)}
-										</span>
-									{/if}
-								</div>
-
-								{#if exp.skills && exp.skills.length > 0}
-									<div class="flex flex-wrap gap-1 mt-2">
-										{#each exp.skills.slice(0, 5) as skill}
-											<span
-												class="px-2 py-0.5 text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded"
-											>
-												{skill}
-											</span>
-										{/each}
-										{#if exp.skills.length > 5}
+										{#if exp.visibility !== 'public'}
 											<span
 												class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded"
 											>
-												{$t('admin.content.common.more_items', {
-													values: { count: exp.skills.length - 5 }
-												})}
+												{exp.visibility}
+											</span>
+										{/if}
+										{#if !exp.end_date}
+											<span
+												class="px-2 py-0.5 text-xs bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded"
+											>
+												{$t('admin.content.common.badge_current')}
+											</span>
+										{/if}
+										{#if (exp as any).expand?.admin_tags && (exp as any).expand.admin_tags.length > 0}
+											{#each (exp as any).expand.admin_tags as tag (tag.id)}
+												<AdminTagBadge name={tag.name} color={tag.color} />
+											{/each}
+										{/if}
+									</div>
+
+									{#if memberships[exp.id]?.length}
+										<div class="flex flex-wrap gap-1 mt-2">
+											{#each memberships[exp.id].slice(0, 3) as viewRef}
+												<a
+													href={`/admin/views/${viewRef.id}`}
+													target="_blank"
+													class="px-2 py-0.5 text-xs rounded bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+													title={`Open view: ${viewRef.name}`}
+												>
+													{viewRef.slug || viewRef.name}
+												</a>
+											{/each}
+											{#if memberships[exp.id].length > 3}
+												<span class="px-2 py-0.5 text-xs text-gray-500 dark:text-gray-400">
+													+{memberships[exp.id].length - 3}
+												</span>
+											{/if}
+										</div>
+									{:else if $listLoad.membershipsKnown}
+										<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+											{$t('admin.content.common.not_in_view')}
+										</p>
+									{/if}
+
+									<div
+										class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-sm text-gray-500 dark:text-gray-400"
+									>
+										{#if exp.location}
+											<span class="flex items-center gap-1">
+												<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+													<path
+														stroke-linecap="round"
+														stroke-linejoin="round"
+														stroke-width="2"
+														d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+													></path>
+
+													<path
+														stroke-linecap="round"
+														stroke-linejoin="round"
+														stroke-width="2"
+														d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+													></path>
+												</svg>
+												{exp.location}
+											</span>
+										{/if}
+										{#if exp.start_date}
+											<span class="flex items-center gap-1">
+												<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+													<path
+														stroke-linecap="round"
+														stroke-linejoin="round"
+														stroke-width="2"
+														d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+													></path>
+												</svg>
+												{formatDateRange(exp.start_date, exp.end_date)}
 											</span>
 										{/if}
 									</div>
-								{/if}
-							</div>
 
-							<div class="flex items-center gap-2">
-								<button
-									class="p-3 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-									onclick={() => togglePublish(exp)}
-									title={exp.is_draft ? 'Publish' : 'Unpublish'}
-								>
-									{#if exp.is_draft}
-										<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-											<path
-												stroke-linecap="round"
-												stroke-linejoin="round"
-												stroke-width="2"
-												d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-											></path>
-
-											<path
-												stroke-linecap="round"
-												stroke-linejoin="round"
-												stroke-width="2"
-												d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-											></path>
-										</svg>
-									{:else}
-										<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-											<path
-												stroke-linecap="round"
-												stroke-linejoin="round"
-												stroke-width="2"
-												d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.542 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
-											></path>
-										</svg>
+									{#if exp.skills && exp.skills.length > 0}
+										<div class="flex flex-wrap gap-1 mt-2">
+											{#each exp.skills.slice(0, 5) as skill}
+												<span
+													class="px-2 py-0.5 text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded"
+												>
+													{skill}
+												</span>
+											{/each}
+											{#if exp.skills.length > 5}
+												<span
+													class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded"
+												>
+													{$t('admin.content.common.more_items', {
+														values: { count: exp.skills.length - 5 }
+													})}
+												</span>
+											{/if}
+										</div>
 									{/if}
-								</button>
-								<button
-									class="p-3 text-gray-500 hover:text-blue-600"
-									onclick={() => openEditForm(exp)}
-									title="Edit"
-								>
-									<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-										<path
-											stroke-linecap="round"
-											stroke-linejoin="round"
-											stroke-width="2"
-											d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-										></path>
-									</svg>
-								</button>
-								<button
-									class="p-3 text-gray-500 hover:text-green-600"
-									onclick={() => duplicateExperience(exp)}
-									title="Duplicate"
-								>
-									<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-										<path
-											stroke-linecap="round"
-											stroke-linejoin="round"
-											stroke-width="2"
-											d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-										></path>
-									</svg>
-								</button>
-								<button
-									class="p-3 text-gray-500 hover:text-red-600"
-									onclick={() => deleteExperience(exp)}
-									title="Delete"
-								>
-									<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-										<path
-											stroke-linecap="round"
-											stroke-linejoin="round"
-											stroke-width="2"
-											d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-										></path>
-									</svg>
-								</button>
+								</div>
+
+								<div class="flex items-center gap-2">
+									<button
+										class="p-3 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+										onclick={() => togglePublish(exp)}
+										title={exp.is_draft ? 'Publish' : 'Unpublish'}
+									>
+										{#if exp.is_draft}
+											<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+												<path
+													stroke-linecap="round"
+													stroke-linejoin="round"
+													stroke-width="2"
+													d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+												></path>
+
+												<path
+													stroke-linecap="round"
+													stroke-linejoin="round"
+													stroke-width="2"
+													d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+												></path>
+											</svg>
+										{:else}
+											<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+												<path
+													stroke-linecap="round"
+													stroke-linejoin="round"
+													stroke-width="2"
+													d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.542 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
+												></path>
+											</svg>
+										{/if}
+									</button>
+									<button
+										class="p-3 text-gray-500 hover:text-blue-600"
+										onclick={() => openEditForm(exp)}
+										title="Edit"
+									>
+										<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+											<path
+												stroke-linecap="round"
+												stroke-linejoin="round"
+												stroke-width="2"
+												d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+											></path>
+										</svg>
+									</button>
+									<button
+										class="p-3 text-gray-500 hover:text-green-600"
+										onclick={() => duplicateExperience(exp)}
+										title="Duplicate"
+									>
+										<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+											<path
+												stroke-linecap="round"
+												stroke-linejoin="round"
+												stroke-width="2"
+												d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+											></path>
+										</svg>
+									</button>
+									<button
+										class="p-3 text-gray-500 hover:text-red-600"
+										onclick={() => deleteExperience(exp)}
+										title="Delete"
+									>
+										<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+											<path
+												stroke-linecap="round"
+												stroke-linejoin="round"
+												stroke-width="2"
+												d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+											></path>
+										</svg>
+									</button>
+								</div>
 							</div>
 						</div>
-					</div>
-				{/each}
-			</div>
+					{/each}
+				</div>
+			</fieldset>
 		{/if}
 	{/if}
 </div>

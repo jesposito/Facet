@@ -268,7 +268,7 @@ func RegisterMediaHooks(app *pocketbase.PocketBase, uploadsDir string) {
 			}
 
 			return e.JSON(http.StatusOK, response)
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		se.Router.POST("/api/media/external", func(e *core.RequestEvent) error {
 			var req struct {
@@ -320,7 +320,7 @@ func RegisterMediaHooks(app *pocketbase.PocketBase, uploadsDir string) {
 				"id":  record.Id,
 				"url": req.URL,
 			})
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		se.Router.DELETE("/api/media/external/{id}", func(e *core.RequestEvent) error {
 			id := e.Request.PathValue("id")
@@ -381,7 +381,7 @@ func RegisterMediaHooks(app *pocketbase.PocketBase, uploadsDir string) {
 			}
 
 			return e.JSON(http.StatusOK, response)
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		se.Router.DELETE("/api/media", func(e *core.RequestEvent) error {
 			var req struct {
@@ -471,7 +471,7 @@ func RegisterMediaHooks(app *pocketbase.PocketBase, uploadsDir string) {
 			}
 
 			return e.JSON(http.StatusOK, map[string]string{"status": "deleted"})
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		// Update display name for any media file (legacy endpoint, still works)
 		se.Router.PATCH("/api/media/display-name", func(e *core.RequestEvent) error {
@@ -501,7 +501,7 @@ func RegisterMediaHooks(app *pocketbase.PocketBase, uploadsDir string) {
 			}
 
 			return e.JSON(http.StatusOK, map[string]string{"status": "updated"})
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		// Update all metadata for any media file (display_name, alt_text, description, tags)
 		se.Router.PATCH("/api/media/metadata", func(e *core.RequestEvent) error {
@@ -534,7 +534,7 @@ func RegisterMediaHooks(app *pocketbase.PocketBase, uploadsDir string) {
 			}
 
 			return e.JSON(http.StatusOK, map[string]string{"status": "updated"})
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		// Replace an existing library media file with a newly uploaded version and
 		// repoint every referencing record from the old URL to the new file's URL.
@@ -596,7 +596,7 @@ func RegisterMediaHooks(app *pocketbase.PocketBase, uploadsDir string) {
 				"new_url":            newURL,
 				"updated_references": updated,
 			})
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		se.Router.POST("/api/media/bulk-delete", func(e *core.RequestEvent) error {
 			var req struct {
@@ -664,13 +664,13 @@ func RegisterMediaHooks(app *pocketbase.PocketBase, uploadsDir string) {
 			}
 
 			return e.JSON(http.StatusOK, response)
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		// Storage info endpoint for diagnostics
 		se.Router.GET("/api/media/storage-info", func(e *core.RequestEvent) error {
 			info := storage.GetStorageInfo()
 			return e.JSON(http.StatusOK, info)
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		// Fetch metadata from external URLs (YouTube, Vimeo, etc.)
 		se.Router.GET("/api/media/fetch-metadata", func(e *core.RequestEvent) error {
@@ -702,7 +702,7 @@ func RegisterMediaHooks(app *pocketbase.PocketBase, uploadsDir string) {
 				"provider":      metadata.Provider,
 				"duration":      metadata.Duration,
 			})
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		// Mark media as recently used (updates last_used_at timestamp)
 		// Now supports all collections with file fields (not just uploads and external_media)
@@ -743,7 +743,7 @@ func RegisterMediaHooks(app *pocketbase.PocketBase, uploadsDir string) {
 			}
 
 			return e.JSON(http.StatusOK, map[string]string{"status": "updated"})
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		// Bulk tag media items
 		se.Router.POST("/api/media/bulk-tag", func(e *core.RequestEvent) error {
@@ -861,7 +861,7 @@ func RegisterMediaHooks(app *pocketbase.PocketBase, uploadsDir string) {
 				"failed":  failed,
 				"errors":  errors,
 			})
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		// Serve thumbnail files directly (PocketBase doesn't serve unregistered files)
 		se.Router.GET("/api/media/thumb/{collection}/{record}/{filename}", func(e *core.RequestEvent) error {
@@ -1021,7 +1021,7 @@ func RegisterMediaHooks(app *pocketbase.PocketBase, uploadsDir string) {
 			return e.JSON(http.StatusOK, map[string]any{
 				"items": items,
 			})
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		// Get usage details for a specific external_media item (for delete warning)
 		se.Router.GET("/api/media/usage/{id}", func(e *core.RequestEvent) error {
@@ -1042,7 +1042,7 @@ func RegisterMediaHooks(app *pocketbase.PocketBase, uploadsDir string) {
 			}
 
 			return e.JSON(http.StatusOK, usage)
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		return se.Next()
 	})

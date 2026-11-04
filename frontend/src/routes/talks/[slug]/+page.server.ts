@@ -2,29 +2,35 @@
  * Talk detail route: /talks/[slug]
  *
  * Displays a single talk with full details and video embed.
- * Only public, non-draft talks are accessible.
- * Private/unlisted/draft talks return 404 (non-discoverable).
+ * Public and unlisted talks open directly. A private talk opens only from a
+ * Facet that shows it, for a visitor who can read that Facet.
+ * Anything else returns 404 (non-discoverable).
  */
 
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
 import { navigationFacet } from '$lib/discovery';
+import { buildTokenHeaders, getPasswordToken, getShareToken, getShareVisit } from '$lib/tokens';
 import { internalApiHeaders, parseMediaRefs } from '$lib/server/public-api';
 
-export const load: PageServerLoad = async ({ params, fetch, url, request, locals }) => {
+export const load: PageServerLoad = async ({ params, fetch, url, request, locals, cookies }) => {
 	const pbUrl = process.env.POCKETBASE_URL || 'http://localhost:8090';
 	const { slug } = params;
 	const fromHints = url.searchParams.getAll('from');
 	const fromView = fromHints.length === 1 ? navigationFacet(fromHints[0]) : '';
 
-	const pbAuthToken = locals.pb?.authStore?.isValid ? locals.pb.authStore.token : null;
-	const headers = {
+	const headers: Record<string, string> = {
 		...internalApiHeaders(request),
-		...(pbAuthToken ? { Authorization: `Bearer ${pbAuthToken}` } : {})
+		...buildTokenHeaders(getShareToken(cookies), getPasswordToken(cookies), getShareVisit(cookies))
 	};
+	const pbAuthToken = locals.pb?.authStore?.isValid ? locals.pb.authStore.token : null;
+	if (pbAuthToken) {
+		headers['Authorization'] = `Bearer ${pbAuthToken}`;
+	}
+	const accessQuery = fromView ? `?from=${encodeURIComponent(fromView)}` : '';
 
 	try {
-		const response = await fetch(`${pbUrl}/api/talk/${slug}`, { headers });
+		const response = await fetch(`${pbUrl}/api/talk/${slug}${accessQuery}`, { headers });
 
 		if (!response.ok) {
 			throw error(404, 'Not Found');

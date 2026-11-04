@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { t } from 'svelte-i18n';
+	import { brandName } from '$lib/stores/plan';
 	import SectionLanding from '$components/admin/section/SectionLanding.svelte';
 	import type { SectionCard } from '$components/admin/section/SectionLanding.svelte';
 	import { siteFeatures } from '$lib/stores/features';
@@ -31,6 +33,10 @@
 		{ href: '/admin/subscribers', icon: 'users', labelKey: 'admin.sidebar.subscribers' }
 	]);
 </script>
+
+<svelte:head>
+	<title>{$t('admin.section.audience.title')} | {$brandName}</title>
+</svelte:head>
 
 <SectionLanding
 	titleKey="admin.section.audience.title"

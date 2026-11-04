@@ -18,9 +18,10 @@
 	function handleNameChange(e: Event) {
 		const target = e.target as HTMLInputElement;
 		const name = target.value;
+		const followsName = $setupWizard.newView.slug === generateSlug($setupWizard.newView.name);
 		setupWizard.updateNewView({
 			name,
-			slug: generateSlug(name)
+			slug: followsName ? generateSlug(name) : $setupWizard.newView.slug
 		});
 	}
 </script>
@@ -33,6 +34,14 @@
 		<p class="text-gray-600 dark:text-gray-400">
 			{$t('admin.wizard.step2_subtitle')}
 		</p>
+	</div>
+
+	<div
+		class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 space-y-2 text-sm text-gray-600 dark:text-gray-400"
+	>
+		<p>{$t('admin.wizard.step2_uses')}</p>
+		<p>{$t('admin.wizard.step2_templates')}</p>
+		<p>{$t('admin.wizard.step2_access')}</p>
 	</div>
 
 	<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -72,12 +81,31 @@
 					value={$setupWizard.newView.name}
 					oninput={handleNameChange}
 				/>
-				<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-					{$t('admin.wizard.url_label')}
-					<code class="px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded"
-						>/{$setupWizard.newView.slug || 'your-facet'}</code
-					>
-				</p>
+			</div>
+			<div>
+				<label for="wizard-view-slug" class="label"
+					>{$t('admin.view_editor.basic_info.slug_label')}</label
+				>
+				<input
+					id="wizard-view-slug"
+					type="text"
+					class="input"
+					autocapitalize="none"
+					spellcheck="false"
+					maxlength="100"
+					pattern="[a-zA-Z0-9][a-zA-Z0-9_-]*"
+					required
+					value={$setupWizard.newView.slug}
+					oninput={(e) => setupWizard.updateNewView({ slug: e.currentTarget.value })}
+				/>
+				{#if $setupWizard.newView.visibility === 'public'}
+					<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+						{$t('admin.wizard.url_label')}
+						<code class="px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded"
+							>/{$setupWizard.newView.slug || 'your-facet'}</code
+						>
+					</p>
+				{/if}
 			</div>
 
 			<div

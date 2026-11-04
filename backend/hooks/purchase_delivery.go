@@ -164,7 +164,7 @@ func recordPaidSession(app core.App, purchaseService *services.PurchaseService, 
 		return nil, err
 	}
 
-	app.Logger().Info("Purchase created", "purchase_id", purchase.Id, "session_id", sess.ID)
+	app.Logger().Info("Purchase created", "purchase_id", purchase.Id, "session_ref", checkoutSessionLogRef(sess.ID))
 	if couponCode := sess.Metadata["coupon_code"]; couponCode != "" {
 		IncrementCouponUses(app, couponCode)
 	}
@@ -409,13 +409,13 @@ func handleCheckoutConfirm(app core.App, purchaseService *services.PurchaseServi
 		purchase, err := recordPaidSession(app, purchaseService, sess)
 		switch {
 		case errors.Is(err, errSessionMismatch):
-			app.Logger().Error("Checkout session metadata does not match its purchase", "session_id", sess.ID)
+			app.Logger().Error("Checkout session metadata does not match its purchase", "session_ref", checkoutSessionLogRef(sess.ID))
 			return e.JSON(http.StatusConflict, map[string]string{"error": "checkout session is for a different item"})
 		case errors.Is(err, errSessionNoEmail):
-			app.Logger().Error("Paid checkout session has no customer email", "session_id", sess.ID)
+			app.Logger().Error("Paid checkout session has no customer email", "session_ref", checkoutSessionLogRef(sess.ID))
 			return e.JSON(http.StatusInternalServerError, map[string]string{"error": "payment has no email address; contact the site owner"})
 		case err != nil:
-			app.Logger().Error("Failed to record purchase", "session_id", sess.ID)
+			app.Logger().Error("Failed to record purchase", "session_ref", checkoutSessionLogRef(sess.ID))
 			return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to record purchase, try again shortly"})
 		}
 

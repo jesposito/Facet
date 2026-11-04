@@ -90,7 +90,7 @@ func RegisterPasswordChangeEndpoint(app *pocketbase.PocketBase, rl *services.Rat
 		se.Router.GET("/api/auth/check-default-password", func(e *core.RequestEvent) error {
 			// Verify user is authenticated
 			user := e.Auth
-			if user == nil {
+			if !isSuperuser(e) {
 				return e.JSON(http.StatusUnauthorized, map[string]string{
 					"error": "Authentication required",
 				})
@@ -109,7 +109,7 @@ func RegisterPasswordChangeEndpoint(app *pocketbase.PocketBase, rl *services.Rat
 		se.Router.POST("/api/auth/change-password", RateLimitMiddleware(rl, "strict")(func(e *core.RequestEvent) error {
 			// Verify user is authenticated
 			user := e.Auth
-			if user == nil {
+			if !isSuperuser(e) {
 				return e.JSON(http.StatusUnauthorized, map[string]string{
 					"error": "Authentication required",
 				})

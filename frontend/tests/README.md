@@ -14,15 +14,11 @@ Facet's end-to-end tests use [Playwright](https://playwright.dev/) with Chromium
 4. **Give the tests an owner account** for anything behind sign-in:
    ```bash
    export ADMIN_EMAIL=admin@example.com
-   export ADMIN_PASSWORD='your-changed-password'
+   export ADMIN_PASSWORD='your-local-password'
    ```
-   Sign in once in the browser first and change the default password. The admin dashboard won't do anything else until you have, and some tests need that done. Tests that need an account are skipped when these variables are missing.
+   `make dev` writes the first account's random password to `pb_data/.admin-credentials`. After `make seed-dev`, sign in once in the browser and replace the fixed development password first, because the admin APIs refuse everything else until you do. Tests that need an account are skipped when these variables are missing.
 
 Some tests need data that only the development profile provides. If a test reports that no views, projects or posts exist, load it with `make seed-dev`. That command **deletes `pb_data/` and rewrites `.env`** ([details](../../docs/DEV.md#make-targets)).
-
-### Superuser tests
-
-`hero-rail-layout.spec.ts` and `text-color-aaa.spec.ts` change fields through a PocketBase superuser. They default to `admin@localhost.dev` / `admin123`. Either create that superuser in your development database ([how](../../docs/DEV.md#what-make-dev-does)) or point the tests at yours with `PB_SUPERUSER_EMAIL` and `PB_SUPERUSER_PASSWORD`.
 
 ## Running
 
@@ -43,26 +39,26 @@ Tests run one at a time (`workers: 1`) because several change shared site settin
 
 ## Configuration
 
-| Variable                                      | Default                                                         | Used for                    |
-| --------------------------------------------- | --------------------------------------------------------------- | --------------------------- |
-| `PLAYWRIGHT_BASE_URL`                         | `VITE_POCKETBASE_URL` if set, otherwise `http://localhost:5173` | Where pages are loaded from |
-| `API_BASE_URL`                                | `POCKETBASE_URL` if set, otherwise `http://localhost:8090`      | Direct backend calls        |
-| `ADMIN_EMAIL`, `ADMIN_PASSWORD`               | (none)                                                          | Owner sign-in               |
-| `PB_SUPERUSER_EMAIL`, `PB_SUPERUSER_PASSWORD` | `admin@localhost.dev`, `admin123`                               | Superuser-only tests        |
-| `CI`                                          | (unset)                                                         | Enables retries             |
+| Variable                        | Default                                                         | Used for                    |
+| ------------------------------- | --------------------------------------------------------------- | --------------------------- |
+| `PLAYWRIGHT_BASE_URL`           | `VITE_POCKETBASE_URL` if set, otherwise `http://localhost:5173` | Where pages are loaded from |
+| `API_BASE_URL`                  | `POCKETBASE_URL` if set, otherwise `http://localhost:8090`      | Direct backend calls        |
+| `ADMIN_EMAIL`, `ADMIN_PASSWORD` | (none)                                                          | Owner sign-in               |
+| `CI`                            | (unset)                                                         | Enables retries             |
 
 `PLAYWRIGHT_BASE_URL` falls back to `VITE_POCKETBASE_URL`, which is a backend address in normal use. If you've set `VITE_POCKETBASE_URL`, set `PLAYWRIGHT_BASE_URL` explicitly too.
 
 ## What CI runs
 
-The [Security and tests workflow](../../.github/workflows/security-tests.yml) builds the frontend, then [`scripts/ci/run-browser-smoke.sh`](../../scripts/ci/run-browser-smoke.sh):
+The [Security and tests workflow](../../.github/workflows/security-tests.yml) builds the frontend, then runs [`scripts/ci/run-browser-smoke.sh`](../../scripts/ci/run-browser-smoke.sh). This is the canonical full run. It:
 
 - builds the backend and starts it on a fresh temporary database with the development seed
 - starts the built SvelteKit server, plus a small Node proxy ([`smoke-proxy.mjs`](../../scripts/ci/smoke-proxy.mjs)) in place of Caddy
 - waits for `/health`, signs in with the default password, and changes it, as a real owner would
-- runs `public-api.spec.ts` first (before browser traffic uses up the anonymous rate-limit allowance), then `portfolio-portability.spec.ts`, then `admin-flows.spec.ts`, `booking-shortcodes.spec.ts`, `dependency-security.spec.ts` and `back-navigation.spec.ts`, then `project-experiences.spec.ts`
+- runs the `public-api` and `source-unit` Playwright projects
+- runs every `chromium` spec file in turn, restarting the backend before each one so that file starts with fresh in-memory rate limits. The temporary database, uploads and owner session carry through the whole run.
 
-Production rate limits stay switched on during these runs. The other specs are run by developers locally.
+Production rate limits stay switched on during these runs. Passing Playwright arguments to the script runs only those, in one pass without the restarts.
 
 ## What's covered
 

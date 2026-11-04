@@ -2,20 +2,20 @@
   Live site preview iframe.
 
   Renders the public profile homepage in a sandboxed iframe with a
-  debounced reload on PocketBase realtime updates to the profile record,
-  so the operator watches the public site update as they edit.
+  debounced reload on PocketBase realtime updates to public content,
+  site settings, and navigation.
 
   Behaviour:
-  - Realtime subscription is scoped to the specific profile record id
-    (not the wildcard `*` topic), keeping the subscription tight + cheap.
+  - Public content collections use wildcard topics. Profile wildcard
+    subscriptions also cover a profile created after the preview mounts.
+  - Site settings use an owner-only topic with no record data, because the
+    settings record stays private.
   - Kill-switch via `VITE_DISABLE_LIVE_PREVIEW=1` at build time disables
     the feature without touching source. Mounting is skipped entirely
     when set.
   - Iframe error events announce failure via the same polite live region
     used for the ready announcement.
-  - If we can't resolve the profile record id (e.g. pre-seed), the
-    component still renders the iframe but skips the realtime
-    subscription — preview is static until manual reload, never crashes.
+  - Subscription failures leave the iframe available for manual reload.
 
   A11y design:
   - iframe is tabindex=-1 (sandbox restricts interaction; sealing focus
@@ -35,15 +35,26 @@
 	import { t } from 'svelte-i18n';
 	import { pb } from '$lib/pocketbase';
 	import { browser } from '$app/env';
+	import type { UnsubscribeFunc } from 'pocketbase';
 
-	// Reload debounce: 400ms after PB realtime fires. Tuned so a fast typer
-	// saving every keystroke (autosave debounces internally) gets exactly
-	// one preview reload per coherent edit, not per keystroke.
 	const RELOAD_DEBOUNCE_MS = 400;
+	const SITE_CONFIG_TOPIC = 'public_site_config';
+	const CONTENT_COLLECTIONS = [
+		'profile',
+		'experience',
+		'projects',
+		'education',
+		'certifications',
+		'awards',
+		'skills',
+		'posts',
+		'talks',
+		'courses',
+		'testimonials',
+		'contact_methods',
+		'custom_content'
+	];
 
-	// Build-time kill switch. Set VITE_DISABLE_LIVE_PREVIEW=1 in .env to
-	// fully disable the feature without touching code. Default empty →
-	// enabled (subject to userPreferences toggle).
 	const KILL_SWITCH =
 		typeof import.meta.env !== 'undefined' &&
 		(import.meta.env.VITE_DISABLE_LIVE_PREVIEW === '1' ||
@@ -54,107 +65,87 @@
 	let firstLoadAnnounced = $state(false);
 	let errorAnnounced = $state(false);
 	let liveStatus = $state('');
-
-	// Bust the iframe cache on reload — appending a counter to the src
-	// forces a fresh fetch instead of relying on the browser's HTTP cache.
-	// The `preview=1` marker is ignored server-side but kept for parity.
 	let reloadCounter = $state(0);
 	let src = $derived(`/?preview=1&_=${reloadCounter}`);
 
 	let reloadTimer: ReturnType<typeof setTimeout> | null = null;
-	let unsubscribeFn: (() => void) | null = null;
+	let announcementTimer: ReturnType<typeof setTimeout> | null = null;
+	let unsubscribeFns: UnsubscribeFunc[] = [];
+	let destroyed = false;
 
 	function scheduleReload() {
+		if (destroyed) return;
 		if (reloadTimer) clearTimeout(reloadTimer);
 		busy = true;
 		reloadTimer = setTimeout(() => {
-			reloadCounter += 1;
 			reloadTimer = null;
+			if (!destroyed) reloadCounter += 1;
 		}, RELOAD_DEBOUNCE_MS);
 	}
 
 	function announce(message: string) {
+		if (destroyed) return;
 		liveStatus = message;
-		setTimeout(() => {
-			liveStatus = '';
+		if (announcementTimer) clearTimeout(announcementTimer);
+		announcementTimer = setTimeout(() => {
+			announcementTimer = null;
+			if (!destroyed) liveStatus = '';
 		}, 2000);
 	}
 
 	function handleIframeLoad() {
+		if (destroyed) return;
 		busy = false;
-		// Clear the error latch on a successful load so a later break→recover→break
-		// cycle re-announces the failure (WCAG 4.1.3) instead of going silent.
 		errorAnnounced = false;
 		if (!firstLoadAnnounced) {
-			// Throttled status: only the first successful load. Reloads
-			// after the user just typed don't need an announcement.
 			announce($t('admin.site_preview.ready_announce'));
 			firstLoadAnnounced = true;
 		}
 	}
 
 	function handleIframeError() {
+		if (destroyed) return;
 		busy = false;
 		if (!errorAnnounced) {
-			// One-shot error announcement so AT users hear when the preview
-			// breaks (e.g., CSP block, network failure, backend 503).
 			announce($t('admin.site_preview.error_announce'));
 			errorAnnounced = true;
 		}
 	}
 
+	function unsubscribe(fn: UnsubscribeFunc) {
+		void fn().catch((err) => {
+			console.warn('[live-preview] unsubscribe failed:', err);
+		});
+	}
+
+	async function subscribe(name: string, start: () => Promise<UnsubscribeFunc>) {
+		try {
+			const unsub = await start();
+			if (destroyed) {
+				unsubscribe(unsub);
+				return;
+			}
+			unsubscribeFns.push(unsub);
+		} catch (err) {
+			if (!destroyed) console.warn(`[live-preview] ${name} subscribe failed:`, err);
+		}
+	}
+
 	onMount(async () => {
 		if (!browser || KILL_SWITCH) return;
-
-		// Narrow the realtime subscription to the single profile record.
-		// Subscribing to the specific record id (rather than the wildcard
-		// `*` topic) keeps the subscription tight + avoids fan-out from
-		// unrelated record-level writes.
-		//
-		// `requestKey: null` opts out of the PocketBase SDK's per-collection
-		// auto-cancellation. Other admin pages also fetch the profile
-		// collection at mount time, and the SDK cancels earlier in-flight
-		// calls to the same collection when a later one fires. Without
-		// `requestKey: null` our getList could lose the race and the
-		// subscribe path would never establish. One-shot retry on
-		// cancellation as belt-and-suspenders.
-		async function subscribeWithRetry(attempt = 0): Promise<void> {
-			try {
-				const records = await pb.collection('profile').getList(1, 1, { requestKey: null });
-				const profileId = records.items[0]?.id;
-				if (!profileId) {
-					// No profile record yet (rare — pre-seed). Render the
-					// iframe statically; operator can refresh manually.
-					return;
-				}
-				const unsub = await pb.collection('profile').subscribe(profileId, () => {
-					scheduleReload();
-				});
-				unsubscribeFn = unsub;
-			} catch (err) {
-				const msg = String(err);
-				const isAutoCancel = msg.includes('autocancelled') || msg.includes('aborted');
-				if (isAutoCancel && attempt < 2) {
-					// One backoff then retry. Auto-cancel happens when another
-					// page's same-collection fetch raced ahead of ours.
-					await new Promise((r) => setTimeout(r, 250 * (attempt + 1)));
-					return subscribeWithRetry(attempt + 1);
-				}
-				console.warn('[live-preview] realtime subscribe failed:', err);
-			}
-		}
-		await subscribeWithRetry();
+		await Promise.all([
+			...CONTENT_COLLECTIONS.map((collection) =>
+				subscribe(collection, () => pb.collection(collection).subscribe('*', scheduleReload))
+			),
+			subscribe(SITE_CONFIG_TOPIC, () => pb.realtime.subscribe(SITE_CONFIG_TOPIC, scheduleReload))
+		]);
 	});
 
 	onDestroy(() => {
+		destroyed = true;
 		if (reloadTimer) clearTimeout(reloadTimer);
-		if (unsubscribeFn) {
-			try {
-				unsubscribeFn();
-			} catch (err) {
-				console.warn('[live-preview] unsubscribe failed:', err);
-			}
-		}
+		if (announcementTimer) clearTimeout(announcementTimer);
+		for (const unsub of unsubscribeFns.splice(0)) unsubscribe(unsub);
 	});
 </script>
 
@@ -172,6 +163,8 @@
 				title={$t('admin.site_preview.iframe_title')}
 				aria-describedby="site-preview-note"
 				{src}
+				onload={handleIframeLoad}
+				onerror={handleIframeError}
 				loading="lazy"
 				sandbox="allow-same-origin allow-scripts"
 				referrerpolicy="same-origin"

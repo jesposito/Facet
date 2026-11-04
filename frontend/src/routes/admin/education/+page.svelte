@@ -6,11 +6,16 @@
 	import { pb, type Education } from '$lib/pocketbase';
 	import { t } from 'svelte-i18n';
 	import { brandName } from '$lib/stores/plan';
-	import { collection } from '$lib/stores/demo';
+	import { collection, getCollectionName } from '$lib/stores/demo';
+	import { readAllRecords } from '$lib/admin/read-all-records';
 	import { toasts, confirm } from '$lib/stores';
 	import { createAutosave } from '$lib/stores/autosave';
 	import { toDateInputValue } from '$lib/utils';
 	import { createFilterState } from '$lib/admin/filterState.svelte';
+	import { pruneSelection, toggleSelection } from '$lib/admin/selection';
+	import { createBulkActions } from '$lib/admin/bulk-mutation';
+	import { createListLoader } from '$lib/admin/list-load';
+	import ListLoadStatus from '$components/admin/ListLoadStatus.svelte';
 	import AIContentHelper from '$components/admin/AIContentHelper.svelte';
 	import AutosaveRecoveryBanner from '$components/admin/AutosaveRecoveryBanner.svelte';
 	import BulkActionBar from '$components/admin/BulkActionBar.svelte';
@@ -22,7 +27,18 @@
 	import AccordionSection from '$components/admin/forms/AccordionSection.svelte';
 
 	let educations: Education[] = $state([]);
-	let loading = $state(true);
+	const listLoad = createListLoader('education');
+	const bulk = createBulkActions(listLoad, {
+		records: () => collection('education'),
+		items: () => educations,
+		reload: loadEducations,
+		finish: (remaining) => {
+			selectedIds = remaining;
+			selectMode = remaining.size > 0;
+		}
+	});
+	let loading = $derived($listLoad.loading && !$listLoad.loaded);
+	let listLocked = $derived($listLoad.mutating || $listLoad.failed || $listLoad.loading);
 	let showForm = $state(false);
 	let editingEdu: Education | null = $state(null);
 	let memberships: Record<string, { id: string; name: string; slug: string }[]> = $state({});
@@ -85,14 +101,7 @@
 		}
 	}
 
-	afterNavigate(({ shallow, type }) => {
-		if (shallow && type === 'goto') return;
-
-		showForm = false;
-		editingEdu = null;
-		selectMode = false;
-		selectedIds = new Set();
-
+	function checkRecoveryDraft() {
 		const draft = autosave.loadDraft();
 		if (draft?.data && Object.values(draft.data).some((v) => v !== '' && v !== false && v !== 0)) {
 			recoveryData = { savedAt: draft.savedAt, isEditing: draft.isEditing || false };
@@ -101,6 +110,19 @@
 			showRecoveryBanner = false;
 			recoveryData = null;
 		}
+	}
+
+	onMount(checkRecoveryDraft);
+
+	afterNavigate(({ shallow, type }) => {
+		if (shallow && type === 'goto') return;
+
+		showForm = false;
+		editingEdu = null;
+		selectMode = false;
+		selectedIds = new Set();
+
+		checkRecoveryDraft();
 	});
 
 	// Form fields
@@ -122,25 +144,17 @@
 
 	onMount(loadEducations);
 
-	async function loadEducations() {
-		loading = true;
-		try {
-			const [records, membershipResp] = await Promise.all([
-				await collection('education').getList(1, 100, {
-					sort: '-sort_order,-end_date'
-				}),
-				fetch('/api/admin/view-memberships?collection=education', {
-					headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {}
-				}).then((r) => (r.ok ? r.json() : Promise.reject(new Error('Failed memberships'))))
-			]);
-			educations = records.items as unknown as Education[];
-			memberships = (membershipResp.memberships as typeof memberships) || {};
-		} catch (err) {
-			console.error('Failed to load education:', err);
-			toasts.add('error', 'Failed to load education');
-		} finally {
-			loading = false;
-		}
+	function loadEducations() {
+		listLoad.loadMemberships('education', (value) => (memberships = value));
+		return listLoad.load(
+			(_requestKey, signal) =>
+				readAllRecords<Education>(
+					getCollectionName('education'),
+					{ sort: '-sort_order,-end_date' },
+					signal
+				),
+			(records) => (educations = records)
+		);
 	}
 
 	function resetForm() {
@@ -167,6 +181,7 @@
 	}
 
 	function handleRestoreDraft() {
+		if (!listLoad.canMutate()) return;
 		const draft = autosave.loadDraft();
 		if (draft?.data) {
 			restoreFromDraft(draft.data);
@@ -208,7 +223,7 @@
 		autosave.clearDraft();
 	}
 
-	async function handleSubmit() {
+	const handleSubmit = listLoad.exclusive(async () => {
 		if (!institution.trim()) {
 			toasts.add('error', 'Institution name is required');
 			return;
@@ -283,9 +298,9 @@
 		} finally {
 			saving = false;
 		}
-	}
+	});
 
-	async function deleteEducation(edu: Education) {
+	const deleteEducation = listLoad.exclusive(async (edu: Education) => {
 		const confirmed = await confirm({
 			title: 'Delete Education',
 			message: `Are you sure you want to delete "${edu.degree} at ${edu.institution}"? This action cannot be undone.`,
@@ -304,9 +319,9 @@
 			console.error('Failed to delete education:', err);
 			toasts.add('error', 'Failed to delete education');
 		}
-	}
+	});
 
-	async function togglePublish(edu: Education) {
+	const togglePublish = listLoad.exclusive(async (edu: Education) => {
 		try {
 			await await collection('education').update(edu.id, {
 				is_draft: !edu.is_draft
@@ -317,7 +332,7 @@
 			console.error('Failed to toggle publish:', err);
 			toasts.add('error', 'Failed to update education');
 		}
-	}
+	});
 
 	function formatDateRange(start: string | undefined, end: string | undefined): string {
 		if (!start && !end) return '';
@@ -327,56 +342,45 @@
 		return `${startStr} - ${endStr}`;
 	}
 
+	$effect(() => {
+		const visibleSelection = pruneSelection(
+			selectedIds,
+			filteredEducations.map((edu) => edu.id)
+		);
+		if (visibleSelection !== selectedIds) selectedIds = visibleSelection;
+	});
+
 	function toggleSelectMode() {
 		selectMode = !selectMode;
 		if (!selectMode) selectedIds = new Set();
 	}
 
 	function toggleSelect(id: string) {
-		if (selectedIds.has(id)) selectedIds.delete(id);
-		else selectedIds.add(id);
-		selectedIds = selectedIds;
+		selectedIds = toggleSelection(selectedIds, id);
 	}
 
 	function selectAll() {
-		selectedIds = new Set(educations.map((e) => e.id));
+		selectedIds = new Set(filteredEducations.map((edu) => edu.id));
 	}
 
 	function clearSelection() {
 		selectedIds = new Set();
 	}
 
-	async function bulkSetVisibility(visibility: 'public' | 'unlisted' | 'private') {
-		const ids = Array.from(selectedIds);
-		try {
-			for (const id of ids) await collection('education').update(id, { visibility });
-			toasts.add('success', `Updated ${ids.length} items to ${visibility}`);
-			selectedIds = new Set();
-			selectMode = false;
-			await loadEducations();
-		} catch (err) {
-			toasts.add('error', 'Failed to update visibility');
-		}
+	function bulkSetVisibility(visibility: 'public' | 'unlisted' | 'private') {
+		return bulk.setVisibility(Array.from(selectedIds), visibility);
 	}
 
-	async function bulkDelete() {
+	function bulkDelete() {
 		const ids = Array.from(selectedIds);
-		const confirmed = await confirm({
-			title: 'Delete Education',
-			message: `Are you sure you want to delete ${ids.length} education item(s)? This action cannot be undone.`,
-			confirmText: 'Delete All',
-			danger: true
-		});
-		if (!confirmed) return;
-		try {
-			for (const id of ids) await collection('education').delete(id);
-			toasts.add('success', `Deleted ${ids.length} items`);
-			selectedIds = new Set();
-			selectMode = false;
-			await loadEducations();
-		} catch (err) {
-			toasts.add('error', 'Failed to delete items');
-		}
+		return bulk.delete(ids, () =>
+			confirm({
+				title: 'Delete Education',
+				message: `Are you sure you want to delete ${ids.length} education item(s)? This action cannot be undone.`,
+				confirmText: 'Delete All',
+				danger: true
+			})
+		);
 	}
 </script>
 
@@ -390,7 +394,7 @@
 		<p>{$t('admin.content.education.help_tip_1')}</p>
 	</PageHelp>
 
-	{#if showRecoveryBanner && recoveryData}
+	{#if showRecoveryBanner && recoveryData && $listLoad.loaded && !$listLoad.loading && !$listLoad.failed && !$listLoad.mutating}
 		<AutosaveRecoveryBanner
 			savedAt={recoveryData.savedAt}
 			isEditing={recoveryData.isEditing}
@@ -400,16 +404,18 @@
 		/>
 	{/if}
 
-	{#if selectMode && selectedIds.size > 0}
-		<BulkActionBar
-			selectedCount={selectedIds.size}
-			totalCount={educations.length}
-			on:selectAll
-			on:clearSelection
-			on:setVisibility={(e) => bulkSetVisibility(e.detail)}
-			on:delete={bulkDelete}
-			on:cancel={toggleSelectMode}
-		/>
+	{#if selectMode}
+		<fieldset class="contents" disabled={listLocked}>
+			<BulkActionBar
+				selectedCount={selectedIds.size}
+				totalCount={filteredEducations.length}
+				on:selectAll={selectAll}
+				on:clearSelection={clearSelection}
+				on:setVisibility={(e) => bulkSetVisibility(e.detail)}
+				on:delete={bulkDelete}
+				on:cancel={toggleSelectMode}
+			/>
+		</fieldset>
 	{/if}
 
 	<div class="flex items-center justify-between mb-6">
@@ -418,11 +424,15 @@
 		</h1>
 		<div class="flex items-center gap-2">
 			{#if educations.length > 0}
-				<button class="btn {selectMode ? 'btn-secondary' : 'btn-ghost'}" onclick={toggleSelectMode}>
+				<button
+					class="btn {selectMode ? 'btn-secondary' : 'btn-ghost'}"
+					disabled={$listLoad.mutating}
+					onclick={toggleSelectMode}
+				>
 					{selectMode ? $t('admin.content.common.cancel') : $t('admin.content.common.select')}
 				</button>
 			{/if}
-			<button class="btn btn-primary" onclick={openNewForm}>
+			<button class="btn btn-primary" disabled={$listLoad.failed} onclick={openNewForm}>
 				{$t('admin.content.common.new_button', {
 					values: { type: $t('admin.content.education.title') }
 				})}
@@ -431,6 +441,17 @@
 	</div>
 
 	<AdminFilters bind:showAdvanced={showAdvancedFilters} {filterStore} availableTags={[]} />
+
+	<ListLoadStatus
+		status={$listLoad}
+		label={$t('admin.content.education.title').toLowerCase()}
+		onretry={loadEducations}
+	/>
+	{#if $listLoad.ancillaryFailed}
+		<button type="button" class="btn btn-secondary btn-sm mb-4" onclick={listLoad.retryAncillary}>
+			{$t('admin.list_status.retry_supporting')}
+		</button>
+	{/if}
 
 	{#if loading}
 		<div class="card p-8 text-center">
@@ -637,7 +658,7 @@
 				<button type="button" class="btn btn-secondary" onclick={closeForm}
 					>{$t('shared.actions.cancel')}</button
 				>
-				<button type="submit" class="btn btn-primary" disabled={saving}>
+				<button type="submit" class="btn btn-primary" disabled={saving || $listLoad.failed}>
 					{#if saving}
 						<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
 							<circle
@@ -665,6 +686,8 @@
 				</button>
 			</div>
 		</form>
+	{:else if !$listLoad.loaded}
+		<!-- ListLoadStatus above owns the unavailable state. -->
 	{:else if educations.length === 0}
 		<div class="card p-8 text-center">
 			<svg
@@ -718,177 +741,186 @@
 			</button>
 		</div>
 	{:else}
-		<!-- Education List -->
-		<div class="space-y-4">
-			{#each filteredEducations as edu (edu.id)}
-				<div
-					class="card p-4 {selectMode && selectedIds.has(edu.id) ? 'ring-2 ring-primary-500' : ''}"
-				>
-					<div class="flex items-start justify-between gap-4">
-						{#if selectMode}
-							<input
-								type="checkbox"
-								checked={selectedIds.has(edu.id)}
-								onchange={() => toggleSelect(edu.id)}
-								class="mt-1 w-5 h-5 text-primary-600 rounded border-gray-300"
-							/>
-						{/if}
-						<div class="flex-1 min-w-0">
-							<div class="flex items-center gap-2 flex-wrap">
-								<h3 class="font-medium text-gray-900 dark:text-white">
-									{edu.degree || 'Education'}
-									{#if edu.field}
-										<span class="text-gray-500 dark:text-gray-400 font-normal">in {edu.field}</span>
-									{/if}
-								</h3>
-								{#if edu.is_draft}
-									<span
-										class="px-2 py-0.5 text-xs bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 rounded"
-									>
-										Draft
-									</span>
-								{/if}
-								{#if edu.visibility !== 'public'}
-									<span
-										class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded"
-									>
-										{edu.visibility}
-									</span>
-								{/if}
-								{#if !edu.end_date}
-									<span
-										class="px-2 py-0.5 text-xs bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded"
-									>
-										Current
-									</span>
-								{/if}
-							</div>
-
-							{#if memberships[edu.id]?.length}
-								<div class="flex flex-wrap gap-1 mt-2">
-									{#each memberships[edu.id].slice(0, 3) as viewRef}
-										<a
-											href={`/admin/views/${viewRef.id}`}
-											target="_blank"
-											class="px-2 py-0.5 text-xs rounded bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-											title={`Open view: ${viewRef.name}`}
+		<fieldset class="contents" disabled={listLocked}>
+			<!-- Education List -->
+			<div class="space-y-4">
+				{#each filteredEducations as edu (edu.id)}
+					<div
+						class="card p-4 {selectMode && selectedIds.has(edu.id)
+							? 'ring-2 ring-primary-500'
+							: ''}"
+					>
+						<div class="flex items-start justify-between gap-4">
+							{#if selectMode}
+								<input
+									type="checkbox"
+									aria-label={$t('admin.bulk_actions.select_item', {
+										values: { item: edu.degree || edu.institution }
+									})}
+									checked={selectedIds.has(edu.id)}
+									onchange={() => toggleSelect(edu.id)}
+									class="mt-1 w-5 h-5 text-primary-600 rounded border-gray-300"
+								/>
+							{/if}
+							<div class="flex-1 min-w-0">
+								<div class="flex items-center gap-2 flex-wrap">
+									<h3 class="font-medium text-gray-900 dark:text-white">
+										{edu.degree || 'Education'}
+										{#if edu.field}
+											<span class="text-gray-500 dark:text-gray-400 font-normal"
+												>in {edu.field}</span
+											>
+										{/if}
+									</h3>
+									{#if edu.is_draft}
+										<span
+											class="px-2 py-0.5 text-xs bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 rounded"
 										>
-											{viewRef.slug || viewRef.name}
-										</a>
-									{/each}
-									{#if memberships[edu.id].length > 3}
-										<span class="px-2 py-0.5 text-xs text-gray-500 dark:text-gray-400">
-											+{memberships[edu.id].length - 3}
+											Draft
+										</span>
+									{/if}
+									{#if edu.visibility !== 'public'}
+										<span
+											class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded"
+										>
+											{edu.visibility}
+										</span>
+									{/if}
+									{#if !edu.end_date}
+										<span
+											class="px-2 py-0.5 text-xs bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded"
+										>
+											Current
 										</span>
 									{/if}
 								</div>
-							{:else}
-								<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Not in any view</p>
-							{/if}
 
-							<div
-								class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-sm text-gray-500 dark:text-gray-400"
-							>
-								<span class="flex items-center gap-1">
-									<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-										<path d="M12 14l9-5-9-5-9 5 9 5z"></path>
+								{#if memberships[edu.id]?.length}
+									<div class="flex flex-wrap gap-1 mt-2">
+										{#each memberships[edu.id].slice(0, 3) as viewRef}
+											<a
+												href={`/admin/views/${viewRef.id}`}
+												target="_blank"
+												class="px-2 py-0.5 text-xs rounded bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+												title={`Open view: ${viewRef.name}`}
+											>
+												{viewRef.slug || viewRef.name}
+											</a>
+										{/each}
+										{#if memberships[edu.id].length > 3}
+											<span class="px-2 py-0.5 text-xs text-gray-500 dark:text-gray-400">
+												+{memberships[edu.id].length - 3}
+											</span>
+										{/if}
+									</div>
+								{:else if $listLoad.membershipsKnown}
+									<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Not in any view</p>
+								{/if}
 
-										<path
-											stroke-linecap="round"
-											stroke-linejoin="round"
-											stroke-width="2"
-											d="M12 14l9-5-9-5-9 5 9 5zm0 0v7"
-										></path>
-									</svg>
-									{edu.institution}
-								</span>
-								{#if edu.start_date || edu.end_date}
+								<div
+									class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-sm text-gray-500 dark:text-gray-400"
+								>
 									<span class="flex items-center gap-1">
 										<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+											<path d="M12 14l9-5-9-5-9 5 9 5z"></path>
+
 											<path
 												stroke-linecap="round"
 												stroke-linejoin="round"
 												stroke-width="2"
-												d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+												d="M12 14l9-5-9-5-9 5 9 5zm0 0v7"
 											></path>
 										</svg>
-										{formatDateRange(edu.start_date, edu.end_date)}
+										{edu.institution}
 									</span>
+									{#if edu.start_date || edu.end_date}
+										<span class="flex items-center gap-1">
+											<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+												<path
+													stroke-linecap="round"
+													stroke-linejoin="round"
+													stroke-width="2"
+													d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+												></path>
+											</svg>
+											{formatDateRange(edu.start_date, edu.end_date)}
+										</span>
+									{/if}
+								</div>
+
+								{#if edu.description}
+									<p class="text-sm text-gray-600 dark:text-gray-400 mt-2 line-clamp-2">
+										{edu.description}
+									</p>
 								{/if}
 							</div>
 
-							{#if edu.description}
-								<p class="text-sm text-gray-600 dark:text-gray-400 mt-2 line-clamp-2">
-									{edu.description}
-								</p>
-							{/if}
-						</div>
+							<div class="flex items-center gap-2">
+								<button
+									class="p-3 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+									onclick={() => togglePublish(edu)}
+									title={edu.is_draft ? 'Publish' : 'Unpublish'}
+								>
+									{#if edu.is_draft}
+										<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+											<path
+												stroke-linecap="round"
+												stroke-linejoin="round"
+												stroke-width="2"
+												d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+											></path>
 
-						<div class="flex items-center gap-2">
-							<button
-								class="p-3 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-								onclick={() => togglePublish(edu)}
-								title={edu.is_draft ? 'Publish' : 'Unpublish'}
-							>
-								{#if edu.is_draft}
+											<path
+												stroke-linecap="round"
+												stroke-linejoin="round"
+												stroke-width="2"
+												d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+											></path>
+										</svg>
+									{:else}
+										<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+											<path
+												stroke-linecap="round"
+												stroke-linejoin="round"
+												stroke-width="2"
+												d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.542 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
+											></path>
+										</svg>
+									{/if}
+								</button>
+								<button
+									class="p-3 text-gray-500 hover:text-blue-600"
+									onclick={() => openEditForm(edu)}
+									title="Edit"
+								>
 									<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 										<path
 											stroke-linecap="round"
 											stroke-linejoin="round"
 											stroke-width="2"
-											d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-										></path>
-
-										<path
-											stroke-linecap="round"
-											stroke-linejoin="round"
-											stroke-width="2"
-											d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+											d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
 										></path>
 									</svg>
-								{:else}
+								</button>
+								<button
+									class="p-3 text-gray-500 hover:text-red-600"
+									onclick={() => deleteEducation(edu)}
+									title="Delete"
+								>
 									<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 										<path
 											stroke-linecap="round"
 											stroke-linejoin="round"
 											stroke-width="2"
-											d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.542 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
+											d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
 										></path>
 									</svg>
-								{/if}
-							</button>
-							<button
-								class="p-3 text-gray-500 hover:text-blue-600"
-								onclick={() => openEditForm(edu)}
-								title="Edit"
-							>
-								<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-									<path
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										stroke-width="2"
-										d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-									></path>
-								</svg>
-							</button>
-							<button
-								class="p-3 text-gray-500 hover:text-red-600"
-								onclick={() => deleteEducation(edu)}
-								title="Delete"
-							>
-								<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-									<path
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										stroke-width="2"
-										d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-									></path>
-								</svg>
-							</button>
+								</button>
+							</div>
 						</div>
 					</div>
-				</div>
-			{/each}
-		</div>
+				{/each}
+			</div>
+		</fieldset>
 	{/if}
 </div>

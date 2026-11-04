@@ -12,6 +12,13 @@ export function navigationFacet(value?: string | null): string {
 	return value && matchSlug(value) ? value : '';
 }
 
+/** Adds a validated Facet to a visitor API URL. Credentials stay in cookies. */
+export function withFacet(path: string, fromView?: string | null): string {
+	const from = navigationFacet(fromView);
+	if (!from) return path;
+	return `${path}${path.includes('?') ? '&' : '?'}from=${encodeURIComponent(from)}`;
+}
+
 function filterValue(value?: string | null): string {
 	return value && value.length <= 160 && !unsafeCharacters.test(value) ? value : '';
 }

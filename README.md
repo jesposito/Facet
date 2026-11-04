@@ -17,7 +17,7 @@ Everything lives in a SQLite database and an uploads folder on your own machine.
 
 ## What it does
 
-- **Views**: curated versions of your site at addresses like `/recruiter`, each with its own sections, items, wording, call to action and colour
+- **Facets**: pages such as a résumé, client proposal or project collection, each with its own address, content and presentation. Share a page on its own, add it to site navigation, or use it both ways ([examples](docs/FACETS.md))
 - **Visibility you control**: public, unlisted views behind share links that can expire, password-protected views, and private items
 - **Content**: experience, projects, education, certifications, awards, skills, posts, talks, testimonials and your own custom sections
 - **Project experiences**: turn a project into a case study, video course or code walkthrough

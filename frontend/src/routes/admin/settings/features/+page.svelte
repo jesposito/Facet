@@ -1,13 +1,21 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onDestroy, onMount, tick } from 'svelte';
 	import { pb } from '$lib/pocketbase';
 	import { t } from 'svelte-i18n';
 	import { brandName } from '$lib/stores/plan';
 	import { toasts } from '$lib/stores';
 	import { resolveSiteFeatures, setSiteFeatures } from '$lib/stores/features';
+	import { fetchSettingsJson, isSettingsObject } from '$lib/admin/settings-load';
+	import SettingsLoadError from '$components/admin/SettingsLoadError.svelte';
 
 	let loading = $state(true);
+	let loaded = $state(false);
+	let loadFailed = $state(false);
 	let saving = $state(false);
+	let heading: HTMLHeadingElement | null = $state(null);
+	let loadSequence = 0;
+	let settingsRequest: AbortController | null = null;
+	let mounted = false;
 
 	let features = $state({
 		analytics: true,
@@ -16,26 +24,62 @@
 		discussions: true
 	});
 
-	onMount(async () => {
-		await loadFeatures();
+	onMount(() => {
+		mounted = true;
+		void loadFeatures();
 	});
 
+	onDestroy(() => {
+		mounted = false;
+		loadSequence += 1;
+		settingsRequest?.abort();
+	});
+
+	function hasValidFeatures(data: Record<string, unknown>): boolean {
+		const raw = data.enabled_features;
+		if (!isSettingsObject(raw)) return false;
+		return ['analytics', 'courses', 'newsletter', 'discussions'].every(
+			(key) => raw[key] === undefined || typeof raw[key] === 'boolean'
+		);
+	}
+
 	async function loadFeatures() {
+		const sequence = ++loadSequence;
+		settingsRequest?.abort();
+		settingsRequest = new AbortController();
 		loading = true;
 		try {
-			const response = await fetch(`/api/site-settings?_=${Date.now()}`);
-			if (response.ok) {
-				const data = await response.json();
-				features = resolveSiteFeatures(data.enabled_features);
-			}
+			const data = await fetchSettingsJson(`/api/site-settings?_=${Date.now()}`, {
+				signal: settingsRequest.signal
+			});
+			if (!hasValidFeatures(data)) throw new Error('Invalid feature settings response');
+			if (!mounted || sequence !== loadSequence) return;
+			if (!loaded) features = resolveSiteFeatures(data.enabled_features);
+			loaded = true;
+			loadFailed = false;
 		} catch (err) {
+			if (!mounted || sequence !== loadSequence) return;
 			console.error('Failed to load feature settings:', err);
+			loadFailed = true;
 		} finally {
-			loading = false;
+			if (mounted && sequence === loadSequence) {
+				loading = false;
+				settingsRequest = null;
+			}
+		}
+	}
+
+	async function retryFeatures() {
+		if (loading) return;
+		await loadFeatures();
+		if (!loadFailed) {
+			await tick();
+			heading?.focus();
 		}
 	}
 
 	async function saveFeatures() {
+		if (!loaded || loadFailed || loading || saving) return;
 		saving = true;
 		try {
 			const saved = await pb.send('/api/site-settings', {
@@ -89,7 +133,11 @@
 
 <div class="max-w-3xl mx-auto">
 	<div class="mb-6">
-		<h1 class="text-2xl font-bold text-gray-900 dark:text-white">
+		<h1
+			bind:this={heading}
+			tabindex="-1"
+			class="text-2xl font-bold text-gray-900 dark:text-white outline-none"
+		>
 			{$t('admin.settings.features.title')}
 		</h1>
 		<p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
@@ -97,20 +145,32 @@
 		</p>
 	</div>
 
-	{#if loading}
-		<div class="card p-6">
-			<div class="animate-pulse space-y-4">
-				{#each { length: 4 } as _}
-					<div class="flex items-center justify-between">
-						<div class="space-y-2 flex-1">
-							<div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-32"></div>
-							<div class="h-3 bg-gray-200 dark:bg-gray-700 rounded w-64"></div>
+	{#if loadFailed}
+		<SettingsLoadError
+			message={$t('admin.settings_page.recoverycopy.load_error', {
+				values: { resource: $t('admin.settings_page.recoverycopy.features') }
+			})}
+			pending={loading}
+			onretry={retryFeatures}
+		/>
+	{/if}
+
+	{#if !loaded}
+		{#if loading}
+			<div class="card p-6">
+				<div class="animate-pulse space-y-4">
+					{#each { length: 4 } as _}
+						<div class="flex items-center justify-between">
+							<div class="space-y-2 flex-1">
+								<div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-32"></div>
+								<div class="h-3 bg-gray-200 dark:bg-gray-700 rounded w-64"></div>
+							</div>
+							<div class="h-6 w-11 bg-gray-200 dark:bg-gray-700 rounded-full ml-4"></div>
 						</div>
-						<div class="h-6 w-11 bg-gray-200 dark:bg-gray-700 rounded-full ml-4"></div>
-					</div>
-				{/each}
+					{/each}
+				</div>
 			</div>
-		</div>
+		{/if}
 	{:else}
 		<div class="card p-6 space-y-6">
 			<p
@@ -133,8 +193,9 @@
 							role="switch"
 							aria-checked={features[row.key]}
 							aria-label={$t(row.nameKey)}
-							disabled={saving}
+							disabled={saving || loading || loadFailed}
 							onclick={() => {
+								if (loadFailed || loading) return;
 								features[row.key] = !features[row.key];
 							}}
 							class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed
@@ -155,7 +216,7 @@
 					type="button"
 					class="btn btn-primary"
 					onclick={saveFeatures}
-					disabled={saving || loading}
+					disabled={saving || loading || loadFailed}
 				>
 					{#if saving}
 						<svg

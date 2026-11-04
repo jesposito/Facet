@@ -76,17 +76,9 @@ func TestCourseCollectionsStillDenyAnonymousAccess(t *testing.T) {
 			base := "/api/collections/" + tc.collection + "/records"
 
 			listed := do(t, handler, testRequest{url: base})
-			assertStatus(t, listed, http.StatusOK)
-			var list struct {
-				TotalItems int               `json:"totalItems"`
-				Items      []json.RawMessage `json:"items"`
-			}
-			if err := json.Unmarshal(listed.Body.Bytes(), &list); err != nil {
-				t.Fatalf("decode anonymous list: %v", err)
-			}
-			if list.TotalItems != 0 || len(list.Items) != 0 {
-				t.Fatalf("anonymous list returned records: %s", listed.Body.String())
-			}
+			assertStatus(t, listed, http.StatusUnauthorized)
+			assertNotContains(t, listed, `"items"`)
+			assertNotContains(t, listed, tc.secret)
 
 			createOwnedRecord(t, handler, auth, tc.collection, tc.payload)
 			created := do(t, handler, testRequest{method: http.MethodPost, url: base, body: tc.payload})

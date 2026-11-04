@@ -418,7 +418,7 @@
 	}
 
 	.btn-primary {
-		@apply bg-primary-600 text-white hover:bg-primary-700 active:bg-primary-800;
+		@apply bg-primary-700 text-white hover:bg-primary-800 active:bg-primary-900;
 		@apply shadow-sm;
 	}
 

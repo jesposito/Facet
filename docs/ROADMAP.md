@@ -7,7 +7,7 @@ This page tracks what self-hosted Facet does today, what's only partly built, an
 Each of these works end to end in the current code. Follow the links for details.
 
 - **Profile and content**: experience, projects, education, certifications, awards, skills, posts, talks, custom content and contact methods, with drafts, ordering, duplication and bulk actions ([Features](FEATURES.md#your-content))
-- **Views** with section and item selection, per-item overrides, hero and call-to-action settings, live preview, and a default view ([Features](FEATURES.md#views))
+- **Views** with section and item selection, per-item overrides, hero and call-to-action settings, live preview, direct sharing and optional site navigation ([Features](FEATURES.md#views))
 - **Visibility, share links and password views** ([Features](FEATURES.md#visibility))
 - **Project experiences**: case studies, video courses, code walkthroughs ([Project experiences](experiences/README.md))
 - **Media library** with uploads, external embeds, thumbnails, usage tracking and orphan cleanup ([Media](MEDIA.md))
@@ -51,8 +51,8 @@ Ideas that have come up in earlier planning but aren't in the code. Listing them
 - A LinkedIn importer
 - QR codes for views and share links
 - Newsletter drip sequences and full template personalisation
-- Expiring signed URLs for uploaded files
+- Expiring URLs for ordinary `/api/files/*` uploads; downloadable files and lesson attachments already have signed links that expire after 15 minutes
 - Offline support (PWA)
 - An "Apply with Facet" button for sending a view to an employer
 - Ready-made visual themes beyond the current design options
-- A switch to turn off built-in visit logging, and automatic expiry of old logs
+- Automatic expiry of old visit logs; the Analytics switch already stops new visitor logging and counters

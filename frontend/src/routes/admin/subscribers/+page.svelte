@@ -5,6 +5,7 @@
 	import { pb } from '$lib/pocketbase';
 	import { toasts, confirm } from '$lib/stores';
 	import { focusAfterRemove } from '$lib/a11y/focusAfterRemove';
+	import { formatDate } from '$lib/utils';
 
 	type Subscriber = {
 		id: string;
@@ -345,6 +346,13 @@
 		if (status === 'active') return $t('admin.subscribers.status_active');
 		if (status === 'bounced') return $t('admin.subscribers.status_bounced');
 		return $t('admin.subscribers.status_unsubscribed');
+	}
+
+	// Subscribers from before the created field have no recorded date.
+	function formatSubscriberDate(created: string): string {
+		const instant = created.replace(' ', 'T');
+		if (Number.isNaN(Date.parse(instant))) return '—';
+		return formatDate(instant, { year: 'numeric', month: 'numeric', day: 'numeric' });
 	}
 </script>
 
@@ -731,7 +739,7 @@
 									</span>
 								</td>
 								<td class="py-3 px-4 text-gray-600 dark:text-gray-400"
-									>{new Date(sub.created).toLocaleDateString()}</td
+									>{formatSubscriberDate(sub.created)}</td
 								>
 								<td class="py-3 px-4 text-right">
 									<button

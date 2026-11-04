@@ -92,11 +92,11 @@ func RegisterResumeHooks(app *pocketbase.PocketBase, crypto *services.CryptoServ
 		// password token or share token that /data accepts works here.
 		se.Router.POST("/api/view/{slug}/generate", func(e *core.RequestEvent) error {
 			slug := e.Request.PathValue("slug")
-			isAuthenticated := e.Auth != nil
+			isOwner := isSuperuser(e)
 
 			// Rate limit by client address (skip for the site owner). Each
 			// generation costs an AI call and a LaTeX run.
-			if !isAuthenticated {
+			if !isOwner {
 				clientIP := services.ClientIP(e.Request)
 				if !limiter.allow(clientIP) {
 					log.Printf("[AI-PRINT] Rate limit exceeded for IP: %s", clientIP)
@@ -108,7 +108,7 @@ func RegisterResumeHooks(app *pocketbase.PocketBase, crypto *services.CryptoServ
 
 			// Find the view. Visitors only reach active views, like /data.
 			filter := "slug = {:slug}"
-			if !isAuthenticated {
+			if !isOwner {
 				filter += " && is_active = true"
 			}
 			views, err := app.FindRecordsByFilter("views", filter, "", 1, 0, map[string]interface{}{"slug": slug})
@@ -119,7 +119,8 @@ func RegisterResumeHooks(app *pocketbase.PocketBase, crypto *services.CryptoServ
 			view := views[0]
 
 			// Generating doesn't use up a share token; opening the view did.
-			if _, denial := checkViewAccess(app, crypto, share, e, view); denial != nil {
+			_, denial := checkViewAccess(app, crypto, share, e, view)
+			if denial = publicViewDenial(view, denial); denial != nil {
 				return e.JSON(denial.status, map[string]string{"error": denial.message})
 			}
 
@@ -152,7 +153,7 @@ func RegisterResumeHooks(app *pocketbase.PocketBase, crypto *services.CryptoServ
 			}
 			// Visitors get the site's default provider. Choosing one is an
 			// owner setting.
-			if !isAuthenticated {
+			if !isOwner {
 				req.ProviderID = ""
 			}
 			// These go into the AI prompt. Keep them to what the form needs.
@@ -324,7 +325,7 @@ func RegisterResumeHooks(app *pocketbase.PocketBase, crypto *services.CryptoServ
 				"exports": result,
 				"count":   len(result),
 			})
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		// Delete an export
 		// DELETE /api/view/{slug}/exports/{exportId}
@@ -341,7 +342,7 @@ func RegisterResumeHooks(app *pocketbase.PocketBase, crypto *services.CryptoServ
 			}
 
 			return e.JSON(http.StatusOK, map[string]string{"status": "deleted"})
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		return se.Next()
 	})
@@ -408,23 +409,11 @@ func collectViewData(app *pocketbase.PocketBase, view *core.Record, access conte
 			continue
 		}
 
-		// Check if specific items are selected
-		// Only show items that are explicitly selected - if none selected, section is empty
-		items, hasItems := section["items"].([]interface{})
-		var records []*core.Record
-
-		if hasItems && len(items) > 0 {
-			// Fetch specific items in order
-			for _, itemID := range items {
-				if id, ok := itemID.(string); ok {
-					record, err := app.FindRecordById(collectionName, id)
-					if err == nil && isRecordVisibleForSection(record, sectionName, view.Id) {
-						records = append(records, record)
-					}
-				}
-			}
+		// Same records as /api/view/{slug}/data, so the resume matches the page.
+		records, err := resolveSectionRecords(app, collectionName, sectionName, section, view.Id)
+		if err != nil {
+			return nil, err
 		}
-		// If no items selected (len(items) == 0), section remains empty - nothing shown
 
 		// Extract item configs for overrides
 		itemConfig := make(map[string]map[string]interface{})

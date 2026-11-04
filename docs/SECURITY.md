@@ -7,12 +7,14 @@ This page explains, in plain terms first and technical detail second, who contro
 - **You own the data.** Everything lives in a SQLite database and an uploads folder on your machine. There's no Facet account, licence server or telemetry.
 - **Facet is built for one owner.** Every account that can sign in has full control of the site. `ADMIN_EMAILS` decides who that is, so set it.
 - **Secrets are encrypted, content isn't.** AI keys, the GitHub token, Stripe secrets and two-factor secrets are encrypted in the database. Your profile and posts are stored as normal database rows, protected by your server's security.
-- **Visitors' browsers do contact third parties.** Every page loads Google Fonts, and optional features add more. See [What leaves your server](#what-leaves-your-server).
+- **Visitors' browsers can contact third parties when content or optional features require it.** Facet serves its fonts from bundled local assets on every page. See [What leaves your server](#what-leaves-your-server).
 - **Facet keeps its own visit statistics.** They're stored on your server and never shared, but they aren't anonymous. See [What Facet records about visitors](#what-facet-records-about-visitors).
 
 ## Who can sign in
 
-Facet stores sign-in accounts in PocketBase's `users` table. Any signed-in account is treated as the site owner: the backend's admin endpoints check only that the request comes from a signed-in `users` account (or a PocketBase superuser), not which one ([helpers](../backend/hooks/helpers.go)). There are no roles.
+Facet stores owner sign-in accounts in PocketBase's `users` table. Every account in that collection has full control of the site after completing sign-in. Facet's owner APIs accept those accounts and PocketBase superusers; a token from another authentication collection does not make its holder an owner ([helpers](../backend/hooks/helpers.go)). Facet's password and two-factor routes use the same owner boundary.
+
+Default access to Facet's records through PocketBase's collection API is also restricted to `users`, with PocketBase's normal superuser bypass. At startup, Facet upgrades its old defaults that admitted any authenticated record. Custom filtered rules and server-managed collections locked to superusers remain in place. If Facet cannot read or save the required rules, startup stops with the affected collection in the error; correct the database or collection configuration before restarting ([rules](../backend/hooks/rules.go)). An expired or incomplete owner session returns an authentication error when listing owner content, so it cannot appear to the editor as an empty catalog.
 
 `ADMIN_EMAILS` is the gate ([source](../backend/hooks/auth.go)):
 
@@ -73,7 +75,7 @@ Facet derives three keys from the master `ENCRYPTION_KEY` by hashing it with SHA
 | | API keys (HMAC-SHA256) |
 | | Password-protected view passwords (bcrypt) |
 
-Everything else, including drafts and private items, is stored unencrypted in SQLite. Anyone who can read `/data` or a backup archive can read your content. Protect the host, the backups and the logs accordingly. The automatically generated encryption key is printed once in the container log when it's created ([start script](../docker/start.sh)).
+Everything else, including drafts and private items, is stored unencrypted in SQLite. Anyone who can read `/data` or a backup archive can read your content. Protect the host, the backups and the logs accordingly. The startup log records the generated encryption key’s file path, but never prints the key itself ([start script](../docker/start.sh)).
 
 ## What visitors can see
 
@@ -87,7 +89,7 @@ Views and individual items each have a visibility setting. [Features](FEATURES.m
 | **Unlisted view** | Needs a valid share link. Without one, the view returns 404. |
 | **Password view** | Needs the password. A correct password gets a signed token valid for 1 hour. |
 | **Unlisted item** (post, project, talk, …) | Not secret: anyone with the item's URL can open it, and it shows in any view that includes it. Left out of the `/posts` and `/talks` index pages, RSS, the sitemap and the API. |
-| **Private** | Never served to visitors |
+| **Private** | Excluded from general public pages. An explicit Facet grant can allow a selected item on that Facet; visitors must still satisfy the Facet's access rules. Drafts stay hidden. |
 | **Draft** | Never served to visitors |
 
 Visitors never read the database tables directly. Facet requires sign-in for direct access to content collections, and public pages are built by custom endpoints that apply the rules above ([rules](../backend/hooks/rules.go), [views](../backend/hooks/view.go)).
@@ -99,7 +101,7 @@ A share link (`/s/<token>`) is the key to an unlisted view ([source](../backend/
 - Tokens are 32 random bytes. Facet stores only an HMAC of the token, plus its first 12 characters for lookup, so a copy of the database doesn't contain working links.
 - Each link can have an expiry date and a maximum number of uses. You can revoke it at any time.
 - Opening the link validates it, stores it in an `httpOnly` cookie for 7 days, and redirects to the clean URL (`/your-view`). The token doesn't stay in the address bar or history.
-- Validation failures all return the same error, and the endpoint is rate limited.
+- Invalid, expired and revoked links use the same invalid-link response. Temporary server failures and rate limits show a recoverable message without revealing the reason a token was rejected. The page never automatically retries a validation that may have spent a use.
 - Each visit spends one use, when the link is opened. The visitor then gets a signed visit proof in a second `httpOnly` cookie, so they can open projects on the view and come back to it without spending more uses. The proof lasts 30 minutes or until the link expires, whichever is sooner. It only works together with the link it was issued for and on that link's view, and it stops working as soon as the link is revoked, deleted or expires. Once a link's uses are spent, the link alone admits no one new.
 
 Anyone you send a link to can forward it. Use an expiry date or a use limit for anything sensitive.
@@ -127,7 +129,13 @@ Facet records page views for the **Analytics** dashboard ([source](../backend/ho
 
 The IP hash changes every day, so visits can't be linked across days by hash alone. It isn't anonymisation, though: the salt is just the date, so someone with the database could recover the IP addresses by trying them all. Treat the analytics table as personal data.
 
-This logging is on by default, records stay until you delete them, and there's no switch in this version to turn it off. The **Features** setting for analytics is described in [Features](FEATURES.md#analytics).
+Visit logging is on by default. **Settings → Features → Analytics** stops new visit logs and view counters. Existing records remain until you delete them; automatic expiry is not implemented ([Features](FEATURES.md#analytics)). Operational and audit logs are separate from visitor analytics.
+
+### Operational request logs
+
+Caddy and PocketBase keep request diagnostics separately from visit analytics. Request logs retain the method, status and ordinary URL details, while redacting bearer-token paths and query values, including share links, signed downloads, newsletter links and enrolment verification. Caddy drops referrers, token headers and redirect destinations from its logs. PocketBase sanitizes referrer URLs and stored log attributes; checkout messages use a hashed session reference. These filters affect logging, not the requests themselves ([proxy configuration](../docker/Caddyfile), [backend logging](../backend/hooks/request_log_privacy.go)).
+
+This applies to new logs produced by Facet. It does not rewrite older logs or configure a proxy in front of the container. Keep existing log files, the PocketBase log database and backups private, and apply equivalent redaction to an external proxy if it records full URLs.
 
 ### Other visitor data
 
@@ -145,9 +153,6 @@ If you add a Google Analytics measurement ID in **Site Settings**, Facet adds Go
 
 The Content-Security-Policy shipped in the Docker image doesn't list Google's tag or collection domains ([Caddyfile](../docker/Caddyfile)), so browsers block those requests in a standard install. Optional Google Analytics doesn't work out of the box in this version. If you loosen the policy yourself, Google receives your visitors' data under Google's terms.
 
-<!-- SUPERVISOR RECONCILE: a CSP expansion for optional Google Analytics is awaiting the owner's explicit approval. Leave this section saying GA is blocked until that change lands in docker/Caddyfile. -->
-
-
 ## What leaves your server
 
 These are all the outside connections the code makes. Most only happen when you use the related feature.
@@ -156,7 +161,7 @@ These are all the outside connections the code makes. Most only happen when you 
 
 | Destination | When |
 |-------------|------|
-| Google Fonts (`fonts.googleapis.com`, `fonts.gstatic.com`) | Every page, admin and public ([app.html](../frontend/src/app.html), [fonts](../frontend/src/lib/fonts.ts)). Google sees each visitor's IP address and user agent. |
+| None for typography | Every page serves its font files from Facet's own bundled assets, on admin and public pages ([font imports](../frontend/src/lib/fonts.css)). Visitors do not connect to Google Fonts. |
 | YouTube, Vimeo, Loom, SoundCloud, Spotify, CodePen, Figma | Pages where you've embedded their media |
 | Images hosted elsewhere | Pages that use external image URLs |
 | Cloudflare Web Analytics | Allowed by the CSP so Cloudflare-injected beacons work. Facet doesn't add it itself. |
@@ -187,9 +192,9 @@ Facet limits requests per client IP with a token bucket ([source](../backend/ser
 | Moderate | 10 per minute | 5 | Share-link validation, testimonial request lookup, webhook admin, downloads |
 | Normal | 60 per minute | 10 | Public view data, posts, talks, RSS, iCal, the `/api/v1` API |
 
-Blocked requests get HTTP 429 with a `Retry-After` header. Limits are kept in memory, so a restart resets them. Behind a proxy, set `TRUST_PROXY` correctly or every visitor shares one bucket ([Configuration](CONFIGURATION.md#trust_proxy)).
+Blocked requests get HTTP 429 with a `Retry-After` header. Limits are kept in memory, so a restart resets them. Keep `TRUST_PROXY` on, and behind a proxy set `TRUSTED_PROXIES` to match it, or every visitor shares one bucket ([Configuration](CONFIGURATION.md#trust_proxy)).
 
-AI résumé generation by visitors has its own limit of 5 per hour, keyed on the connecting address. Inside the Docker image that address is the internal proxy's, so in practice all anonymous visitors share those 5 generations an hour.
+Anonymous AI résumé generation is limited to five per hour per resolved client address. With direct traffic or a correctly configured trusted proxy, each visitor address has its own allowance. Visitors share a bucket when Facet cannot distinguish their addresses, for example behind an untrusted proxy. This is not an instance-wide limit on AI provider usage.
 
 ### Response headers
 
@@ -197,7 +202,7 @@ Caddy adds these to every response ([Caddyfile](../docker/Caddyfile)):
 
 | Header | Value |
 |--------|-------|
-| `Content-Security-Policy` | Same-origin scripts, styles, connections and forms, with listed exceptions for Google Fonts, Cloudflare's beacon, and the embed providers above. `'unsafe-inline'` is allowed for scripts and styles because of how Svelte injects them. |
+| `Content-Security-Policy` | Same-origin scripts, styles, connections and forms, with listed exceptions for Cloudflare's beacon and the embed providers above. `'unsafe-inline'` is allowed for scripts and styles because of how Svelte injects them. |
 | `X-Frame-Options` | `SAMEORIGIN` (the admin live preview frames your own site) |
 | `X-Content-Type-Options` | `nosniff` |
 | `Referrer-Policy` | `strict-origin-when-cross-origin` |

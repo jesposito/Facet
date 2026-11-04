@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { t } from 'svelte-i18n';
 	import type { Certification } from '$lib/pocketbase';
-	import { formatDate } from '$lib/utils';
+	import { formatCalendarDate } from '$lib/utils';
 
 	interface Props {
 		items: Certification[];
@@ -90,7 +90,7 @@
 							<p class="text-sm text-gray-600 dark:text-gray-300 mt-1">
 								{#if cert.issue_date}
 									{$t('public.certifications.issued')}
-									{formatDate(cert.issue_date, { month: 'short', year: 'numeric' })}
+									{formatCalendarDate(cert.issue_date, { month: 'short', year: 'numeric' })}
 								{/if}
 								{#if cert.expiry_date}
 									<span class="text-gray-400 dark:text-gray-500"> · </span>
@@ -101,7 +101,7 @@
 										{isExpired(cert)
 											? $t('public.certifications.expired')
 											: $t('public.certifications.expires')}
-										{formatDate(cert.expiry_date, { month: 'short', year: 'numeric' })}
+										{formatCalendarDate(cert.expiry_date, { month: 'short', year: 'numeric' })}
 									</span>
 								{/if}
 							</p>
@@ -167,7 +167,7 @@
 							</p>
 							{#if cert.issue_date}
 								<p class="text-xs text-gray-600 dark:text-gray-300 mt-1">
-									{formatDate(cert.issue_date, { month: 'short', year: 'numeric' })}
+									{formatCalendarDate(cert.issue_date, { month: 'short', year: 'numeric' })}
 								</p>
 							{/if}
 						</div>
@@ -221,7 +221,10 @@
 										{#if cert.issue_date}
 											<span
 												>{$t('public.certifications.issued')}
-												{formatDate(cert.issue_date, { month: 'short', year: 'numeric' })}</span
+												{formatCalendarDate(cert.issue_date, {
+													month: 'short',
+													year: 'numeric'
+												})}</span
 											>
 										{/if}
 										{#if cert.expiry_date}
@@ -233,7 +236,7 @@
 												{isExpired(cert)
 													? $t('public.certifications.expired')
 													: $t('public.certifications.expires')}
-												{formatDate(cert.expiry_date, { month: 'short', year: 'numeric' })}
+												{formatCalendarDate(cert.expiry_date, { month: 'short', year: 'numeric' })}
 											</span>
 										{:else if cert.issue_date}
 											<span class="text-gray-400 dark:text-gray-500"> - </span>

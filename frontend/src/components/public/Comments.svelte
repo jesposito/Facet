@@ -4,6 +4,7 @@
 	import { derived } from 'svelte/store';
 	import { hasFeature } from '$lib/stores/plan';
 	import { siteFeatures } from '$lib/stores/features';
+	import { withFacet } from '$lib/discovery';
 	import CommentForm from './CommentForm.svelte';
 	import CommentThread, { type Comment } from './CommentThread.svelte';
 	import ReportModal from './ReportModal.svelte';
@@ -11,9 +12,10 @@
 	interface Props {
 		contentType: string;
 		contentId: string;
+		fromView?: string | null;
 	}
 
-	let { contentType, contentId }: Props = $props();
+	let { contentType, contentId, fromView = null }: Props = $props();
 
 	const planHasDiscussions = hasFeature('discussions');
 	// The plan must include discussions and the owner must not have switched
@@ -53,7 +55,10 @@
 		loading = true;
 		try {
 			const resp = await fetch(
-				`/api/comments/${contentType}/${contentId}?page=${pageNum}&per_page=${PAGE_SIZE}`
+				withFacet(
+					`/api/comments/${contentType}/${contentId}?page=${pageNum}&per_page=${PAGE_SIZE}`,
+					fromView
+				)
 			);
 			if (!resp.ok) throw new Error('Failed to load comments');
 			const data = await resp.json();
@@ -138,7 +143,7 @@
 
 		<!-- New comment form -->
 		<div class="mb-8">
-			<CommentForm {contentType} {contentId} onSubmit={handleCommentSubmitted} />
+			<CommentForm {contentType} {contentId} {fromView} onSubmit={handleCommentSubmitted} />
 		</div>
 
 		<!-- Loading state -->
@@ -170,6 +175,7 @@
 					<CommentThread
 						{contentType}
 						{contentId}
+						{fromView}
 						{comment}
 						replies={repliesByParent.get(comment.id) || []}
 						{replyingTo}
@@ -183,6 +189,7 @@
 					<CommentThread
 						{contentType}
 						{contentId}
+						{fromView}
 						{comment}
 						replies={repliesByParent.get(comment.id) || []}
 						{replyingTo}
@@ -234,6 +241,6 @@
 
 	<!-- Report modal -->
 	{#if reportingCommentId}
-		<ReportModal commentId={reportingCommentId} open={true} onClose={closeReport} />
+		<ReportModal commentId={reportingCommentId} {fromView} open={true} onClose={closeReport} />
 	{/if}
 {/if}

@@ -88,7 +88,7 @@ func RegisterCleanupHooks(app *pocketbase.PocketBase) {
 			}
 			body["status"] = "ok"
 			return e.JSON(http.StatusOK, body)
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		return se.Next()
 	})

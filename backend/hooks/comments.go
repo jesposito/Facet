@@ -109,7 +109,14 @@ func commentTargetVisible(app core.App, contentType string, record *core.Record)
 }
 
 // RegisterCommentHooks registers comment-related API endpoints for threaded discussions.
-func RegisterCommentHooks(app *pocketbase.PocketBase, planConfig *services.PlanConfig, rl *services.RateLimitService) {
+func RegisterCommentHooks(app *pocketbase.PocketBase, planConfig *services.PlanConfig, crypto *services.CryptoService, share *services.ShareService, rl *services.RateLimitService) {
+	// A private post opened from a Facet keeps its thread for visitors who can
+	// still read that Facet. Lessons follow their course alone.
+	targetOpen := func(e *core.RequestEvent, contentType string, record *core.Record) bool {
+		return commentTargetVisible(app, contentType, record) ||
+			(contentType != "lessons" && privateRecordOpensFromView(app, crypto, share, e, record, contentType, e.Request.URL.Query().Get("from")))
+	}
+
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
 
 		// ========================================
@@ -133,7 +140,7 @@ func RegisterCommentHooks(app *pocketbase.PocketBase, planConfig *services.PlanC
 			// Threads on private or draft content stay hidden from visitors.
 			if !isSuperuser(e) {
 				contentRecord, err := app.FindRecordById(contentType, contentID)
-				if err != nil || !commentTargetVisible(app, contentType, contentRecord) {
+				if err != nil || !targetOpen(e, contentType, contentRecord) {
 					return e.JSON(http.StatusNotFound, map[string]string{"error": "content not found"})
 				}
 			}
@@ -211,7 +218,7 @@ func RegisterCommentHooks(app *pocketbase.PocketBase, planConfig *services.PlanC
 
 			// Verify content exists and visitors can see it
 			contentRecord, err := app.FindRecordById(contentType, contentID)
-			if err != nil || !commentTargetVisible(app, contentType, contentRecord) {
+			if err != nil || !targetOpen(e, contentType, contentRecord) {
 				return e.JSON(http.StatusNotFound, map[string]string{"error": "content not found"})
 			}
 
@@ -407,10 +414,16 @@ func RegisterCommentHooks(app *pocketbase.PocketBase, planConfig *services.PlanC
 		se.Router.POST("/api/comments/{comment_id}/report", RateLimitMiddleware(rl, "moderate")(func(e *core.RequestEvent) error {
 			commentID := e.Request.PathValue("comment_id")
 
-			// Verify the comment exists
-			_, err := app.FindRecordById("comments", commentID)
+			// A thread the visitor can't read answers like a comment that doesn't
+			// exist, so a guessed id learns nothing and files nothing.
+			comment, err := app.FindRecordById("comments", commentID)
 			if err != nil {
 				// Return 200 even if not found to not leak info
+				return e.JSON(http.StatusOK, map[string]string{"status": "received"})
+			}
+			contentType := comment.GetString("content_type")
+			target, err := app.FindRecordById(contentType, comment.GetString("content_id"))
+			if err != nil || (!isSuperuser(e) && !targetOpen(e, contentType, target)) {
 				return e.JSON(http.StatusOK, map[string]string{"status": "received"})
 			}
 

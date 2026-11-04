@@ -5,7 +5,7 @@
 		type CompanyGroup,
 		type GroupedExperienceItem
 	} from '$lib/experienceGrouping';
-	import { formatDateRange, parseMarkdown } from '$lib/utils';
+	import { formatCalendarDateRange, parseMarkdown } from '$lib/utils';
 	import { t } from 'svelte-i18n';
 
 	interface Props {
@@ -100,7 +100,11 @@
 										{entry.company}
 									</span>
 									<div class="text-sm text-gray-600 dark:text-gray-300">
-										{formatDateRange(entry.overallStartDate, entry.overallEndDate, presentText)}
+										{formatCalendarDateRange(
+											entry.overallStartDate,
+											entry.overallEndDate,
+											presentText
+										)}
 										&nbsp;· {$t('public.experience.positions_count', {
 											values: { count: entry.positions.length }
 										})}
@@ -133,7 +137,11 @@
 												class="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm text-gray-600 dark:text-gray-300 mt-0.5"
 											>
 												<span class="font-medium"
-													>{formatDateRange(pos.start_date, pos.end_date, presentText)}</span
+													>{formatCalendarDateRange(
+														pos.start_date,
+														pos.end_date,
+														presentText
+													)}</span
 												>
 												{#if pos.location}
 													<span>• {pos.location}</span>
@@ -207,14 +215,18 @@
 										<h3 class="text-lg font-semibold text-gray-900 dark:text-white">
 											{entry.title}
 										</h3>
-										<span class="text-primary-600 dark:text-primary-400 font-medium">
+										<span class="text-primary-700 dark:text-primary-400 font-medium">
 											{entry.company}
 										</span>
 										<div
 											class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-600 dark:text-gray-300 mt-1"
 										>
 											<span class="font-medium"
-												>{formatDateRange(entry.start_date, entry.end_date, presentText)}</span
+												>{formatCalendarDateRange(
+													entry.start_date,
+													entry.end_date,
+													presentText
+												)}</span
 											>
 											{#if entry.location}
 												<span>• {entry.location}</span>
@@ -288,7 +300,7 @@
 								>
 							</div>
 							<span class="text-sm text-gray-600 dark:text-gray-300 whitespace-nowrap">
-								{formatDateRange(entry.overallStartDate, entry.overallEndDate, presentText)}
+								{formatCalendarDateRange(entry.overallStartDate, entry.overallEndDate, presentText)}
 							</span>
 						</div>
 
@@ -317,7 +329,7 @@
 											</h3>
 										</div>
 										<span class="text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap">
-											{formatDateRange(pos.start_date, pos.end_date, presentText)}
+											{formatCalendarDateRange(pos.start_date, pos.end_date, presentText)}
 										</span>
 									</div>
 									{#if pos.location}
@@ -354,12 +366,12 @@
 									</h3>
 								</div>
 								<span class="text-gray-600 dark:text-gray-300">{$t('public.experience.at')}</span>
-								<span class="text-primary-600 dark:text-primary-400 font-medium">
+								<span class="text-primary-700 dark:text-primary-400 font-medium">
 									{entry.company}
 								</span>
 							</div>
 							<span class="text-sm text-gray-600 dark:text-gray-300 whitespace-nowrap">
-								{formatDateRange(entry.start_date, entry.end_date, presentText)}
+								{formatCalendarDateRange(entry.start_date, entry.end_date, presentText)}
 							</span>
 						</div>
 
@@ -409,7 +421,7 @@
 									class="experience-group-meta flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-sm text-gray-600 dark:text-gray-300"
 								>
 									<span
-										>{formatDateRange(
+										>{formatCalendarDateRange(
 											entry.overallStartDate,
 											entry.overallEndDate,
 											presentText
@@ -454,7 +466,7 @@
 										<span>
 											<meta itemprop="startDate" content={pos.start_date || ''} />
 											<meta itemprop="endDate" content={pos.end_date || ''} />
-											{formatDateRange(pos.start_date, pos.end_date, presentText)}
+											{formatCalendarDateRange(pos.start_date, pos.end_date, presentText)}
 										</span>
 										{#if pos.location}
 											<span class="flex items-center gap-1">
@@ -537,7 +549,7 @@
 									{entry.title}
 								</h3>
 								<p
-									class="text-lg text-primary-600 dark:text-primary-400 font-medium"
+									class="text-lg text-primary-700 dark:text-primary-400 font-medium"
 									itemprop="occupationLocation"
 									itemscope
 									itemtype="https://schema.org/Organization"
@@ -550,7 +562,7 @@
 									<span>
 										<meta itemprop="startDate" content={entry.start_date || ''} />
 										<meta itemprop="endDate" content={entry.end_date || ''} />
-										{formatDateRange(entry.start_date, entry.end_date, presentText)}
+										{formatCalendarDateRange(entry.start_date, entry.end_date, presentText)}
 									</span>
 									{#if entry.location}
 										<span class="flex items-center gap-1">

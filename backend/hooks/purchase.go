@@ -338,7 +338,7 @@ func RegisterPurchaseHooks(app *pocketbase.PocketBase, crypto *services.CryptoSe
 
 				if sess.PaymentStatus != stripe.CheckoutSessionPaymentStatusPaid {
 					app.Logger().Info("Checkout session not paid yet, access not granted",
-						"session_id", sess.ID, "event", event.Type, "payment_status", sess.PaymentStatus)
+						"session_ref", checkoutSessionLogRef(sess.ID), "event", event.Type, "payment_status", sess.PaymentStatus)
 					return e.JSON(http.StatusOK, map[string]string{"status": "awaiting_payment"})
 				}
 
@@ -355,13 +355,13 @@ func RegisterPurchaseHooks(app *pocketbase.PocketBase, crypto *services.CryptoSe
 				purchase, err := recordPaidSession(app, purchaseService, &sess)
 				switch {
 				case errors.Is(err, errSessionMismatch):
-					app.Logger().Error("Checkout session metadata does not match its purchase", "session_id", sess.ID)
+					app.Logger().Error("Checkout session metadata does not match its purchase", "session_ref", checkoutSessionLogRef(sess.ID))
 					return e.JSON(http.StatusBadRequest, map[string]string{"error": "session does not match purchase"})
 				case errors.Is(err, errSessionNoEmail):
-					app.Logger().Error("Webhook missing customer email", "session_id", sess.ID)
+					app.Logger().Error("Webhook missing customer email", "session_ref", checkoutSessionLogRef(sess.ID))
 					return e.JSON(http.StatusBadRequest, map[string]string{"error": "missing customer email"})
 				case err != nil:
-					app.Logger().Error("Failed to save purchase", "session_id", sess.ID)
+					app.Logger().Error("Failed to save purchase", "session_ref", checkoutSessionLogRef(sess.ID))
 					return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to save purchase"})
 				}
 
@@ -385,7 +385,7 @@ func RegisterPurchaseHooks(app *pocketbase.PocketBase, crypto *services.CryptoSe
 				if err := json.Unmarshal(event.Data.Raw, &sess); err != nil {
 					return e.JSON(http.StatusBadRequest, map[string]string{"error": "invalid event data"})
 				}
-				app.Logger().Warn("Delayed checkout payment failed, access not granted", "session_id", sess.ID)
+				app.Logger().Warn("Delayed checkout payment failed, access not granted", "session_ref", checkoutSessionLogRef(sess.ID))
 				return e.JSON(http.StatusOK, map[string]string{"status": "payment_failed"})
 			}
 
@@ -677,9 +677,10 @@ func findCompletedPurchase(app core.App, purchaseService *services.PurchaseServi
 // the item can still be listed and sold. Posts keep a short preview of their
 // content instead of losing it entirely. Inline and gallery media are paid
 // too, both the stored references and the URLs projections expand them into.
+// has_downloads goes too, so a locked page doesn't ask for files it can't get.
 var paidContentFields = map[string][]string{
-	"posts":          withPaidMedia("content"),
-	"projects":       withPaidMedia("description", "experience"),
+	"posts":          withPaidMedia("content", "has_downloads"),
+	"projects":       withPaidMedia("description", "experience", "has_downloads"),
 	"talks":          withPaidMedia("description", "slides_url", "video_url"),
 	"custom_content": withPaidMedia("content"),
 }

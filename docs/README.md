@@ -19,6 +19,8 @@ Pages are grouped by who usually needs them. Owners can stop after the first two
 
 | Page | What it covers |
 |------|----------------|
+| [Ways to use Facets](FACETS.md) | Build a résumé, proposal, resource page or pages for your site, and share or connect the same page later |
+| [Facet glossary](../GLOSSARY.md) | Understand page uses, access, navigation, content selection and overrides |
 | [Features guide](FEATURES.md) | Profile and content types, views, visibility, share links, homepage, testimonials, comments, analytics, import and export, feeds and SEO, languages, demo mode |
 | [Project experiences](experiences/README.md) | Case studies, video courses and code walkthroughs inside a project page |
 | [Media library](MEDIA.md) | Uploads, external embeds, storage location, orphan cleanup |

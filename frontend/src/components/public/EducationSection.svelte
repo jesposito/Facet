@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { pb, type Education } from '$lib/pocketbase';
-	import { formatDateRange, parseMarkdown } from '$lib/utils';
+	import { formatCalendarDateRange, parseMarkdown } from '$lib/utils';
 	import { t } from 'svelte-i18n';
 
 	interface Props {
@@ -70,12 +70,12 @@
 									{item.institution}
 								</h3>
 								{#if item.degree || item.field}
-									<p class="text-primary-600 dark:text-primary-400">
+									<p class="text-primary-700 dark:text-primary-400">
 										{[item.degree, item.field].filter(Boolean).join(' in ')}
 									</p>
 								{/if}
 								<p class="text-sm text-gray-600 dark:text-gray-300 mt-1">
-									{formatDateRange(item.start_date, item.end_date, presentText)}
+									{formatCalendarDateRange(item.start_date, item.end_date, presentText)}
 								</p>
 
 								{#if item.description}
@@ -139,7 +139,7 @@
 								{item.institution}
 							</h3>
 							{#if item.degree || item.field}
-								<p class="text-primary-600 dark:text-primary-400">
+								<p class="text-primary-700 dark:text-primary-400">
 									<span
 										itemprop="alumniOf"
 										itemscope
@@ -154,7 +154,7 @@
 							<p class="text-sm text-gray-600 dark:text-gray-300 mt-1">
 								<meta itemprop="startDate" content={item.start_date || ''} />
 								<meta itemprop="endDate" content={item.end_date || ''} />
-								{formatDateRange(item.start_date, item.end_date, presentText)}
+								{formatCalendarDateRange(item.start_date, item.end_date, presentText)}
 							</p>
 
 							{#if item.description}

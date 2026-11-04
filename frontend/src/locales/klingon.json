@@ -336,7 +336,18 @@
         "feature_disabled": "Tribute systems are not operational. Activate them in Systems configurations."
       },
       "settings_saved": "Configurations secured",
-      "settings_error": "Configurations could not be secured. Dishonorable!"
+      "settings_error": "Configurations could not be secured. Dishonorable!",
+      "recoverycopy": {
+        "load_error": "Couldn't load {resource}. Settings are unavailable. Retry before making changes.",
+        "retry": "Retry",
+        "retrying": "Retrying…",
+        "loading": "Loading settings…",
+        "appearance": "appearance settings",
+        "email": "email settings",
+        "features": "feature settings",
+        "payments": "payment settings",
+        "providers": "AI providers"
+      }
     },
     "about_page": {
       "title": "About Facet",
@@ -389,7 +400,8 @@
       "backup_busy": "latlh choq pagh nobHa' ta'lI'. choq DaghajtaHbogh choHbe'. loS, vaj yInIDqa'.",
       "backup_failed": "choq rInbe'. choq DaghajtaHbogh choHbe'. yInIDqa'.",
       "backup_status_failed": "choq Dotlh laDlaHbe'. choq choHbe'.",
-      "backup_status_retry": "yInIDqa'"
+      "backup_status_retry": "yInIDqa'",
+      "upgrade_notes": "Upgrade Battle Orders"
     },
     "ai_assistant": {
       "title": "Tactical AI",
@@ -916,7 +928,22 @@
       "quiz_explanation": "QIj (jang tlhej legh)",
       "quiz_points": "Qap",
       "quiz_add_option": "wIv chel",
-      "quiz_correct_answer": "lugh"
+      "quiz_correct_answer": "lugh",
+      "curriculum_failed": "The latest curriculum for this course could not be loaded. Module and lesson changes halt until it loads.",
+      "quiz_read_failed": "This lesson's quiz could not be loaded. Quiz changes halt until it loads. Your other lesson edits remain here.",
+      "quiz_needs_question": "Add at least one question, and give every question text, before saving this quiz.",
+      "quiz_save_partial": "The lesson is saved, but the quiz is not confirmed. Your questions remain here. Press Save Lesson to try again. No second lesson or quiz will be created.",
+      "quiz_save_conflict": "The lesson is saved, but it already has a different quiz. Press Save Lesson to replace that quiz with the questions shown here.",
+      "curriculum_order_partial": "Saved {saved} of {total} positions. The list now shows what is stored. Move the item again to finish.",
+      "curriculum_order_unconfirmed": "Saved {saved} of {total} positions, but the curriculum could not be checked. Retry loading it, then move the item again if it is out of place.",
+      "lesson_create_unknown": "Facet could not confirm whether this lesson was saved. Everything you entered remains here. Press Attack again to check. No second lesson will be created.",
+      "lesson_create_differs": "This lesson was saved from an earlier version, so the changes shown here are not saved yet. Press paQDI'norgh toD to update it.",
+      "course_create_unknown": "Facet could not confirm whether this course was saved. Everything you entered remains here. Press Attack again to check. No second course will be created.",
+      "course_create_differs": "This course was saved from an earlier version, so the changes shown here are not saved yet. Press Save to update it.",
+      "module_create_unknown": "Facet could not confirm whether this module was saved. Everything you entered remains here. Press Attack again to check. No second module will be created.",
+      "module_create_differs": "This module was saved from an earlier version, so the changes shown here are not saved yet. Press Save Module to update it.",
+      "error_delete_module_attempts": "This module can't be deleted because learners have attempted a quiz in one of its lessons.",
+      "error_delete_lesson_attempts": "This lesson can't be deleted because learners have attempted its quiz."
     },
     "pricing": {
       "page_title": "Huch patlh",
@@ -955,7 +982,10 @@
       "type_talks": "jatlh",
       "type_courses": "ghojmeH",
       "type_projects": "ngoq",
-      "type_custom": "le'"
+      "type_custom": "le'",
+      "filter_type_name": "Filter by content type",
+      "filter_tier_name": "Filter by pricing tier",
+      "bulk_tier_name": "Pricing tier for selected items"
     },
     "coupons": {
       "page_title": "ngop naQ",
@@ -1051,7 +1081,13 @@
       },
       "stats": {
         "sr_only_icon": "{label} emblem"
-      }
+      },
+      "manage_facets": "Command Facets",
+      "load_error_title": "Part of the Command Center failed to report",
+      "load_error_message": "Anything missing below is unknown, not zero.",
+      "retry": "Attack again",
+      "retrying": "Attacking again...",
+      "metric_unavailable": "No report"
     },
     "login": {
       "title": "Enter the Domain of Facet",
@@ -1142,7 +1178,7 @@
     },
     "wizard": {
       "title": "Rapid Deployment",
-      "skip": "Skip deployment",
+      "skip": "Deploy later",
       "back": "Retreat",
       "continue": "Advance",
       "saving": "Securing...",
@@ -1168,7 +1204,7 @@
       "facet_name_placeholder": "My Facet",
       "url_label": "Coordinates:",
       "visibility_public": "This facet will be public — any warrior can view it",
-      "visibility_unlisted": "This facet is cloaked — only those with coordinates can find it",
+      "visibility_unlisted": "This facet is cloaked. It opens from a share link you create, and anyone with that link can pass it on.",
       "visibility_private": "This facet is classified — only you can view it",
       "step3_title": "You are battle-ready!",
       "step3_subtitle": "Here is what you have established",
@@ -1176,12 +1212,24 @@
       "your_title_placeholder": "Your Rank",
       "next_steps_title": "Recommended maneuvers:",
       "next_step_projects": "Add your first mission or battle experience",
-      "next_step_share": "Share your new facet with the quadrant",
+      "next_step_share": "Share this page with those who need it, or add it to your site.",
       "next_step_import": "Try importing from GitHub or uploading your service record",
       "ai_features_title": "Desire AI-enhanced capabilities?",
       "ai_features_description": "Service record parsing, writing assistance, and GitHub reconnaissance require an access code from {openai}, {anthropic}, or a local {ollama} instance.",
       "ai_features_settings": "Add your code in {settings} when ready.",
-      "required_field": "*"
+      "required_field": "*",
+      "resume_message": "Deployment is not finished. Your orders are saved in this browser.",
+      "resume_button": "Resume deployment",
+      "check_failed": "Facet could not confirm whether deployment is finished. Nothing has been lost.",
+      "check_retry": "Try again",
+      "error_network": "Facet could not reach the server. Your draft holds its position, so try again once you are back online.",
+      "error_slug": "That URL cannot be used. Return to step 2 and choose a different URL slug.",
+      "error_profile_saved": "Your presence is secured, but your Facet has not been created yet.",
+      "step2_uses": "The same Facet can stand alone, like a service record for a recruiter, a client proposal or a resource page. It can also hold a place in your site, and you can add it to your site navigation at any time.",
+      "step2_templates": "Templates are starting positions. Pick the closest and change its designation, sectors and access whenever you choose.",
+      "step2_access": "Who can open a Facet is a separate setting. Site navigation lists public Facets only, a classified Facet stays visible only to you, and a cloaked Facet opens from a share link that anyone who holds it can pass on.",
+      "error_view_unknown": "Your presence is secured, but Facet could not check whether your Facet was created. Your draft remains here. Press Attack again to check again. No second Facet will be created.",
+      "error_view_differs": "Your Facet was already created with different details, and nothing has changed yet. Press Deploy Presence to replace it with what is shown here, including who can see it."
     },
     "content": {
       "common": {
@@ -1623,7 +1671,15 @@
         "facet_created": "Facet forged successfully",
         "save_failed": "Failed to commit facet",
         "name_required": "Designation required",
-        "slug_required": "URL code required"
+        "slug_required": "URL code required",
+        "unsaved_warning": "This Facet has unsaved changes. Retreat anyway?",
+        "view_load_failed": "This Facet could not be loaded, so there is nothing to modify yet. Nothing has changed. Attack again, or return to your Facets.",
+        "content_load_failed": "Your content could not be loaded, so sections and the preview are hidden and saving halts. Everything you typed remains here, and your saved sections have not changed.",
+        "content_refresh_failed": "Your content could not be refreshed, so saving halts until it reloads. You see the last loaded sections, and everything you typed remains here.",
+        "save_paused": "Saving halts until your content loads. Everything you typed remains here.",
+        "supporting_failed": "Some supporting details could not load, such as the preview profile, share links, exports or resume tools. If they are missing here, they are not lost. Your Facet and everything you typed are unharmed.",
+        "create_unknown": "Facet could not confirm whether this Facet was created. Everything you entered remains here. Press Create to check. No second Facet will be created.",
+        "create_differs": "This Facet was created from an earlier version, so the changes shown here are not saved yet. Press Create to update it with what is shown here, including who can see it."
       },
       "share_link": {
         "title": "Generate Access Code",
@@ -1648,7 +1704,11 @@
         "uses": "uses",
         "regenerate_title": "Regenerate code (revokes old, creates new)",
         "revoke_title": "Revoke code",
-        "more_links": "+{count} more — view all"
+        "more_links": "+{count} more — view all",
+        "private_notice": "This view is classified: only you may open it, so it can have no access codes. To share it, choose Unlisted and save.",
+        "unsaved_notice": "Save this view to apply the new orders. Sharing options report here after you save.",
+        "public_notice": "This view is unshielded. Anyone with this URL may enter, and the URL has no expiry or use limit.",
+        "public_url_label": "Public URL"
       },
       "danger_zone": {
         "title": "Danger Zone",
@@ -1795,7 +1855,20 @@
         "courses": "Training Programs",
         "featured_testimonial_label": "Honored Testimonial",
         "primary_testimonial_label": "Primary Testimonial (displayed first in rotation)",
-        "use_global_featured": "Use global honored (or first)"
+        "use_global_featured": "Use global honored (or first)",
+        "section_width_name": "{section} section width",
+        "section_layout_name": "{section} section layout",
+        "content_mode_legend": "Content for {section}",
+        "content_mode_all_public": "All public content (updates automatically)",
+        "content_mode_selected": "Choose items",
+        "all_public_hint": "Published public items appear here automatically, including ones you add later. Private, unlisted and draft items stay out.",
+        "all_public_hint_contacts": "Contact methods available to this Facet appear here automatically. A page limit set on a contact still applies.",
+        "all_public_hint_testimonials": "Approved public testimonials appear here automatically. Unapproved ones stay out.",
+        "selected_empty_hint": "Nothing appears in this sector until you choose items.",
+        "choose_items_hint": "Select the items to show, then drag to set their order.",
+        "none_selected": "none selected",
+        "all_public_skills_hint": "Public skills are included automatically. Change category order, enabled categories and layout here.",
+        "private_grants_unconfirmed": "Your Facet is saved, but we couldn't confirm its private items were added. Press Save here to try again."
       },
       "category_reorder": {
         "title": "Reorder Skill Categories",
@@ -1981,7 +2054,31 @@
       "keyboard_shortcut_delete_row": "Destroy focused position",
       "keyboard_shortcut_help": "Display this briefing",
       "create_page_title": "Forge Facet",
-      "edit_page_title": "Edit Facet"
+      "edit_page_title": "Edit Facet",
+      "share_links_note": "Share links open unlisted Facets. Anyone who holds a link can open that Facet and pass the link on, so set an expiry or revoke links you no longer need.",
+      "use_cases": {
+        "title": "One Facet, many battles",
+        "lead": "Any Facet can be shared on its own and added to your site navigation whenever you need it. Add or remove it at any time, with nothing to convert or forge again.",
+        "access_note": "Who can open a Facet is a separate setting. Site navigation lists public, active Facets only. Anyone with an unlisted share link can open that Facet, and Private stays visible only to you.",
+        "nav_link": "Command site navigation",
+        "standalone_title": "Share it on its own",
+        "site_title": "Deploy it in your site",
+        "resume_title": "Digital battle record for a recruiter",
+        "resume_text": "The battles and skills that fit one post.",
+        "proposal_title": "Client proposal",
+        "proposal_text": "Relevant missions and testimonials for one client.",
+        "event_title": "Event or resource page",
+        "event_text": "Speeches, posts and links for one occasion.",
+        "project_title": "Mission page",
+        "project_text": "A focused base for one body of work.",
+        "about_title": "About page",
+        "about_text": "Your record and how to reach you.",
+        "writing_title": "Writing page",
+        "writing_text": "Your posts, gathered in one place.",
+        "compact_lead": "A warrior’s résumé, a proposal for an ally, or pages for your site. Share a Facet on its own, add it to your site, or use it both ways.",
+        "explore": "Explore what your Facets can do"
+      },
+      "action_owner_url": "Copy owner URL"
     },
     "media": {
       "page_title": "War Archive | Facet Command",
@@ -2144,7 +2241,7 @@
       "usage_warning_message": "\"{filename}\" is deployed in {count, plural, one {# operation} other {# operations}}. Destroying it will remove it from:",
       "usage_warning_more": "and {count} more",
       "toast_references_removed": "Asset destroyed and {count, plural, one {# deployment} other {# deployments}} cleared",
-      "dropzone_label": "Deploy assets here",
+      "dropzone_label": "Deploy assets to this sector or initiate manual selection",
       "dropzone_drag": "Deploy assets to this sector",
       "dropzone_drop": "Release to deploy",
       "dropzone_or_click": "or initiate manual selection",
@@ -2239,6 +2336,11 @@
       "token_created_message": "Record this code now. For security, it will not be displayed again.",
       "copy_url": "Copy Coordinates",
       "loading_tokens": "Scanning codes...",
+      "load_failed": "Access codes could not be scanned. Your existing codes remain unchanged.",
+      "retry": "Retry",
+      "views_load_failed": "Eligible territories could not be scanned. Retry before generating an access code.",
+      "status_unusable": "Unavailable",
+      "status_unusable_reason": "This code no longer grants access because its territory is missing, inactive, or no longer classified.",
       "no_tokens": "No access codes deployed.",
       "no_tokens_description": "Generate a code to grant passage to a classified view.",
       "create_unlisted_first": "First, {link} to generate codes for.",
@@ -2301,13 +2403,16 @@
       "today": "Today",
       "yesterday": "Yesterday",
       "days_ago": "{count} rotations ago",
-      "weeks_ago": "{count} cycles ago"
+      "weeks_ago": "{count} cycles ago",
+      "toast_invalid_expiry": "Enter a valid expiration date and time, warrior.",
+      "toast_invalid_max_uses": "Max uses must be a whole number from 0 to 1,000,000.",
+      "toast_copy_failed": "The link could not be copied. Select the URL and copy it manually."
     },
     "password_modal": {
       "title": "Change Access Code",
       "description": "Select a powerful code to fortify your defenses.",
       "current_password_label": "Current Access Code",
-      "current_password_hint": "Required for identity verification",
+      "current_password_hint": "The access code you just used to enter",
       "new_password_label": "New Access Code",
       "new_password_placeholder": "Enter new access code",
       "strength_weak": "Weak",
@@ -2328,7 +2433,16 @@
       "selected_count": "{selected} of {total} targeted",
       "select_all": "Target all",
       "clear": "Clear targets",
-      "change_visibility": "Change Visibility"
+      "change_visibility": "Change Visibility",
+      "region_label": "Bulk target actions",
+      "select_item": "Target {item}",
+      "result_updated": "Updated {succeeded} of {total} targets to {visibility}.",
+      "result_deleted": "Destroyed {succeeded} of {total} targets.",
+      "result_failed": "{count, plural, one {# target failed and stays targeted for retry.} other {# targets failed and stay targeted for retry.}}",
+      "result_unconfirmed": "{count, plural, one {Could not confirm # target.} other {Could not confirm # targets.}} Reload the list before retrying.",
+      "confirm_public_title": "Make targets public?",
+      "confirm_public_message": "{count, plural, one {# private or unlisted target will become public.} other {# private or unlisted targets will become public.}} Drafts stay hidden until you publish them.",
+      "confirm_public_button": "Make public"
     },
     "homepage": {
       "collapse_section": "Collapse {section} sector",
@@ -2371,7 +2485,20 @@
       "page_title": "Homepage",
       "testimonial_list_label": "tlhIngan testimonial tetlh",
       "testimonial_list_placeholder": "jagh:客 (customers)",
-      "testimonial_list_help": "tetlhvam Daq testimonials lutamlu'pu'bogh 'ang. pagh chugh Hoch 'ang."
+      "testimonial_list_help": "tetlhvam Daq testimonials lutamlu'pu'bogh 'ang. pagh chugh Hoch 'ang.",
+      "contact_link_type_name": "Contact link {number} type",
+      "contact_link_url_name": "Contact link {number} URL",
+      "contact_link_label_name": "Contact link {number} label",
+      "settings_load_failed": "Your homepage settings could not be loaded, so saving halts. Your saved settings have not changed, and everything you typed remains here.",
+      "nav_catalog_failed": "Your public Facets could not be loaded. Your saved formation has not changed.",
+      "nav_save_failed": "Your last formation or call-to-battle change could not be saved, so it has been undone here. Any button labels you typed remain here.",
+      "retry": "Attack again",
+      "nav_item_show": "Show {name} in formation",
+      "nav_item_label": "Button label for {name}",
+      "nav_item_move_up": "Move {name} up",
+      "nav_item_move_down": "Move {name} down",
+      "profile_load_failed": "Your profile could not be loaded, so its fields are cloaked and saving halts. Your saved profile has not changed.",
+      "catalog_load_failed": "Your homepage sections could not be loaded, so they are cloaked and saving halts. Your saved sections have not changed, and everything you typed remains here."
     },
     "import": {
       "resume_dropzone_label": "Battle record upload zone",
@@ -2602,6 +2729,11 @@
       "smtp_not_configured_hint": "Bring your own SMTP array online in Settings to send dispatches. Self-hosted Facet sends every message through that array alone. Warriors can still enlist.",
       "smtp_not_ready": "Communications array not battle-ready",
       "smtp_not_ready_hint": "SMTP is configured, but dispatches cannot launch yet. Inspect the sender (From) address in the SMTP settings and the public site URL used for unsubscribe links.",
+      "smtp_checking": "Scanning the communications array…",
+      "smtp_checking_hint": "Dispatches remain locked until the server confirms that your SMTP array is battle-ready.",
+      "smtp_unavailable": "Communications array status unknown",
+      "smtp_unavailable_hint": "The server could not confirm SMTP readiness. Inspect the connection and retry before launching dispatches.",
+      "smtp_retry": "Retry communications scan",
       "hub_title": "War Dispatch",
       "hub_description": "Command your warriors, divide them into squads, and broadcast dispatches.",
       "card_subscribers_title": "loDnI'pu'",
@@ -2876,6 +3008,16 @@
       "readonly_note": "This preview is read-only and not keyboard accessible. Toggle off to hide it. Qapla'!",
       "ready_announce": "Live preview ready! Qapla'!",
       "error_announce": "Live preview unavailable. Dishonorable!"
+    },
+    "list_status": {
+      "load_failed": "The {type} could not be loaded. Changes halt until the list loads.",
+      "refresh_failed": "The {type} could not be refreshed. You see the last loaded list, and changes halt until it reloads.",
+      "changes_paused": "Changes halt until the list is current.",
+      "saving": "Saving changes...",
+      "ancillary_failed": "Some supporting details could not be loaded, such as view membership or tag options. Retrying leaves an open form untouched.",
+      "retry_supporting": "Retry supporting details",
+      "order_partial": "Saved {saved} of {total} positions. Your new order remains on screen. Save again to send only the rest.",
+      "order_unconfirmed": "Saved {saved} of {total} positions, but the list could not be checked. Your new order remains on screen. Reload the list, then save again."
     }
   },
   "public": {
@@ -3362,6 +3504,24 @@
         "quiz_no_answers": "Answer the questions before submitting.",
         "quiz_failed": "The trial did not respond properly. Try again."
       }
+    },
+    "share_entry": {
+      "page_title": "Shared Access Code | Facet",
+      "home": "Return to Command Profile",
+      "retry": "Retry!",
+      "retry_in": "Retry in {seconds}s",
+      "invalid": {
+        "title": "Access Code Rejected",
+        "message": "This share link is invalid or expired"
+      },
+      "rate_limited": {
+        "title": "Too Many Requests, Warrior",
+        "message": "This link could not be checked yet because too many requests struck at once. This attempt did not spend it."
+      },
+      "unavailable": {
+        "title": "Link Check Failed",
+        "message": "This domain took a temporary hit, so the status of the link is unknown. This attempt may have counted as a use, and another attempt may count again."
+      }
     }
   },
   "shared": {
@@ -3522,5 +3682,13 @@
     "chars_remaining": "{count} characters remain",
     "replies": "Counter-attacks",
     "just_now": "DaH"
-  }
+  },
+  "downloads": {
+    "title": "Downloads",
+    "load_failed": "The supplies did not arrive. Check your comms and strike again.",
+    "link_failed": "That supply run failed. Strike again.",
+    "unavailable": "That supply is gone.",
+    "retry": "Retry"
+  },
+  "admin.courses.delete_course_confirm": "bIHar'a'? Hoch bobcho' paQDI'norgh ghojwI' vIt nuD ghur chaw' je Qaw'lu'. pollaHbe'."
 }

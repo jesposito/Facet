@@ -42,7 +42,7 @@ func RegisterCustomContentHooks(app *pocketbase.PocketBase) {
 				"status":  "ok",
 				"cleaned": cleaned,
 			})
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		return se.Next()
 	})

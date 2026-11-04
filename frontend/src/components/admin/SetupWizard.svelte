@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { setupWizard, canProceed, viewTemplates } from '$lib/stores/setupWizard';
 	import { collection } from '$lib/stores/demo';
+	import { DraftReadError, findDraftRecord, mayHaveLanded } from '$lib/admin/create-record';
 	import { toasts, triggerSidebarFacetsReload } from '$lib/stores';
 	import { t } from 'svelte-i18n';
 	import { get } from 'svelte/store';
@@ -15,17 +16,58 @@
 	}
 
 	interface Props {
+		/** A blocking modal sits on top, so this one hands over the keyboard and scroll lock */
+		blocked?: boolean;
 		onComplete?: () => void;
 	}
 
-	let { onComplete }: Props = $props();
+	let { blocked = false, onComplete }: Props = $props();
 	let saving = $state(false);
+	let saveError = $state('');
+	// The lookup failed, so nobody knows yet whether the Facet was created
+	let viewUnknown = $state(false);
+	// The stored Facet differs from this draft and the owner has been told, so their next press replaces it
+	let replaceStoredView = $state(false);
+	let dialogEl: HTMLDivElement | undefined = $state();
+	let mainEl: HTMLElement | undefined = $state();
+
+	// Derived so the effects below ignore keystrokes, which also update the store
+	const active = $derived($setupWizard.isOpen && !blocked);
+	const currentStep = $derived($setupWizard.currentStep);
 
 	const steps = [
 		{ num: 1, labelKey: 'admin.wizard.step_profile' },
 		{ num: 2, labelKey: 'admin.wizard.step_first_facet' },
 		{ num: 3, labelKey: 'admin.wizard.step_launch' }
 	];
+
+	const FOCUSABLE =
+		'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+	// While open, hold the page still and remember where focus came from. The Resume
+	// button is the fallback because an auto-open has no trigger to return to.
+	$effect(() => {
+		if (!active) return;
+		const returnTo = document.activeElement;
+		const bodyOverflow = document.body.style.overflow;
+		document.body.style.overflow = 'hidden';
+
+		return () => {
+			document.body.style.overflow = bodyOverflow;
+			const target =
+				returnTo instanceof HTMLElement && returnTo !== document.body && returnTo.isConnected
+					? returnTo
+					: document.getElementById('resume-setup-button');
+			target?.focus();
+		};
+	});
+
+	// Each step starts at its first field, or at the step itself when it has none
+	$effect(() => {
+		void currentStep;
+		if (!active || !mainEl) return;
+		(mainEl.querySelector<HTMLElement>('input, textarea') ?? mainEl).focus();
+	});
 
 	function handleNext() {
 		if ($setupWizard.currentStep < 3) {
@@ -35,55 +77,149 @@
 
 	function handleBack() {
 		if ($setupWizard.currentStep > 1) {
+			saveError = '';
+			viewUnknown = false;
+			replaceStoredView = false;
 			setupWizard.previousStep();
 		}
 	}
 
 	function handleSkip() {
-		setupWizard.dismissPermanently();
+		setupWizard.close();
+	}
+
+	function describeSaveError(err: unknown, profileSaved: boolean): string {
+		if (err instanceof DraftReadError) return tr('admin.wizard.error_view_unknown');
+		const { status, response } = err as {
+			status?: number;
+			response?: { data?: { slug?: unknown } };
+		};
+		const reason = !status
+			? tr('admin.wizard.error_network')
+			: response?.data?.slug
+				? tr('admin.wizard.error_slug')
+				: tr('admin.wizard.error_message');
+		if (replaceStoredView) return `${tr('admin.wizard.error_view_differs')} ${reason}`;
+		return profileSaved ? `${tr('admin.wizard.error_profile_saved')} ${reason}` : reason;
+	}
+
+	type ViewFields = {
+		name: string;
+		slug: string;
+		visibility: string;
+		description: string;
+		sections: {
+			section: string;
+			enabled: boolean;
+			items: string[];
+			itemSelection?: string;
+			layout?: string;
+			width?: string;
+		}[];
+	};
+	type StoredView = ViewFields & { id: string; is_active: boolean; is_default: boolean };
+
+	function matchesDraft(stored: StoredView, view: ViewFields) {
+		const sectionState = (fields: ViewFields) =>
+			JSON.stringify(
+				fields.sections.map(
+					({
+						section,
+						enabled,
+						items,
+						itemSelection = 'selected',
+						layout = 'default',
+						width = 'full'
+					}) => ({ section, enabled, items, itemSelection, layout, width })
+				)
+			);
+		return (
+			stored.is_active === true &&
+			stored.is_default === false &&
+			stored.name === view.name &&
+			stored.slug === view.slug &&
+			stored.visibility === view.visibility &&
+			stored.description === view.description &&
+			sectionState(stored) === sectionState(view)
+		);
+	}
+
+	// The draft's own record ID decides whether its Facet exists, so a repeat launch can't make a
+	// second one. Returns false when the owner has to decide what happens to a stored Facet.
+	async function saveView(view: ViewFields): Promise<boolean> {
+		const id = $setupWizard.viewId;
+		const views = collection('views');
+		let stored = await findDraftRecord<StoredView>(views, id);
+		if (!stored) {
+			try {
+				await views.create({ id, ...view, is_active: true, is_default: false });
+				return true;
+			} catch (err) {
+				if (!mayHaveLanded(err)) throw err;
+				stored = await findDraftRecord<StoredView>(views, id);
+				if (!stored) throw err;
+			}
+		}
+
+		if (matchesDraft(stored, view)) return true;
+		if (replaceStoredView) {
+			await views.update(id, { ...view, is_active: true, is_default: false });
+			return true;
+		}
+		replaceStoredView = true;
+		saveError = tr('admin.wizard.error_view_differs');
+		return false;
 	}
 
 	async function handleComplete() {
 		saving = true;
+		saveError = '';
+		viewUnknown = false;
+		let profileSaved = false;
 		try {
 			const profileData = $setupWizard.profile;
 			const viewData = $setupWizard.newView;
 			const template = viewTemplates.find((t) => t.id === $setupWizard.selectedTemplate);
 
-			const profiles = await collection('profile').getList(1, 1);
+			// Only send what the owner filled in, so blank fields can't erase a saved profile
+			const profileFields: Record<string, string> = {};
+			for (const field of ['name', 'headline', 'summary'] as const) {
+				const value = profileData[field]?.trim();
+				if (value) profileFields[field] = value;
+			}
+
+			const profiles = await collection('profile').getList(1, 1, {
+				requestKey: 'setup-wizard-save-lookup'
+			});
 			if (profiles.items.length > 0) {
-				await collection('profile').update(profiles.items[0].id, {
-					name: profileData.name,
-					headline: profileData.headline,
-					summary: profileData.summary || ''
-				});
+				await collection('profile').update(profiles.items[0].id, profileFields);
 			} else {
 				await collection('profile').create({
-					name: profileData.name,
-					headline: profileData.headline,
-					summary: profileData.summary || '',
+					summary: '',
+					...profileFields,
 					visibility: 'public'
 				});
 			}
+			profileSaved = true;
 
 			if (template && viewData.name) {
 				const sections = template.sections.map((section) => ({
 					section,
 					enabled: true,
 					items: [],
+					itemSelection: 'all_public' as const,
 					layout: 'default',
 					width: 'full' as const
 				}));
 
-				await collection('views').create({
+				const saved = await saveView({
 					name: viewData.name,
 					slug: viewData.slug,
 					visibility: viewData.visibility,
 					description: viewData.description || '',
-					sections,
-					is_active: true,
-					is_default: false
+					sections
 				});
+				if (!saved) return;
 			}
 
 			toasts.add('success', tr('admin.wizard.success_message'));
@@ -92,15 +228,38 @@
 			onComplete?.();
 		} catch (err) {
 			console.error('Failed to save wizard data:', err);
-			toasts.add('error', tr('admin.wizard.error_message'));
+			viewUnknown = err instanceof DraftReadError;
+			saveError = describeSaveError(err, profileSaved);
 		} finally {
 			saving = false;
 		}
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
-		if (e.key === 'Escape' && !saving) {
-			handleSkip();
+		if (!active) return;
+
+		if (e.key === 'Escape') {
+			if (!saving && !e.isComposing) handleSkip();
+			return;
+		}
+		if (e.key !== 'Tab') return;
+
+		const focusable = dialogEl?.querySelectorAll<HTMLElement>(FOCUSABLE);
+		if (!focusable?.length) return;
+
+		const first = focusable[0];
+		const last = focusable[focusable.length - 1];
+		const current = document.activeElement;
+
+		if (!dialogEl?.contains(current)) {
+			e.preventDefault();
+			first.focus();
+		} else if (e.shiftKey && current === first) {
+			e.preventDefault();
+			last.focus();
+		} else if (!e.shiftKey && current === last) {
+			e.preventDefault();
+			first.focus();
 		}
 	}
 
@@ -116,6 +275,7 @@
 
 {#if $setupWizard.isOpen}
 	<div
+		bind:this={dialogEl}
 		class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
 		role="dialog"
 		aria-labelledby="wizard-title"
@@ -130,6 +290,7 @@
 					<button
 						type="button"
 						class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+						disabled={saving}
 						onclick={handleSkip}
 					>
 						{$t('admin.wizard.skip')}
@@ -176,7 +337,7 @@
 				</div>
 			</header>
 
-			<main class="flex-1 overflow-y-auto p-6">
+			<div bind:this={mainEl} tabindex="-1" class="flex-1 overflow-y-auto p-6 focus:outline-none">
 				{#if $setupWizard.currentStep === 1}
 					<Step1BasicProfile />
 				{:else if $setupWizard.currentStep === 2}
@@ -184,7 +345,16 @@
 				{:else}
 					<Step3ReviewLaunch />
 				{/if}
-			</main>
+			</div>
+
+			{#if saveError}
+				<div
+					role="alert"
+					class="mx-6 my-3 p-3 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-sm"
+				>
+					{saveError}
+				</div>
+			{/if}
 
 			<footer class="border-t border-gray-200 dark:border-gray-700 px-6 py-4 flex justify-between">
 				<button
@@ -216,7 +386,7 @@
 							</svg>
 							{$t('admin.wizard.saving')}
 						{:else}
-							{$t('admin.wizard.launch_profile')}
+							{viewUnknown ? $t('admin.dashboard.retry') : $t('admin.wizard.launch_profile')}
 						{/if}
 					</button>
 				{:else}

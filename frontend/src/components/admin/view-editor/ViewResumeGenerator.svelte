@@ -8,6 +8,7 @@
 	import { self } from 'svelte/legacy';
 	import type { ResumeGenerationConfig, ExportRecord } from '$lib/view-editor/types';
 	import { t } from 'svelte-i18n';
+	import { adminModal } from '$lib/actions/adminModal';
 
 	// Props
 	let {
@@ -39,7 +40,11 @@
 	/**
 	 * Handle generate button click
 	 */
+	let generationError = $state('');
+
 	async function handleGenerate() {
+		if (generating) return;
+		generationError = '';
 		generating = true;
 		try {
 			await onGenerate(config);
@@ -51,6 +56,8 @@
 				length: 'two-page',
 				emphasis: []
 			};
+		} catch (err) {
+			generationError = err instanceof Error ? err.message : $t('errors.server');
 		} finally {
 			generating = false;
 		}
@@ -62,28 +69,49 @@
 	async function handleDeleteExport(exportId: string) {
 		await onDeleteExport(exportId);
 	}
+
+	/**
+	 * Close unless generation is running. It can't be cancelled, so the modal stays until it settles.
+	 */
+	function closeIfIdle() {
+		if (!generating) onClose();
+	}
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
 <div
 	class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-	onclick={self(() => onClose())}
+	onclick={self(closeIfIdle)}
+	use:adminModal={{ onClose, busy: generating }}
 >
 	<div
-		class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full mx-4 max-h-[90vh] overflow-hidden"
+		class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full mx-4 max-h-[90dvh] overflow-hidden flex flex-col focus:outline-none"
+		role="dialog"
+		aria-modal="true"
+		aria-labelledby="view-resume-title"
+		aria-describedby="view-resume-description"
 	>
 		<!-- Header -->
 		<div class="p-4 border-b border-gray-200 dark:border-gray-700">
-			<h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+			<h2 id="view-resume-title" class="text-lg font-semibold text-gray-900 dark:text-white">
 				{$t('admin.view_editor.resume.title')}
 			</h2>
-			<p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+			<p id="view-resume-description" class="text-sm text-gray-500 dark:text-gray-400 mt-1">
 				{$t('admin.view_editor.resume.description')}
 			</p>
 		</div>
 
 		<!-- Content -->
-		<div class="p-4 space-y-4 overflow-y-auto">
+		<div class="p-4 space-y-4 overflow-y-auto flex-1 min-h-0">
+			{#if generationError}
+				<p
+					role="alert"
+					class="rounded-lg p-3 bg-red-50 dark:bg-red-900/20 text-sm text-red-700 dark:text-red-300"
+				>
+					{generationError}
+				</p>
+			{/if}
+
 			<!-- Format -->
 			<div>
 				<label for="format" class="label">{$t('admin.view_editor.resume.format_label')}</label>
@@ -179,7 +207,7 @@
 
 		<!-- Footer -->
 		<div class="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-2">
-			<button type="button" class="btn btn-ghost" onclick={onClose}>
+			<button type="button" class="btn btn-ghost" onclick={onClose} disabled={generating}>
 				{$t('admin.view_editor.resume.cancel')}
 			</button>
 			<button type="button" class="btn btn-primary" onclick={handleGenerate} disabled={generating}>

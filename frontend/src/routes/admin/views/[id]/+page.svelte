@@ -17,8 +17,10 @@
 		VALID_LAYOUTS,
 		VALID_WIDTHS,
 		getValidWidthsForLayout,
-		isWidthValidForLayout
+		isWidthValidForLayout,
+		type ItemSelection
 	} from '$lib/pocketbase';
+	import { confirmPrivateItems, normalizeItemSelection } from '$lib/facet-content';
 	import { collection } from '$lib/stores/demo';
 	import { toasts, confirm } from '$lib/stores';
 	import { icon } from '$lib/icons';
@@ -34,6 +36,17 @@
 	import AdminTagBadge from '$components/admin/AdminTagBadge.svelte';
 	import { t } from 'svelte-i18n';
 	import { brandName } from '$lib/stores/plan';
+	import {
+		MAX_SHARE_LINK_USES,
+		isValidMaxUses,
+		localExpiryToISO,
+		regenerateShareLink,
+		takeCreatedShareLink
+	} from '$lib/share-links';
+	import { copyToClipboard } from '$lib/share';
+	import { createListLoader } from '$lib/admin/list-load';
+	import { isSavedSections, readFacetCatalog } from '$lib/admin/editor-load';
+	import { guardUnsaved } from '$lib/admin/unsaved';
 	import type {
 		OverrideEditorState,
 		ResumeGenerationConfig,
@@ -75,6 +88,7 @@
 		title: string;
 		is_draft: boolean;
 		visibility: 'public' | 'unlisted' | 'private';
+		view_visibility?: Record<string, boolean>;
 		sort_order?: number;
 		content?: string;
 		cover_image?: string;
@@ -108,11 +122,18 @@
 		return sectionKey.replace('custom:', '');
 	}
 
-	let loading = $state(true);
+	const editorLoad = createListLoader('facet editor');
+	// The Facet the form holds, so a slower read for another Facet can't pass as this one.
+	let loadedViewId: string | null = $state(null);
+	let catalogStatus: 'loading' | 'ready' | 'failed' = $state('loading');
 	let saving = $state(false);
 	let deleting = $state(false);
 	let view: View | null = $state(null);
-	let mounted = false;
+	// What the form held at the last authoritative read or confirmed save.
+	let savedFields: string | null = null;
+	let savedSections: string | null = null;
+	// Saved section configs, which keep anything this editor doesn't know about.
+	let savedSectionConfigs: Record<string, ViewSection> = {};
 
 	// Profile data for preview and showing overrides
 	let profile: Profile | null = $state(null);
@@ -157,6 +178,7 @@
 		{
 			enabled: boolean;
 			items: string[];
+			itemSelection?: ItemSelection;
 			expanded: boolean;
 			layout: string;
 			width: SectionWidth;
@@ -209,30 +231,20 @@
 	let newTokenExpires = $state('');
 	let newTokenMaxUses = $state(0);
 	let createdTokenUrl: string | null = $state(null);
+	let regeneratingTokenId: string | null = $state(null);
+	let tokenExpiresInput: HTMLInputElement | null = $state(null);
+	let publicFacetUrl = $derived.by(() => `${page.url.origin}/${view?.slug ?? ''}`);
 
 	onMount(async () => {
-		mounted = true;
+		createdTokenUrl = takeCreatedShareLink(viewId);
 		if (!viewId) {
 			toasts.add('error', 'Invalid facet ID');
 			goto('/admin/views', { replace: true });
 			return;
 		}
-		// Load custom content FIRST since initializeSections() needs it
-		await loadCustomContentItems();
-		await Promise.all([
-			loadView(),
-			loadSectionItems(),
-			loadProfile(),
-			checkAIPrintStatus(),
-			loadViewTokens()
-		]);
+		await Promise.all([startLoad(), loadProfile(), checkAIPrintStatus()]);
 		await tick();
-		applySavedItemOrder();
-		await loadExports();
-	});
-
-	onDestroy(() => {
-		mounted = false;
+		if (page.url.hash === '#share-links') document.getElementById('share-links')?.scrollIntoView();
 	});
 
 	// Reload view data when navigating between different views (e.g., clicking facets in sidebar)
@@ -243,120 +255,153 @@
 		const toId = to?.params?.id;
 		// Only reload if navigating between different view IDs
 		if (fromId && toId && fromId !== toId) {
-			loading = true;
-			// Load custom content FIRST since initializeSections() needs it
-			loadCustomContentItems()
-				.then(() => {
-					return Promise.all([loadView(), loadSectionItems(), loadViewTokens()]);
-				})
-				.then(async () => {
-					// Wait for Svelte to process reactive updates before reordering
-					await tick();
-					applySavedItemOrder();
-				})
-				.finally(() => {
-					loading = false;
-				});
+			createdTokenUrl = null;
+			startLoad();
 		}
 	});
 
-	async function loadProfile() {
-		try {
-			const records = await collection('profile').getList(1, 1);
-			if (records.items.length > 0) {
-				const record = records.items[0] as unknown as Profile & { collectionId: string };
-				// Resolve avatar URL if exists
-				if (record.avatar) {
-					const avatarUrl = `/api/files/${record.collectionId}/${record.id}/${record.avatar}`;
-					profile = { ...record, avatar: avatarUrl };
-				} else {
-					profile = record;
-				}
-			}
-		} catch (err) {
-			console.error('Failed to load profile:', err);
-			// Profile is optional for preview, don't show error
-		}
+	// The Facet and its content are separate reads. A content failure keeps the form and what's
+	// typed in it, and only pauses Save.
+	function startLoad() {
+		loadedViewId = null;
+		savedFields = null;
+		savedSections = null;
+		viewTokens = [];
+		exports = [];
+		return Promise.all([loadView(), loadCatalog(), loadViewTokens()]);
 	}
 
-	// Load custom content items - each becomes its own section
-	async function loadCustomContentItems() {
-		try {
-			const records = await collection('custom_content').getList(1, 100, { sort: 'sort_order' });
-
-			customContentItems = records.items.map((item) => {
-				const record = item as any;
-				const collectionId = record.collectionId || 'custom_content';
-
-				// Build cover image URL if exists
-				let cover_image_url: string | undefined;
-				if (record.cover_image) {
-					cover_image_url = `/api/files/${collectionId}/${record.id}/${record.cover_image}`;
+	function loadProfile() {
+		return editorLoad.loadAncillary(
+			'profile',
+			(requestKey, signal) =>
+				collection('profile').getList(1, 1, { requestKey: requestKey('profile'), signal }),
+			(records) => {
+				if (records.items.length > 0) {
+					const record = records.items[0] as unknown as Profile & { collectionId: string };
+					// Resolve avatar URL if exists
+					if (record.avatar) {
+						const avatarUrl = `/api/files/${record.collectionId}/${record.id}/${record.avatar}`;
+						profile = { ...record, avatar: avatarUrl };
+					} else {
+						profile = record;
+					}
 				}
+			}
+		);
+	}
 
-				// Build media URLs if exist
-				let media_urls: string[] | undefined;
-				if (record.media && Array.isArray(record.media) && record.media.length > 0) {
-					media_urls = record.media.map(
-						(filename: string) => `/api/files/${collectionId}/${record.id}/${filename}`
-					);
-				}
+	// Custom content and section items load together, because a save acts on both.
+	function loadCatalog() {
+		const recovering = catalogStatus === 'failed';
+		if (!recovering) catalogStatus = 'loading';
+		return editorLoad.read(
+			'catalog',
+			(_requestKey, signal) => readFacetCatalog(SECTION_DEFS, signal, 'admin_tags'),
+			(catalog) => {
+				applyCatalog(catalog);
+				catalogStatus = 'ready';
+				if (recovering) editorLoad.restoreFocus(null);
+			},
+			(err) => {
+				console.error('Failed to load Facet content:', err);
+				catalogStatus = 'failed';
+			}
+		);
+	}
 
-				return {
-					id: record.id,
-					title: record.title || 'Untitled',
-					is_draft: record.is_draft || false,
-					// Default to 'private' if visibility is not set - safer than assuming public
-					visibility: (record.visibility || 'private') as 'public' | 'unlisted' | 'private',
-					sort_order: record.sort_order ?? 0,
-					content: record.content,
-					cover_image: record.cover_image,
-					cover_image_url,
-					media: record.media,
-					media_urls
-				};
-			});
-		} catch (err) {
-			console.error('Failed to load custom content:', err);
-			customContentItems = [];
+	function applyCatalog({ custom, lists }: Awaited<ReturnType<typeof readFacetCatalog>>) {
+		customContentItems = custom.map((item) => {
+			const record = item as any;
+			const collectionId = record.collectionId || 'custom_content';
+
+			// Build cover image URL if exists
+			let cover_image_url: string | undefined;
+			if (record.cover_image) {
+				cover_image_url = `/api/files/${collectionId}/${record.id}/${record.cover_image}`;
+			}
+
+			// Build media URLs if exist
+			let media_urls: string[] | undefined;
+			if (record.media && Array.isArray(record.media) && record.media.length > 0) {
+				media_urls = record.media.map(
+					(filename: string) => `/api/files/${collectionId}/${record.id}/${filename}`
+				);
+			}
+
+			return {
+				id: record.id,
+				title: record.title || 'Untitled',
+				is_draft: record.is_draft || false,
+				// Default to 'private' if visibility is not set - safer than assuming public
+				visibility: (record.visibility || 'private') as 'public' | 'unlisted' | 'private',
+				view_visibility: record.view_visibility,
+				sort_order: record.sort_order ?? 0,
+				content: record.content,
+				cover_image: record.cover_image,
+				cover_image_url,
+				media: record.media,
+				media_urls
+			};
+		});
+		for (const [key, records] of Object.entries(lists)) {
+			sectionItems[key] = records.map((item) => ({
+				id: item.id,
+				label: getItemLabel(key, item),
+				// Contact methods have no visibility field; view_visibility is their scope.
+				// Otherwise default to 'private' if not set - safer than assuming public
+				visibility: key === 'contacts' ? 'public' : (item.visibility as string) || 'private',
+				is_draft: (item.is_draft as boolean) || false,
+				data: item,
+				expand: (item as any).expand || {}
+			}));
 		}
+		updateSectionItems();
+		syncCatalogSections();
 	}
 
 	// AI Print functions
-	async function checkAIPrintStatus() {
-		try {
-			console.log('[AI-PRINT] Checking status...');
-			const response = await fetch('/api/ai-print/status', {
-				headers: { Authorization: pb.authStore.token || '' }
-			});
-			console.log('[AI-PRINT] Status response:', response.status);
-			if (response.ok) {
-				const data = await response.json();
-				console.log('[AI-PRINT] Status result:', data);
+	function checkAIPrintStatus() {
+		return editorLoad.loadAncillary(
+			'ai_print',
+			async (_requestKey, signal) => {
+				const response = await fetch('/api/ai-print/status', {
+					headers: { Authorization: pb.authStore.token || '' },
+					signal
+				});
+				if (!response.ok) throw new Error(`AI print status failed (${response.status})`);
+				return response.json();
+			},
+			(data) => {
 				aiPrintStatus = {
 					available: data.available,
 					pandoc_installed: data.pandoc_installed,
 					ai_configured: data.ai_configured
 				};
 			}
-		} catch (err) {
-			console.error('[AI-PRINT] Failed to check status:', err);
-		}
+		);
 	}
 
-	async function loadExports() {
-		if (!slug) return;
-		try {
-			const response = await fetch(`/api/view/${slug}/exports`, {
-				headers: { Authorization: pb.authStore.token || '' }
-			});
-			if (response.ok) {
+	function loadExports() {
+		const currentSlug = slug;
+		if (!currentSlug) return;
+		return editorLoad.loadAncillary(
+			'exports',
+			async (_requestKey, signal) => {
+				const response = await fetch(`/api/view/${currentSlug}/exports`, {
+					headers: { Authorization: pb.authStore.token || '' },
+					signal
+				});
+				// The route only looks in live Facets, so a demo Facet's exports read as not found.
+				if (response.status === 404) return [];
+				if (!response.ok) throw new Error(`Exports request failed (${response.status})`);
 				const data = await response.json();
-				exports = data.exports || [];
+				return (data.exports || []) as ExportRecord[];
+			},
+			(value) => {
+				exports = value;
 			}
-		} catch (err) {
-			console.error('Failed to load exports:', err);
-		}
+		);
 	}
 
 	/**
@@ -366,7 +411,6 @@
 	async function handleResumeGenerate(config: ResumeGenerationConfig): Promise<void> {
 		if (!slug) return;
 
-		console.log('[AI-PRINT] Starting generation for:', slug);
 		const response = await fetch(`/api/view/${slug}/generate`, {
 			method: 'POST',
 			headers: {
@@ -377,7 +421,6 @@
 		});
 
 		const data = await response.json();
-		console.log('[AI-PRINT] Generation result:', data);
 
 		if (!response.ok) {
 			throw new Error(data.error || 'Generation failed');
@@ -400,7 +443,6 @@
 
 		// Auto-download the file
 		if (data.download_url) {
-			console.log('[AI-PRINT] Auto-downloading from:', data.download_url);
 			const link = document.createElement('a');
 			link.href = data.download_url;
 			link.download = `resume.${config.format}`;
@@ -466,21 +508,37 @@
 	}
 
 	// Share token functions
-	async function loadViewTokens() {
-		if (!viewId) return;
-		try {
-			const result = await pb.collection('share_tokens').getList<ShareToken>(1, 10, {
-				filter: `view_id = "${viewId}"`,
-				sort: '-id'
-			});
-			viewTokens = result.items;
-		} catch (err) {
-			// Silent fail - tokens are optional
-		}
+	function loadViewTokens() {
+		const id = viewId;
+		if (!id) return;
+		return editorLoad.loadAncillary(
+			'tokens',
+			(requestKey, signal) =>
+				pb.collection('share_tokens').getList<ShareToken>(1, 10, {
+					filter: `view_id = "${id}"`,
+					sort: '-id',
+					requestKey: requestKey('tokens'),
+					signal
+				}),
+			(result) => {
+				viewTokens = result.items;
+			}
+		);
 	}
 
 	async function generateShareToken() {
 		if (!viewId) return;
+		const expiresAt = tokenExpiresInput?.validity.badInput
+			? null
+			: localExpiryToISO(newTokenExpires);
+		if (expiresAt === null) {
+			toasts.add('error', $t('admin.tokens.toast_invalid_expiry'));
+			return;
+		}
+		if (!isValidMaxUses(newTokenMaxUses)) {
+			toasts.add('error', $t('admin.tokens.toast_invalid_max_uses'));
+			return;
+		}
 
 		generatingToken = true;
 		try {
@@ -493,7 +551,7 @@
 				body: JSON.stringify({
 					view_id: viewId,
 					name: newTokenName || undefined,
-					expires_at: newTokenExpires || undefined,
+					expires_at: expiresAt || undefined,
 					max_uses: newTokenMaxUses || 0
 				})
 			});
@@ -547,6 +605,7 @@
 	}
 
 	async function regenerateViewToken(token: ShareToken) {
+		if (regeneratingTokenId) return;
 		const confirmed = await confirm({
 			title: 'Regenerate Share Link',
 			message: `This will revoke the existing link "${token.name || 'Unnamed'}" and create a new one. Anyone using the old link will no longer have access. Continue?`,
@@ -555,46 +614,22 @@
 		});
 		if (!confirmed) return;
 
+		regeneratingTokenId = token.id;
 		try {
-			// First revoke the old token
-			const revokeResponse = await fetch(`/api/share/revoke/${token.id}`, {
-				method: 'POST',
-				headers: {
-					Authorization: `Bearer ${pb.authStore.token}`
-				}
-			});
-
-			if (!revokeResponse.ok) {
-				throw new Error('Failed to revoke old token');
-			}
-
-			// Then create a new token with the same settings
-			const response = await fetch('/api/share/generate', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					Authorization: `Bearer ${pb.authStore.token}`
-				},
-				body: JSON.stringify({
-					view_id: viewId,
-					name: token.name || undefined,
-					expires_at: token.expires_at || undefined,
-					max_uses: token.max_uses || 0
-				})
-			});
-
-			if (!response.ok) {
-				const data = await response.json();
-				throw new Error(data.error || 'Failed to create new token');
-			}
-
-			const data = await response.json();
+			const data = await regenerateShareLink(
+				token.id,
+				pb.authStore.token,
+				'Failed to regenerate share link'
+			);
 			createdTokenUrl = `${window.location.origin}/s/${data.token}`;
 
 			toasts.add('success', 'Share link regenerated! Copy the new link now.');
 			await loadViewTokens();
 		} catch (err) {
 			toasts.add('error', err instanceof Error ? err.message : 'Failed to regenerate share link');
+			await loadViewTokens();
+		} finally {
+			regeneratingTokenId = null;
 		}
 	}
 
@@ -605,9 +640,12 @@
 		showTokenForm = false;
 	}
 
-	function copyShareUrl(text: string) {
-		navigator.clipboard.writeText(text);
-		toasts.add('success', 'Copied to clipboard');
+	async function copyShareUrl(text: string) {
+		const copied = await copyToClipboard(text);
+		toasts.add(
+			copied ? 'success' : 'error',
+			$t(copied ? 'admin.tokens.toast_copied' : 'admin.tokens.toast_copy_failed')
+		);
 	}
 
 	function dismissCreatedToken() {
@@ -684,61 +722,78 @@
 	}
 
 	async function loadView() {
-		if (!viewId) return;
-		loading = true;
-		try {
-			const record = (await collection('views').getOne(viewId)) as unknown as View & {
-				collectionId: string;
-				hero_image?: string;
-			};
-			view = record as unknown as View;
+		const id = viewId;
+		if (!id) return;
+		const loaded = await editorLoad.load(
+			async (requestKey, signal) => {
+				try {
+					const record = await collection('views').getOne(id, {
+						requestKey: requestKey('view'),
+						signal
+					});
+					if (record?.id !== id || !isSavedSections(record.sections)) {
+						throw new Error('Invalid view response');
+					}
+					return record as unknown as View & { collectionId: string; hero_image?: string };
+				} catch (err) {
+					// A missing Facet won't come back, so a Retry would only repeat this.
+					if ((err as { status?: number }).status === 404 && id === viewId) {
+						toasts.add('error', 'Failed to load facet');
+						goto('/admin/views', { replace: true });
+					}
+					throw err;
+				}
+			},
+			(record) => applyView(id, record)
+		);
+		if (loaded) await loadExports();
+	}
 
-			name = view.name;
-			slug = view.slug;
-			description = view.description || '';
-			visibility = view.visibility;
-			heroHeadline = view.hero_headline || '';
-			heroSummary = view.hero_summary || '';
-			heroLocation = view.hero_location || '';
-			ctaText = view.cta_text || '';
-			ctaUrl = view.cta_url || '';
-			ctaButtonText = view.cta_button_text || '';
-			ctaEnabled = (view as any).cta_enabled !== false; // Default to true if not set
-			isActive = view.is_active;
-			accentColor = (view.accent_color as AccentColor) || null;
-			fontPack = (view.font_pack as FontPack) || null;
-			heroLayout = (view as any).hero_layout || null;
-			heroSpacing = (view as any).hero_spacing || null;
-			heroBgColor = (view as any).hero_bg_color || '';
+	function applyView(id: string, record: View & { collectionId: string; hero_image?: string }) {
+		view = record;
 
-			if (record.hero_image) {
-				heroImageUrl = `/api/files/${record.collectionId}/${record.id}/${record.hero_image}`;
-			}
+		name = view.name;
+		slug = view.slug;
+		description = view.description || '';
+		visibility = view.visibility;
+		heroHeadline = view.hero_headline || '';
+		heroSummary = view.hero_summary || '';
+		heroLocation = view.hero_location || '';
+		ctaText = view.cta_text || '';
+		ctaUrl = view.cta_url || '';
+		ctaButtonText = view.cta_button_text || '';
+		ctaEnabled = (view as any).cta_enabled !== false; // Default to true if not set
+		isActive = view.is_active;
+		accentColor = (view.accent_color as AccentColor) || null;
+		fontPack = (view.font_pack as FontPack) || null;
+		heroLayout = (view as any).hero_layout || null;
+		heroSpacing = (view as any).hero_spacing || null;
+		heroBgColor = (view as any).hero_bg_color || '';
+		password = '';
 
-			initializeSections(view.sections);
-		} catch (err) {
-			if (
-				err instanceof Error &&
-				(err.message.includes('autocancelled') || err.name === 'AbortError')
-			) {
-				return;
-			}
-			console.error('Failed to load view:', err);
-			if (mounted) {
-				toasts.add('error', 'Failed to load facet');
-				goto('/admin/views', { replace: true });
-			}
-		} finally {
-			loading = false;
-		}
+		if (heroBlobUrl) URL.revokeObjectURL(heroBlobUrl);
+		heroBlobUrl = null;
+		heroImageFile = null;
+		heroImageUrl = record.hero_image
+			? `/api/files/${record.collectionId}/${record.id}/${record.hero_image}`
+			: null;
+
+		initializeSections(view.sections);
+		savedFields = fieldsSnapshot();
+		savedSections = sectionsSnapshot();
+		loadedViewId = id;
+		syncCatalogSections();
 	}
 
 	function initializeSections(viewSections?: ViewSection[]) {
+		sections = {};
+		savedSectionConfigs = Object.fromEntries((viewSections ?? []).map((vs) => [vs.section, vs]));
 		for (const key of DEFAULT_SECTION_ORDER) {
 			const defaultLayout = VALID_LAYOUTS[key]?.default || 'default';
 			sections[key] = {
 				enabled: false,
 				items: [],
+				itemSelection: 'selected',
 				expanded: false,
 				layout: defaultLayout,
 				width: 'full',
@@ -750,77 +805,65 @@
 			};
 		}
 
-		for (const item of customContentItems) {
-			const sectionKey = `custom:${item.id}`;
-			const defaultLayout = VALID_LAYOUTS['custom']?.default || 'default';
-			sections[sectionKey] = {
-				enabled: false,
-				items: [],
-				expanded: false,
-				layout: defaultLayout,
-				width: 'full',
-				itemConfig: {}
-			};
-		}
-
-		const customSectionKeys = customContentItems.map((item) => `custom:${item.id}`);
-		const allAvailableSections = [...DEFAULT_SECTION_ORDER, ...customSectionKeys];
-
 		if (viewSections && viewSections.length > 0) {
 			const savedOrder = viewSections.map((vs) => vs.section);
-			const remainingSections = allAvailableSections.filter((k) => !savedOrder.includes(k));
+			const remainingSections = DEFAULT_SECTION_ORDER.filter((k) => !savedOrder.includes(k));
 			const fullOrder = [...savedOrder, ...remainingSections];
 
 			sectionOrder = fullOrder.map((key) => ({ id: `section-${key}`, key }));
 
 			for (const vs of viewSections) {
-				if (sections[vs.section] !== undefined) {
-					sections[vs.section].enabled = vs.enabled;
-					sections[vs.section].items = vs.items || [];
-					const layoutKey = isCustomSection(vs.section) ? 'custom' : vs.section;
-					sections[vs.section].layout = vs.layout || VALID_LAYOUTS[layoutKey]?.default || 'default';
-					sections[vs.section].width = vs.width || 'full';
-					sections[vs.section].itemConfig = vs.itemConfig || {};
-					sections[vs.section].categoryOrder = vs.categoryOrder;
-					sections[vs.section].disabledCategories = vs.disabledCategories;
-					sections[vs.section].categoryDisplayModes = vs.categoryDisplayModes;
-					sections[vs.section].featuredId = vs.featuredId;
-					sections[vs.section].list = vs.list;
+				// A section with no definition here, or whose content is gone, keeps its saved config.
+				if (sections[vs.section] === undefined) {
+					sections[vs.section] = {
+						enabled: false,
+						items: [],
+						expanded: false,
+						layout: 'default',
+						width: 'full',
+						itemConfig: {}
+					};
 				}
+				sections[vs.section].enabled = vs.enabled;
+				sections[vs.section].items = vs.items || [];
+				sections[vs.section].itemSelection = normalizeItemSelection(vs.itemSelection);
+				const layoutKey = isCustomSection(vs.section) ? 'custom' : vs.section;
+				sections[vs.section].layout = vs.layout || VALID_LAYOUTS[layoutKey]?.default || 'default';
+				sections[vs.section].width = vs.width || 'full';
+				sections[vs.section].itemConfig = vs.itemConfig || {};
+				sections[vs.section].categoryOrder = vs.categoryOrder;
+				sections[vs.section].disabledCategories = vs.disabledCategories;
+				sections[vs.section].categoryDisplayModes = vs.categoryDisplayModes;
+				sections[vs.section].featuredId = vs.featuredId;
+				sections[vs.section].list = vs.list;
 			}
 		} else {
-			sectionOrder = allAvailableSections.map((key) => ({ id: `section-${key}`, key }));
+			sectionOrder = DEFAULT_SECTION_ORDER.map((key) => ({ id: `section-${key}`, key }));
 		}
 		updateSections();
 	}
 
-	async function loadSectionItems() {
-		for (const key of DEFAULT_SECTION_ORDER) {
-			const def = SECTION_DEFS[key];
-			try {
-				// Testimonials only show approved ones in view editor
-				const filter = key === 'testimonials' ? 'status = "approved"' : '';
-				const records = await collection(def.collection).getList(1, 100, {
-					sort: key === 'testimonials' ? '-featured,-sort_order' : '-id',
-					filter,
-					expand: 'admin_tags'
-				});
-
-				sectionItems[key] = records.items.map((item) => ({
-					id: item.id,
-					label: getItemLabel(key, item),
-					// Default to 'private' if visibility is not set - safer than assuming public
-					visibility: ((item as Record<string, unknown>).visibility as string) || 'private',
-					is_draft: ((item as Record<string, unknown>).is_draft as boolean) || false,
-					data: item as Record<string, unknown>,
-					expand: (item as any).expand || {}
-				}));
-			} catch (err) {
-				console.error(`Failed to load ${key} items:`, err);
-				sectionItems[key] = [];
-			}
+	// Adds an off section for custom content this Facet hasn't saved one for. That isn't the
+	// owner's change, so a clean form stays clean.
+	function syncCatalogSections() {
+		if (savedSections === null) return;
+		const clean = sectionsSnapshot() === savedSections;
+		for (const item of customContentItems) {
+			const sectionKey = `custom:${item.id}`;
+			if (sections[sectionKey]) continue;
+			sections[sectionKey] = {
+				enabled: false,
+				items: [],
+				expanded: false,
+				layout: VALID_LAYOUTS['custom']?.default || 'default',
+				width: 'full',
+				itemConfig: {}
+			};
+			sectionOrder = [...sectionOrder, { id: `section-${sectionKey}`, key: sectionKey }];
 		}
-		updateSectionItems();
+		updateSections();
+		if (clean) savedSections = sectionsSnapshot();
+		applySavedItemOrder();
 	}
 
 	function getItemLabel(sectionKey: string, item: Record<string, unknown>): string {
@@ -868,33 +911,100 @@
 			.slice(0, 50);
 	}
 
-	async function enableItemsForView(sectionsData: ViewSection[]) {
-		for (const section of sectionsData) {
-			if (!section.enabled || !section.items?.length) continue;
-
-			const collectionName = SECTION_DEFS[section.section]?.collection;
-			if (!collectionName) continue;
-
-			for (const itemId of section.items) {
-				const item = sectionItems[section.section]?.find((i) => i.id === itemId);
-				if (!item) continue;
-
-				const isPrivate = item.visibility === 'private';
-				const isDraft = item.is_draft === true;
-
-				if (isPrivate || isDraft) {
-					const currentViewVis = (item.data.view_visibility as Record<string, boolean>) || {};
-					if (!currentViewVis[viewId]) {
-						await collection(collectionName).update(itemId, {
-							view_visibility: { ...currentViewVis, [viewId]: true }
-						});
+	// Builds every section in order, enabled or not, so order is preserved. Anything this editor
+	// doesn't write stays as it was saved.
+	function buildSectionsData(): ViewSection[] {
+		return sectionOrder.map(({ key }) => {
+			const sectionConfig = sections[key];
+			const defaultLayout = VALID_LAYOUTS[key]?.default || 'default';
+			const sectionData: ViewSection = {
+				...savedSectionConfigs[key],
+				section: key,
+				enabled: sectionConfig?.enabled || false,
+				items: sectionConfig?.items || [],
+				layout: sectionConfig?.layout || defaultLayout,
+				width: sectionConfig?.width || 'full'
+			};
+			if (!SECTION_DEFS[key] && !isCustomSection(key)) return sectionData;
+			if (!isCustomSection(key)) {
+				sectionData.itemSelection = normalizeItemSelection(sectionConfig?.itemSelection);
+			}
+			// Only include itemConfig if there are overrides
+			delete sectionData.itemConfig;
+			const itemConfig = sectionConfig?.itemConfig;
+			if (itemConfig && Object.keys(itemConfig).length > 0) {
+				// Filter out empty configs
+				const filteredConfig: Record<string, ItemConfig> = {};
+				for (const [itemId, config] of Object.entries(itemConfig)) {
+					if (config.overrides && Object.keys(config.overrides).length > 0) {
+						filteredConfig[itemId] = config;
 					}
 				}
+				if (Object.keys(filteredConfig).length > 0) {
+					sectionData.itemConfig = filteredConfig;
+				}
 			}
-		}
+			// Include skills section settings if set
+			if (key === 'skills') {
+				delete sectionData.categoryOrder;
+				delete sectionData.disabledCategories;
+				delete sectionData.categoryDisplayModes;
+				if (sectionConfig?.categoryOrder?.length) {
+					sectionData.categoryOrder = sectionConfig.categoryOrder;
+				}
+				if (sectionConfig?.disabledCategories?.length) {
+					sectionData.disabledCategories = sectionConfig.disabledCategories;
+				}
+				if (
+					sectionConfig?.categoryDisplayModes &&
+					Object.keys(sectionConfig.categoryDisplayModes).length > 0
+				) {
+					sectionData.categoryDisplayModes = sectionConfig.categoryDisplayModes;
+				}
+			}
+			// Include testimonials section settings if set
+			if (key === 'testimonials') {
+				delete sectionData.list;
+				delete sectionData.featuredId;
+				if (sectionConfig?.list) sectionData.list = sectionConfig.list;
+				if (sectionConfig?.featuredId) sectionData.featuredId = sectionConfig.featuredId;
+			}
+			return sectionData;
+		});
+	}
+
+	function sectionsSnapshot() {
+		return JSON.stringify(buildSectionsData());
+	}
+
+	function fieldsSnapshot() {
+		return JSON.stringify({
+			name: name.trim(),
+			slug: slug.trim(),
+			description: description.trim(),
+			visibility,
+			heroHeadline: heroHeadline.trim(),
+			heroSummary: heroSummary.trim(),
+			heroLocation: heroLocation.trim(),
+			ctaText: ctaText.trim(),
+			ctaUrl: ctaUrl.trim(),
+			ctaButtonText: ctaButtonText.trim(),
+			ctaEnabled,
+			isActive,
+			accentColor,
+			fontPack,
+			heroLayout,
+			heroSpacing,
+			heroBgColor
+		});
 	}
 
 	async function handleSubmit() {
+		if (saving) return;
+		if (!canSave) {
+			toasts.add('error', $t('admin.view_editor.page.save_paused'));
+			return;
+		}
 		if (!name.trim()) {
 			toasts.add('error', 'Name is required');
 			return;
@@ -903,59 +1013,20 @@
 			toasts.add('error', 'Slug is required');
 			return;
 		}
+		// A view that already uses a password keeps it unless a new one is typed.
+		if (visibility === 'password' && view?.visibility !== 'password' && !password.trim()) {
+			toasts.add('error', 'Password is required for password-protected views');
+			return;
+		}
 
 		saving = true;
+		const id = viewId;
+		const sentHeroImage = heroImageFile;
+		const sentPassword = password;
+		const sentFields = fieldsSnapshot();
+		const sentSections = sectionsSnapshot();
 		try {
-			// Build sections array in current order with itemConfig, layout, and width
-			// Important: We save ALL sections in order (enabled + disabled) so order is preserved
-			const sectionsData: ViewSection[] = sectionOrder.map(({ key }) => {
-				const sectionConfig = sections[key];
-				const defaultLayout = VALID_LAYOUTS[key]?.default || 'default';
-				const sectionData: ViewSection = {
-					section: key,
-					enabled: sectionConfig?.enabled || false,
-					items: sectionConfig?.items || [],
-					layout: sectionConfig?.layout || defaultLayout,
-					width: sectionConfig?.width || 'full'
-				};
-				// Only include itemConfig if there are overrides
-				const itemConfig = sectionConfig?.itemConfig;
-				if (itemConfig && Object.keys(itemConfig).length > 0) {
-					// Filter out empty configs
-					const filteredConfig: Record<string, ItemConfig> = {};
-					for (const [itemId, config] of Object.entries(itemConfig)) {
-						if (config.overrides && Object.keys(config.overrides).length > 0) {
-							filteredConfig[itemId] = config;
-						}
-					}
-					if (Object.keys(filteredConfig).length > 0) {
-						sectionData.itemConfig = filteredConfig;
-					}
-				}
-				// Include skills section settings if set
-				if (key === 'skills') {
-					if (sectionConfig?.categoryOrder?.length) {
-						sectionData.categoryOrder = sectionConfig.categoryOrder;
-					}
-					if (sectionConfig?.disabledCategories?.length) {
-						sectionData.disabledCategories = sectionConfig.disabledCategories;
-					}
-					if (
-						sectionConfig?.categoryDisplayModes &&
-						Object.keys(sectionConfig.categoryDisplayModes).length > 0
-					) {
-						sectionData.categoryDisplayModes = sectionConfig.categoryDisplayModes;
-					}
-				}
-				// Include testimonials section settings if set
-				if (key === 'testimonials' && sectionConfig?.list) {
-					sectionData.list = sectionConfig.list;
-				}
-				if (key === 'testimonials' && sectionConfig?.featuredId) {
-					sectionData.featuredId = sectionConfig.featuredId;
-				}
-				return sectionData;
-			});
+			const sectionsData = buildSectionsData();
 
 			const formData = new FormData();
 			formData.append('name', name.trim());
@@ -988,15 +1059,31 @@
 				formData.append('hero_image', heroImageFile);
 			}
 
-			await collection('views').update(viewId, formData);
-			heroImageFile = null;
+			await collection('views').update(id, formData, {
+				requestKey: null,
+				signal: AbortSignal.timeout(sentHeroImage ? 600_000 : 30_000)
+			});
+			// A Facet opened during the save keeps its own form state.
+			if (id === viewId) {
+				if (heroImageFile === sentHeroImage) heroImageFile = null;
+				// The next save compares against what this one stored.
+				if (view) view = { ...view, visibility, slug, is_active: isActive };
+				if (password === sentPassword) password = '';
+				savedFields = sentFields;
+				savedSections = sentSections;
+			}
 
-			await enableItemsForView(sectionsData);
-
-			toasts.add('success', 'Facet updated successfully');
+			// The Facet is saved by now, so this result can't fall into the catch below.
+			if (await confirmPrivateItems(id)) {
+				toasts.add('success', 'Facet updated successfully');
+			} else {
+				toasts.add('error', $t('admin.view_editor.sections.private_grants_unconfirmed'));
+			}
 		} catch (err) {
 			console.error('Failed to save view:', err);
-			toasts.add('error', 'Failed to save facet');
+			const passwordError = (err as { response?: { data?: { password?: { message?: string } } } })
+				.response?.data?.password?.message;
+			toasts.add('error', passwordError || 'Failed to save facet');
 		} finally {
 			saving = false;
 		}
@@ -1088,6 +1175,19 @@
 	}
 
 	let viewId = $derived(page.params.id as string);
+	let viewReady = $derived(loadedViewId === viewId);
+	let canSave = $derived.by(() => viewReady && catalogStatus === 'ready');
+
+	guardUnsaved(
+		() =>
+			!deleting &&
+			savedFields !== null &&
+			(fieldsSnapshot() !== savedFields ||
+				sectionsSnapshot() !== savedSections ||
+				heroImageFile !== null ||
+				(visibility === 'password' && password.trim() !== '')),
+		() => $t('admin.view_editor.page.unsaved_warning')
+	);
 </script>
 
 <svelte:head>
@@ -1095,7 +1195,22 @@
 </svelte:head>
 
 <div class="view-editor-container">
-	{#if loading}
+	{#if !viewReady && $editorLoad.failed}
+		<div role="alert" class="card p-4 max-w-4xl mx-auto border-red-300 dark:border-red-700">
+			<p class="text-red-700 dark:text-red-300">{$t('admin.view_editor.page.view_load_failed')}</p>
+			<div class="mt-3 flex flex-wrap gap-2">
+				<button
+					type="button"
+					class="btn btn-secondary"
+					onclick={() => loadView()}
+					disabled={$editorLoad.loading}
+				>
+					{$t('admin.dashboard.retry')}
+				</button>
+				<a href="/admin/views" class="btn btn-ghost">{$t('admin.views.back_to_views')}</a>
+			</div>
+		</div>
+	{:else if !viewReady}
 		<div class="card p-8 text-center max-w-4xl mx-auto">
 			<div class="animate-pulse">Loading facet...</div>
 		</div>
@@ -1203,7 +1318,7 @@
 					type="button"
 					class="btn btn-primary text-sm"
 					onclick={handleSubmit}
-					disabled={saving}
+					disabled={saving || !canSave}
 					aria-busy={saving}
 				>
 					{#if saving}
@@ -1233,6 +1348,29 @@
 			</div>
 		</div>
 
+		{#if catalogStatus === 'failed'}
+			<div role="alert" class="card p-4 mb-4 border-red-300 dark:border-red-700">
+				<p class="text-red-700 dark:text-red-300">
+					{$t('admin.view_editor.page.content_load_failed')}
+				</p>
+				<button type="button" class="btn btn-secondary mt-3" onclick={() => loadCatalog()}>
+					{$t('admin.dashboard.retry')}
+				</button>
+			</div>
+		{/if}
+		{#if $editorLoad.ancillaryFailed}
+			<p role="status" class="mb-2 text-sm text-gray-700 dark:text-gray-300">
+				{$t('admin.view_editor.page.supporting_failed')}
+			</p>
+			<button
+				type="button"
+				class="btn btn-secondary btn-sm mb-4"
+				onclick={editorLoad.retryAncillary}
+			>
+				{$t('admin.list_status.retry_supporting')}
+			</button>
+		{/if}
+
 		<!-- Split Pane Layout -->
 		<div class="editor-layout" class:with-preview={showPreview}>
 			<!-- Editor Pane -->
@@ -1250,8 +1388,44 @@
 						/>
 
 						<!-- Inline Share Token Generation Panel -->
-						{#if visibility === 'unlisted' || visibility === 'private'}
+						{#if visibility !== view?.visibility || isActive !== view?.is_active}
+							<p class="mt-2 p-4 text-sm text-gray-600 dark:text-gray-400">
+								{$t('admin.view_editor.share_link.unsaved_notice')}
+							</p>
+						{:else if visibility === 'private'}
+							<p
+								class="mt-2 p-4 text-sm text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
+							>
+								{$t('admin.view_editor.share_link.private_notice')}
+							</p>
+						{:else if visibility === 'public' && isActive}
 							<div
+								class="mt-2 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
+							>
+								<p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+									{$t('admin.view_editor.share_link.public_notice')}
+								</p>
+								<div class="flex items-center gap-2">
+									<input
+										type="text"
+										readonly
+										value={publicFacetUrl}
+										aria-label={$t('admin.view_editor.share_link.public_url_label')}
+										class="flex-1 min-w-0 px-2 py-1 text-sm font-mono bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded truncate"
+									/>
+									<button
+										type="button"
+										class="btn btn-sm btn-secondary shrink-0"
+										onclick={() => copyShareUrl(publicFacetUrl)}
+									>
+										{@html icon('copy')}
+										{$t('admin.tokens.copy_url')}
+									</button>
+								</div>
+							</div>
+						{:else if visibility === 'unlisted' && isActive}
+							<div
+								id="share-links"
 								class="mt-2 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
 							>
 								<div class="flex items-center gap-2 mb-3">
@@ -1259,9 +1433,7 @@
 									<h3 class="font-medium text-gray-900 dark:text-white">Generate Share Link</h3>
 								</div>
 								<p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
-									{visibility === 'unlisted'
-										? 'This view is unlisted — only people with a share link can access it.'
-										: 'This view is private — generate a share link for specific access.'}
+									{$t('admin.view_editor.share_link.unlisted_description')}
 								</p>
 
 								<!-- Newly Created Token Banner -->
@@ -1323,7 +1495,7 @@
 												placeholder="e.g., Sent to Company X"
 												class="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-600 text-sm"
 											/>
-											<p class="text-xs text-gray-500 mt-1">
+											<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
 												A label to help you remember who this link was shared with.
 											</p>
 										</div>
@@ -1339,6 +1511,7 @@
 												<input
 													type="datetime-local"
 													id="token_expires"
+													bind:this={tokenExpiresInput}
 													bind:value={newTokenExpires}
 													class="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-600 text-sm"
 												/>
@@ -1355,6 +1528,8 @@
 													id="token_max_uses"
 													bind:value={newTokenMaxUses}
 													min="0"
+													max={MAX_SHARE_LINK_USES}
+													step="1"
 													placeholder="0 = unlimited"
 													class="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-600 text-sm"
 												/>
@@ -1416,21 +1591,22 @@
 														</span>
 														{#if token.token_prefix}
 															<code
-																class="text-xs text-gray-500 bg-gray-100 dark:bg-gray-700 px-1 rounded"
+																class="text-xs text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-1 rounded"
 															>
 																{token.token_prefix}...
 															</code>
 														{/if}
 													</div>
 													<div class="flex items-center gap-1 shrink-0">
-														<span class="text-xs text-gray-500">
+														<span class="text-xs text-gray-500 dark:text-gray-400">
 															{token.use_count} use{token.use_count !== 1 ? 's' : ''}
 														</span>
 														{#if token.is_active && !isTokenExpired(token) && !isTokenMaxUsesReached(token)}
 															<button
 																type="button"
-																class="p-1 text-primary-600 hover:text-primary-700 dark:text-primary-400"
+																class="p-1 text-primary-600 hover:text-primary-700 dark:text-primary-400 disabled:opacity-50"
 																onclick={() => regenerateViewToken(token)}
+																disabled={regeneratingTokenId !== null}
 																title="Regenerate link (revokes old, creates new)"
 															>
 																<svg
@@ -1462,7 +1638,7 @@
 												</div>
 											{/each}
 											{#if viewTokens.length > 3}
-												<p class="text-xs text-gray-500 text-center">
+												<p class="text-xs text-gray-500 dark:text-gray-400 text-center">
 													+{viewTokens.length - 3} more —
 													<a href="/admin/tokens" class="text-primary-600 hover:underline"
 														>view all</a
@@ -1479,7 +1655,7 @@
 					<!-- Hero Overrides -->
 					<div class="card p-4 sm:p-6 space-y-4">
 						<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Hero Overrides</h2>
-						<p class="text-sm text-gray-500 -mt-2">
+						<p class="text-sm text-gray-500 dark:text-gray-400 -mt-2">
 							Override your profile's hero image, headline and summary for this view
 						</p>
 
@@ -1520,7 +1696,7 @@
 									<label for="view_hero_image" class="btn btn-secondary btn-sm cursor-pointer">
 										{heroImageUrl ? 'Change' : 'Upload'} Hero Image
 									</label>
-									<p class="text-xs text-gray-500 mt-1">
+									<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
 										Leave empty to use profile's hero image. JPG, PNG or WebP. Max 10MB.
 									</p>
 								</div>
@@ -1533,7 +1709,7 @@
 								{#if heroHeadline}
 									<button
 										type="button"
-										class="text-xs text-primary-600 hover:text-primary-700 dark:text-primary-400"
+										class="text-xs text-primary-700 hover:text-primary-800 dark:text-primary-400"
 										onclick={() => (heroHeadline = '')}
 									>
 										Use profile value
@@ -1548,7 +1724,7 @@
 								placeholder="Leave empty to use profile headline"
 							/>
 							{#if profile?.headline}
-								<p class="text-xs text-gray-500 mt-1">
+								<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
 									Profile value: <span class="text-gray-700 dark:text-gray-300"
 										>{profile.headline}</span
 									>
@@ -1562,7 +1738,7 @@
 								{#if heroSummary}
 									<button
 										type="button"
-										class="text-xs text-primary-600 hover:text-primary-700 dark:text-primary-400"
+										class="text-xs text-primary-700 hover:text-primary-800 dark:text-primary-400"
 										onclick={() => (heroSummary = '')}
 									>
 										Use profile value
@@ -1575,7 +1751,7 @@
 								class="input min-h-[120px]"
 								placeholder="Leave empty to use profile summary (Markdown supported)"></textarea>
 							{#if profile?.summary}
-								<p class="text-xs text-gray-500 mt-1">
+								<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
 									Profile value: <span class="text-gray-700 dark:text-gray-300"
 										>{profile.summary.length > 100
 											? profile.summary.substring(0, 100) + '...'
@@ -1591,7 +1767,7 @@
 								{#if heroLocation}
 									<button
 										type="button"
-										class="text-xs text-primary-600 hover:text-primary-700 dark:text-primary-400"
+										class="text-xs text-primary-700 hover:text-primary-800 dark:text-primary-400"
 										onclick={() => (heroLocation = '')}
 									>
 										Use profile value
@@ -1606,7 +1782,7 @@
 								placeholder="e.g., Wellington, NZ | US Citizen | W-2 or EOR-ready"
 							/>
 							{#if profile?.location}
-								<p class="text-xs text-gray-500 mt-1">
+								<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
 									Profile value: <span class="text-gray-700 dark:text-gray-300"
 										>{profile.location}</span
 									>
@@ -1619,11 +1795,20 @@
 					<div class="card p-4 sm:p-6 space-y-4">
 						<div class="flex items-start justify-between gap-4">
 							<div>
-								<h2 class="text-lg font-semibold text-gray-900 dark:text-white">Call to Action</h2>
-								<p class="text-sm text-gray-500">Add a prominent button to this view</p>
+								<h2 id="view-cta-label" class="text-lg font-semibold text-gray-900 dark:text-white">
+									Call to Action
+								</h2>
+								<p class="text-sm text-gray-500 dark:text-gray-400">
+									Add a prominent button to this view
+								</p>
 							</div>
 							<label class="relative inline-flex items-center cursor-pointer">
-								<input type="checkbox" class="sr-only peer" bind:checked={ctaEnabled} />
+								<input
+									type="checkbox"
+									class="sr-only peer"
+									bind:checked={ctaEnabled}
+									aria-labelledby="view-cta-label"
+								/>
 								<div
 									class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"
 								></div>
@@ -1640,7 +1825,9 @@
 									class="input"
 									placeholder="Ready to work together?"
 								/>
-								<p class="text-xs text-gray-500 mt-1">Text shown next to the button</p>
+								<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+									Text shown next to the button
+								</p>
 							</div>
 
 							<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1745,7 +1932,7 @@
 									</button>
 								{/each}
 							</div>
-							<p class="text-xs text-gray-500 mt-2">
+							<p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
 								{#if accentColor}
 									Using <strong>{ACCENT_COLORS[accentColor].label}</strong> for this view
 								{:else}
@@ -1801,7 +1988,7 @@
 									</button>
 								{/each}
 							</div>
-							<p class="text-xs text-gray-500 mt-2">
+							<p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
 								{#if fontPack}
 									Using <strong>{FONT_PACKS[fontPack].label}</strong> for this view
 								{:else}
@@ -1855,7 +2042,7 @@
 									</button>
 								{/each}
 							</div>
-							<p class="text-xs text-gray-500 mt-2">
+							<p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
 								{#if heroLayout}
 									Using <strong>{heroLayout}</strong> layout for this view
 								{:else}
@@ -1892,7 +2079,7 @@
 									</button>
 								{/each}
 							</div>
-							<p class="text-xs text-gray-500 mt-2">
+							<p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
 								{#if heroSpacing}
 									Using <strong>{heroSpacing}</strong> spacing for this view
 								{:else}
@@ -1904,7 +2091,7 @@
 						<!-- Hero Background Color Override -->
 						<div class="pt-4">
 							<label for="view-hero-bg-color" class="label mb-1 block">Hero Background Color</label>
-							<p class="text-xs text-gray-500 mb-3">
+							<p class="text-xs text-gray-500 dark:text-gray-400 mb-3">
 								{#if inheritedHeroBgColor}
 									Leave blank to inherit homepage default: <code>{inheritedHeroBgColor}</code>
 								{:else}
@@ -1979,21 +2166,25 @@
 								/>
 								<div>
 									<span class="text-sm font-medium text-gray-700 dark:text-gray-300">Active</span>
-									<p class="text-xs text-gray-500">Inactive views are not accessible publicly</p>
+									<p class="text-xs text-gray-500 dark:text-gray-400">
+										Inactive views are not accessible publicly
+									</p>
 								</div>
 							</label>
 						</div>
 					</div>
 
 					<!-- Sections -->
-					<ViewSectionManager
-						bind:sections
-						bind:sectionOrder
-						bind:sectionItems
-						{customContentItems}
-						{viewId}
-						onOpenOverrideEditor={openOverrideEditor}
-					/>
+					{#if catalogStatus === 'ready'}
+						<ViewSectionManager
+							bind:sections
+							bind:sectionOrder
+							bind:sectionItems
+							{customContentItems}
+							{viewId}
+							onOpenOverrideEditor={openOverrideEditor}
+						/>
+					{/if}
 				</form>
 
 				<!-- Danger Zone -->
@@ -2023,7 +2214,7 @@
 			</div>
 
 			<!-- Preview Pane -->
-			{#if showPreview}
+			{#if showPreview && catalogStatus === 'ready'}
 				<details class="preview-pane group" open>
 					<summary
 						class="lg:hidden flex items-center justify-between p-3 mb-4 bg-gray-100 dark:bg-gray-800 rounded-lg cursor-pointer list-none"
@@ -2116,6 +2307,8 @@
 							{sectionItems}
 							{accentColor}
 							{previewMode}
+							{viewId}
+							privateSelectionPublishes
 							{customContentItems}
 						/>
 					</div>

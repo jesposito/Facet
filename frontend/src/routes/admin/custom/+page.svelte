@@ -5,13 +5,18 @@
 	import { browser } from '$app/env';
 	import { flip } from 'svelte/animate';
 	import ReorderAnnouncer from '$lib/components/admin/ReorderAnnouncer.svelte';
-	import { pb, type CustomContent, getFileUrl } from '$lib/pocketbase';
+	import { type CustomContent, getFileUrl } from '$lib/pocketbase';
 	import { t } from 'svelte-i18n';
 	import { brandName } from '$lib/stores/plan';
-	import { collection } from '$lib/stores/demo';
+	import { collection, getCollectionName } from '$lib/stores/demo';
+	import { readAllRecords } from '$lib/admin/read-all-records';
 	import { toasts, confirm } from '$lib/stores';
 	import { createAutosave } from '$lib/stores/autosave';
 	import { createFilterState } from '$lib/admin/filterState.svelte';
+	import { pruneSelection, toggleSelection } from '$lib/admin/selection';
+	import { createBulkActions, saveSortOrders } from '$lib/admin/bulk-mutation';
+	import { createListLoader } from '$lib/admin/list-load';
+	import ListLoadStatus from '$components/admin/ListLoadStatus.svelte';
 	import AIContentHelper from '$components/admin/AIContentHelper.svelte';
 	import AutosaveRecoveryBanner from '$components/admin/AutosaveRecoveryBanner.svelte';
 	import BulkActionBar from '$components/admin/BulkActionBar.svelte';
@@ -25,7 +30,18 @@
 	import VisibilitySelector from '$components/admin/VisibilitySelector.svelte';
 
 	let items: CustomContent[] = $state([]);
-	let loading = $state(true);
+	const listLoad = createListLoader('custom_content');
+	const bulk = createBulkActions(listLoad, {
+		records: () => collection('custom_content'),
+		items: () => items,
+		reload: loadItems,
+		finish: (remaining) => {
+			selectedIds = remaining;
+			selectMode = remaining.size > 0;
+		}
+	});
+	let loading = $derived($listLoad.loading && !$listLoad.loaded);
+	let listLocked = $derived($listLoad.mutating || $listLoad.failed || $listLoad.loading);
 	let showForm = $state(false);
 	let editingItem: CustomContent | null = $state(null);
 	let memberships: Record<string, { id: string; name: string; slug: string }[]> = $state({});
@@ -94,14 +110,7 @@
 		}
 	}
 
-	afterNavigate(({ shallow, type }) => {
-		if (shallow && type === 'goto') return;
-
-		showForm = false;
-		editingItem = null;
-		selectMode = false;
-		selectedIds = new Set();
-
+	function checkRecoveryDraft() {
 		const draft = autosave.loadDraft();
 		if (
 			draft?.data &&
@@ -115,6 +124,19 @@
 			showRecoveryBanner = false;
 			recoveryData = null;
 		}
+	}
+
+	onMount(checkRecoveryDraft);
+
+	afterNavigate(({ shallow, type }) => {
+		if (shallow && type === 'goto') return;
+
+		showForm = false;
+		editingItem = null;
+		selectMode = false;
+		selectedIds = new Set();
+
+		checkRecoveryDraft();
 	});
 
 	onMount(loadItems);
@@ -127,19 +149,23 @@
 		}
 	});
 
-	async function loadAvailableTags() {
-		try {
-			const records = await collection('admin_tags').getList(1, 100, {
-				sort: 'sort_order,name'
-			});
-			availableTags = records.items.map((tag) => ({
-				id: tag.id,
-				name: tag.name,
-				color: tag.color
-			}));
-		} catch (err) {
-			console.error('Failed to load available tags:', err);
-		}
+	function loadAvailableTags() {
+		return listLoad.loadAncillary(
+			'tags',
+			(_requestKey, signal) =>
+				readAllRecords<{ id: string; name: string; color: string }>(
+					getCollectionName('admin_tags'),
+					{ sort: 'sort_order,name' },
+					signal
+				),
+			(records) => {
+				availableTags = records.map((tag) => ({
+					id: tag.id,
+					name: tag.name,
+					color: tag.color
+				}));
+			}
+		);
 	}
 
 	let filteredItems = $derived(
@@ -152,26 +178,17 @@
 		)
 	);
 
-	async function loadItems() {
-		loading = true;
-		try {
-			const [itemsResp, membershipResp] = await Promise.all([
-				await collection('custom_content').getList(1, 100, {
-					sort: 'sort_order',
-					expand: 'admin_tags'
-				}),
-				fetch('/api/admin/view-memberships?collection=custom_content', {
-					headers: pb.authStore.isValid ? { Authorization: `Bearer ${pb.authStore.token}` } : {}
-				}).then((r) => (r.ok ? r.json() : { memberships: {} }))
-			]);
-			items = itemsResp.items as unknown as CustomContent[];
-			memberships = (membershipResp.memberships as typeof memberships) || {};
-		} catch (err) {
-			console.error('Failed to load custom content:', err);
-			toasts.add('error', 'Failed to load custom content');
-		} finally {
-			loading = false;
-		}
+	function loadItems() {
+		listLoad.loadMemberships('custom_content', (value) => (memberships = value));
+		return listLoad.load(
+			(_requestKey, signal) =>
+				readAllRecords<CustomContent>(
+					getCollectionName('custom_content'),
+					{ sort: 'sort_order', expand: 'admin_tags' },
+					signal
+				),
+			(records) => (items = records)
+		);
 	}
 
 	function resetForm() {
@@ -195,6 +212,7 @@
 	}
 
 	function handleRestoreDraft() {
+		if (!listLoad.canMutate()) return;
 		const draft = autosave.loadDraft();
 		if (draft?.data) {
 			restoreFromDraft(draft.data);
@@ -234,7 +252,7 @@
 		autosave.clearDraft();
 	}
 
-	async function handleSubmit() {
+	const handleSubmit = listLoad.exclusive(async () => {
 		if (!title.trim()) {
 			toasts.add('error', 'Title is required');
 			return;
@@ -289,9 +307,9 @@
 		} finally {
 			saving = false;
 		}
-	}
+	});
 
-	async function deleteItem(item: CustomContent) {
+	const deleteItem = listLoad.exclusive(async (item: CustomContent) => {
 		const confirmed = await confirm({
 			title: 'Delete Custom Content',
 			message: `Are you sure you want to delete "${item.title}"? This action cannot be undone.`,
@@ -308,9 +326,9 @@
 			console.error('Failed to delete custom content:', err);
 			toasts.add('error', 'Failed to delete custom content');
 		}
-	}
+	});
 
-	async function togglePublish(item: CustomContent) {
+	const togglePublish = listLoad.exclusive(async (item: CustomContent) => {
 		try {
 			const newDraftState = !item.is_draft;
 			await collection('custom_content').update(item.id, {
@@ -322,7 +340,15 @@
 			console.error('Failed to toggle publish:', err);
 			toasts.add('error', 'Failed to update custom content');
 		}
-	}
+	});
+
+	$effect(() => {
+		const visibleSelection = pruneSelection(
+			selectedIds,
+			filteredItems.map((item) => item.id)
+		);
+		if (visibleSelection !== selectedIds) selectedIds = visibleSelection;
+	});
 
 	function toggleSelectMode() {
 		selectMode = !selectMode;
@@ -330,53 +356,35 @@
 	}
 
 	function toggleSelect(id: string) {
-		if (selectedIds.has(id)) selectedIds.delete(id);
-		else selectedIds.add(id);
-		selectedIds = selectedIds;
+		selectedIds = toggleSelection(selectedIds, id);
 	}
 
 	function selectAll() {
-		selectedIds = new Set(items.map((e) => e.id));
+		selectedIds = new Set(filteredItems.map((item) => item.id));
 	}
 	function clearSelection() {
 		selectedIds = new Set();
 	}
 
-	async function bulkSetVisibility(vis: 'public' | 'unlisted' | 'private') {
-		const ids = Array.from(selectedIds);
-		try {
-			for (const id of ids) await collection('custom_content').update(id, { visibility: vis });
-			toasts.add('success', `Updated ${ids.length} items to ${vis}`);
-			selectedIds = new Set();
-			selectMode = false;
-			await loadItems();
-		} catch (err) {
-			toasts.add('error', 'Failed to update visibility');
-		}
+	function bulkSetVisibility(vis: 'public' | 'unlisted' | 'private') {
+		return bulk.setVisibility(Array.from(selectedIds), vis);
 	}
 
-	async function bulkDelete() {
+	function bulkDelete() {
 		const ids = Array.from(selectedIds);
-		const confirmed = await confirm({
-			title: 'Delete Custom Content',
-			message: `Are you sure you want to delete ${ids.length} item(s)? This action cannot be undone.`,
-			confirmText: 'Delete All',
-			danger: true
-		});
-		if (!confirmed) return;
-		try {
-			for (const id of ids) await collection('custom_content').delete(id);
-			toasts.add('success', `Deleted ${ids.length} items`);
-			selectedIds = new Set();
-			selectMode = false;
-			await loadItems();
-		} catch (err) {
-			toasts.add('error', 'Failed to delete items');
-		}
+		return bulk.delete(ids, () =>
+			confirm({
+				title: 'Delete Custom Content',
+				message: `Are you sure you want to delete ${ids.length} item(s)? This action cannot be undone.`,
+				confirmText: 'Delete All',
+				danger: true
+			})
+		);
 	}
 
 	// Reorder mode functions
 	function enterReorderMode() {
+		if (!listLoad.canMutate()) return;
 		reorderItems = items.map((i) => ({ id: i.id, title: i.title, is_draft: i.is_draft }));
 		reorderMode = true;
 	}
@@ -430,21 +438,22 @@
 		}
 	}
 
-	async function saveOrder() {
+	const saveOrder = listLoad.exclusive(async () => {
 		savingOrder = true;
 		try {
-			for (let i = 0; i < reorderItems.length; i++) {
-				await collection('custom_content').update(reorderItems[i].id, { sort_order: i });
-			}
+			const saved = await saveSortOrders(
+				() => collection('custom_content'),
+				() => items,
+				reorderItems.map((item, index) => ({ id: item.id, sort_order: index })),
+				loadItems
+			);
+			if (!saved) return;
 			toasts.add('success', 'Order saved');
 			reorderMode = false;
-			await loadItems();
-		} catch (err) {
-			toasts.add('error', 'Failed to save order');
 		} finally {
 			savingOrder = false;
 		}
-	}
+	});
 
 	function getCoverImageUrl(item: CustomContent): string {
 		// Prefer library URL over direct upload
@@ -465,7 +474,7 @@
 		<p>{$t('admin.content.custom.help_tip_1')}</p>
 	</PageHelp>
 
-	{#if showRecoveryBanner && recoveryData}
+	{#if showRecoveryBanner && recoveryData && $listLoad.loaded && !$listLoad.loading && !$listLoad.failed && !$listLoad.mutating}
 		<AutosaveRecoveryBanner
 			savedAt={recoveryData.savedAt}
 			isEditing={recoveryData.isEditing}
@@ -475,16 +484,18 @@
 		/>
 	{/if}
 
-	{#if selectMode && selectedIds.size > 0}
-		<BulkActionBar
-			selectedCount={selectedIds.size}
-			totalCount={items.length}
-			on:selectAll
-			on:clearSelection
-			on:setVisibility={(e) => bulkSetVisibility(e.detail)}
-			on:delete={bulkDelete}
-			on:cancel={toggleSelectMode}
-		/>
+	{#if selectMode}
+		<fieldset class="contents" disabled={listLocked}>
+			<BulkActionBar
+				selectedCount={selectedIds.size}
+				totalCount={filteredItems.length}
+				on:selectAll={selectAll}
+				on:clearSelection={clearSelection}
+				on:setVisibility={(e) => bulkSetVisibility(e.detail)}
+				on:delete={bulkDelete}
+				on:cancel={toggleSelectMode}
+			/>
+		</fieldset>
 	{/if}
 
 	<div class="flex items-center justify-between mb-6">
@@ -501,12 +512,16 @@
 				</button>
 			{/if}
 			{#if items.length > 0 && !reorderMode}
-				<button class="btn {selectMode ? 'btn-secondary' : 'btn-ghost'}" onclick={toggleSelectMode}>
+				<button
+					class="btn {selectMode ? 'btn-secondary' : 'btn-ghost'}"
+					disabled={$listLoad.mutating}
+					onclick={toggleSelectMode}
+				>
 					{selectMode ? $t('admin.content.common.cancel') : $t('admin.content.common.select')}
 				</button>
 			{/if}
 			{#if !reorderMode}
-				<button class="btn btn-primary" onclick={openNewForm}>
+				<button class="btn btn-primary" disabled={$listLoad.failed} onclick={openNewForm}>
 					{$t('admin.content.common.new_button', {
 						values: { type: $t('admin.content.custom.title') }
 					})}
@@ -517,6 +532,17 @@
 
 	{#if !reorderMode}
 		<AdminFilters bind:showAdvanced={showAdvancedFilters} {filterStore} {availableTags} />
+	{/if}
+
+	<ListLoadStatus
+		status={$listLoad}
+		label={$t('admin.content.custom.title').toLowerCase()}
+		onretry={loadItems}
+	/>
+	{#if $listLoad.ancillaryFailed}
+		<button type="button" class="btn btn-secondary btn-sm mb-4" onclick={listLoad.retryAncillary}>
+			{$t('admin.list_status.retry_supporting')}
+		</button>
 	{/if}
 
 	{#if loading}
@@ -745,7 +771,7 @@
 
 			<div class="flex justify-end gap-3">
 				<button type="button" class="btn btn-secondary" onclick={closeForm}>Cancel</button>
-				<button type="submit" class="btn btn-primary" disabled={saving}>
+				<button type="submit" class="btn btn-primary" disabled={saving || $listLoad.failed}>
 					{#if saving}
 						<svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
 							<circle
@@ -767,6 +793,8 @@
 				</button>
 			</div>
 		</form>
+	{:else if !$listLoad.loaded}
+		<!-- ListLoadStatus above owns the unavailable state. -->
 	{:else if items.length === 0}
 		<div class="card p-8 text-center">
 			<svg
@@ -814,161 +842,171 @@
 			</button>
 		</div>
 	{:else}
-		<!-- Items List -->
-		<div class="space-y-4">
-			{#each filteredItems as item (item.id)}
-				<div
-					class="card p-4 hover:shadow-md transition-shadow {selectMode && selectedIds.has(item.id)
-						? 'ring-2 ring-primary-500'
-						: ''}"
-				>
-					<div class="flex items-start gap-4">
-						{#if selectMode}
-							<input
-								type="checkbox"
-								checked={selectedIds.has(item.id)}
-								onchange={() => toggleSelect(item.id)}
-								class="mt-1 w-5 h-5 text-primary-600 rounded border-gray-300"
-							/>
-						{/if}
-
-						{#if item.cover_image}
-							<img
-								src={getFileUrl(
-									{ id: item.id, collectionName: 'custom_content' },
-									item.cover_image
-								)}
-								alt={item.title}
-								class="w-16 h-16 object-cover rounded shrink-0"
-							/>
-						{/if}
-
-						<div class="flex-1 min-w-0">
-							<div class="flex items-center gap-2 mb-1">
-								<h3 class="text-lg font-medium text-gray-900 dark:text-white truncate">
-									{item.title}
-								</h3>
-								{#if item.is_draft}
-									<span
-										class="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 rounded"
-									>
-										Draft
-									</span>
-								{:else}
-									<span
-										class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 rounded"
-									>
-										Published
-									</span>
-								{/if}
-								<span
-									class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded capitalize"
-								>
-									{item.visibility}
-								</span>
-							</div>
-
-							{#if item.content}
-								<p class="text-sm text-gray-600 dark:text-gray-400 mb-2 line-clamp-2">
-									{item.content.replace(/[#*_`]/g, '').slice(0, 150)}...
-								</p>
+		<fieldset class="contents" disabled={listLocked}>
+			<!-- Items List -->
+			<div class="space-y-4">
+				{#each filteredItems as item (item.id)}
+					<div
+						class="card p-4 hover:shadow-md transition-shadow {selectMode &&
+						selectedIds.has(item.id)
+							? 'ring-2 ring-primary-500'
+							: ''}"
+					>
+						<div class="flex items-start gap-4">
+							{#if selectMode}
+								<input
+									type="checkbox"
+									aria-label={$t('admin.bulk_actions.select_item', {
+										values: { item: item.title }
+									})}
+									checked={selectedIds.has(item.id)}
+									onchange={() => toggleSelect(item.id)}
+									class="mt-1 w-5 h-5 text-primary-600 rounded border-gray-300"
+								/>
 							{/if}
 
-							{#if item.expand?.admin_tags?.length}
-								<div class="flex flex-wrap gap-1 mb-2">
-									{#each item.expand.admin_tags as tag}
-										<AdminTagBadge name={tag.name} color={tag.color} />
-									{/each}
-								</div>
+							{#if item.cover_image}
+								<img
+									src={getFileUrl(
+										{ id: item.id, collectionName: 'custom_content' },
+										item.cover_image
+									)}
+									alt={item.title}
+									class="w-16 h-16 object-cover rounded shrink-0"
+								/>
 							{/if}
 
-							{#if memberships[item.id]?.length}
-								<div class="flex flex-wrap gap-1 mb-2">
-									{#each memberships[item.id].slice(0, 3) as viewRef}
-										<a
-											href={`/admin/views/${viewRef.id}`}
-											target="_blank"
-											class="px-2 py-0.5 text-xs rounded bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-											title={`Open view: ${viewRef.name}`}
+							<div class="flex-1 min-w-0">
+								<div class="flex items-center gap-2 mb-1">
+									<h3 class="text-lg font-medium text-gray-900 dark:text-white truncate">
+										{item.title}
+									</h3>
+									{#if item.is_draft}
+										<span
+											class="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 rounded"
 										>
-											{viewRef.slug || viewRef.name}
-										</a>
-									{/each}
-									{#if memberships[item.id].length > 3}
-										<span class="px-2 py-0.5 text-xs text-gray-500 dark:text-gray-400">
-											+{memberships[item.id].length - 3}
+											Draft
+										</span>
+									{:else}
+										<span
+											class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 rounded"
+										>
+											Published
 										</span>
 									{/if}
+									<span
+										class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded capitalize"
+									>
+										{item.visibility}
+									</span>
 								</div>
-							{:else}
-								<p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Not in any view</p>
-							{/if}
-						</div>
 
-						<div class="flex items-center gap-2 shrink-0">
-							<button
-								class="btn btn-ghost btn-sm"
-								title={item.is_draft ? 'Publish' : 'Set as Draft'}
-								onclick={() => togglePublish(item)}
-							>
-								{#if item.is_draft}
-									<svg
-										class="w-4 h-4 text-green-600"
-										fill="none"
-										viewBox="0 0 24 24"
-										stroke="currentColor"
-									>
-										<path
-											stroke-linecap="round"
-											stroke-linejoin="round"
-											stroke-width="2"
-											d="M5 13l4 4L19 7"
-										></path>
-									</svg>
-								{:else}
-									<svg
-										class="w-4 h-4 text-yellow-600"
-										fill="none"
-										viewBox="0 0 24 24"
-										stroke="currentColor"
-									>
-										<path
-											stroke-linecap="round"
-											stroke-linejoin="round"
-											stroke-width="2"
-											d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
-										></path>
-									</svg>
+								{#if item.content}
+									<p class="text-sm text-gray-600 dark:text-gray-400 mb-2 line-clamp-2">
+										{item.content.replace(/[#*_`]/g, '').slice(0, 150)}...
+									</p>
 								{/if}
-							</button>
-							<button class="btn btn-ghost btn-sm" title="Edit" onclick={() => openEditForm(item)}>
-								<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-									<path
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										stroke-width="2"
-										d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-									></path>
-								</svg>
-							</button>
-							<button
-								class="btn btn-danger-ghost btn-sm"
-								title="Delete"
-								onclick={() => deleteItem(item)}
-							>
-								<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-									<path
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										stroke-width="2"
-										d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-									></path>
-								</svg>
-							</button>
+
+								{#if item.expand?.admin_tags?.length}
+									<div class="flex flex-wrap gap-1 mb-2">
+										{#each item.expand.admin_tags as tag}
+											<AdminTagBadge name={tag.name} color={tag.color} />
+										{/each}
+									</div>
+								{/if}
+
+								{#if memberships[item.id]?.length}
+									<div class="flex flex-wrap gap-1 mb-2">
+										{#each memberships[item.id].slice(0, 3) as viewRef}
+											<a
+												href={`/admin/views/${viewRef.id}`}
+												target="_blank"
+												class="px-2 py-0.5 text-xs rounded bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+												title={`Open view: ${viewRef.name}`}
+											>
+												{viewRef.slug || viewRef.name}
+											</a>
+										{/each}
+										{#if memberships[item.id].length > 3}
+											<span class="px-2 py-0.5 text-xs text-gray-500 dark:text-gray-400">
+												+{memberships[item.id].length - 3}
+											</span>
+										{/if}
+									</div>
+								{:else if $listLoad.membershipsKnown}
+									<p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Not in any view</p>
+								{/if}
+							</div>
+
+							<div class="flex items-center gap-2 shrink-0">
+								<button
+									class="btn btn-ghost btn-sm"
+									title={item.is_draft ? 'Publish' : 'Set as Draft'}
+									onclick={() => togglePublish(item)}
+								>
+									{#if item.is_draft}
+										<svg
+											class="w-4 h-4 text-green-600"
+											fill="none"
+											viewBox="0 0 24 24"
+											stroke="currentColor"
+										>
+											<path
+												stroke-linecap="round"
+												stroke-linejoin="round"
+												stroke-width="2"
+												d="M5 13l4 4L19 7"
+											></path>
+										</svg>
+									{:else}
+										<svg
+											class="w-4 h-4 text-yellow-600"
+											fill="none"
+											viewBox="0 0 24 24"
+											stroke="currentColor"
+										>
+											<path
+												stroke-linecap="round"
+												stroke-linejoin="round"
+												stroke-width="2"
+												d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
+											></path>
+										</svg>
+									{/if}
+								</button>
+								<button
+									class="btn btn-ghost btn-sm"
+									title="Edit"
+									onclick={() => openEditForm(item)}
+								>
+									<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+										></path>
+									</svg>
+								</button>
+								<button
+									class="btn btn-danger-ghost btn-sm"
+									title="Delete"
+									onclick={() => deleteItem(item)}
+								>
+									<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+										></path>
+									</svg>
+								</button>
+							</div>
 						</div>
 					</div>
-				</div>
-			{/each}
-		</div>
+				{/each}
+			</div>
+		</fieldset>
 	{/if}
 </div>

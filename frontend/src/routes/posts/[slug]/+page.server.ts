@@ -2,29 +2,35 @@
  * Post detail route: /posts/[slug]
  *
  * Displays a single blog post with full content.
- * Only public, non-draft posts are accessible.
- * Private/unlisted/draft posts return 404 (non-discoverable).
+ * Public and unlisted posts open directly. A private post opens only from a
+ * Facet that shows it, for a visitor who can read that Facet.
+ * Anything else returns 404 (non-discoverable).
  */
 
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
 import { navigationFacet } from '$lib/discovery';
+import { buildTokenHeaders, getPasswordToken, getShareToken, getShareVisit } from '$lib/tokens';
 import { internalApiHeaders, parseMediaRefs } from '$lib/server/public-api';
 
-export const load: PageServerLoad = async ({ params, fetch, url, request, locals }) => {
+export const load: PageServerLoad = async ({ params, fetch, url, request, locals, cookies }) => {
 	const pbUrl = process.env.POCKETBASE_URL || 'http://localhost:8090';
 	const { slug } = params;
 	const fromHints = url.searchParams.getAll('from');
 	const fromView = fromHints.length === 1 ? navigationFacet(fromHints[0]) : '';
 
-	const pbAuthToken = locals.pb?.authStore?.isValid ? locals.pb.authStore.token : null;
-	const headers = {
+	const headers: Record<string, string> = {
 		...internalApiHeaders(request),
-		...(pbAuthToken ? { Authorization: `Bearer ${pbAuthToken}` } : {})
+		...buildTokenHeaders(getShareToken(cookies), getPasswordToken(cookies), getShareVisit(cookies))
 	};
+	const pbAuthToken = locals.pb?.authStore?.isValid ? locals.pb.authStore.token : null;
+	if (pbAuthToken) {
+		headers['Authorization'] = `Bearer ${pbAuthToken}`;
+	}
+	const accessQuery = fromView ? `?from=${encodeURIComponent(fromView)}` : '';
 
 	try {
-		const response = await fetch(`${pbUrl}/api/post/${slug}`, { headers });
+		const response = await fetch(`${pbUrl}/api/post/${slug}${accessQuery}`, { headers });
 		if (!response.ok) {
 			throw error(404, 'Not Found');
 		}
@@ -52,6 +58,7 @@ export const load: PageServerLoad = async ({ params, fetch, url, request, locals
 				visibility: post.visibility || 'public',
 				is_draft: post.is_draft || false,
 				comments_enabled: post.comments_enabled ?? false,
+				has_downloads: post.has_downloads === true,
 				is_gated: post.is_gated === true,
 				is_purchased: post.is_purchased === true,
 				access_tier: post.access_tier || 'free',

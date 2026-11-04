@@ -16,6 +16,7 @@
 	interface Props {
 		contentType: string;
 		contentId: string;
+		fromView?: string | null;
 		comment: Comment;
 		replies: Comment[];
 		replyingTo: string | null;
@@ -28,6 +29,7 @@
 	let {
 		contentType,
 		contentId,
+		fromView = null,
 		comment,
 		replies,
 		replyingTo,
@@ -147,6 +149,7 @@
 				<CommentForm
 					{contentType}
 					{contentId}
+					{fromView}
 					parentId={comment.id}
 					onSubmit={onReplySubmitted}
 					onCancel={onCancelReply}

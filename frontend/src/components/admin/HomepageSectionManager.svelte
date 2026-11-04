@@ -194,11 +194,12 @@
 	}
 
 	function selectAllItems(sectionKey: string) {
-		// Only select public, non-draft items
-		const publicItems = (sectionItems[sectionKey] || []).filter(
-			(i) => i.visibility === 'public' && !i.is_draft
-		);
-		sections[sectionKey].items = publicItems.map((i) => i.id);
+		// Add visible choices without dropping saved picks that are currently private or draft.
+		const selected = new Set(sections[sectionKey].items);
+		const additions = (sectionItems[sectionKey] || [])
+			.filter((item) => item.visibility === 'public' && !item.is_draft && !selected.has(item.id))
+			.map((item) => item.id);
+		sections[sectionKey].items = [...sections[sectionKey].items, ...additions];
 		updateSections();
 	}
 
@@ -340,7 +341,12 @@
 		);
 		const displayOrder = publicItems.map((i) => i.id);
 		const selectedSet = new Set(sections[sectionKey].items);
-		sections[sectionKey].items = displayOrder.filter((id) => selectedSet.has(id));
+		const displayed = new Set(displayOrder);
+		sections[sectionKey].items = [
+			...displayOrder.filter((id) => selectedSet.has(id)),
+			// These picks have no visible row to reorder. Keep them until explicitly cleared.
+			...sections[sectionKey].items.filter((id) => !displayed.has(id))
+		];
 		updateSections();
 	}
 

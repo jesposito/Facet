@@ -3,16 +3,18 @@
 	import { browser } from '$app/env';
 	import { onMount } from 'svelte';
 	import { toasts } from '$lib/stores';
+	import { withFacet } from '$lib/discovery';
 
 	interface Props {
 		contentType: string;
 		contentId: string;
+		fromView?: string | null;
 		parentId?: string;
 		onSubmit?: () => void;
 		onCancel?: () => void;
 	}
 
-	let { contentType, contentId, parentId, onSubmit, onCancel }: Props = $props();
+	let { contentType, contentId, fromView = null, parentId, onSubmit, onCancel }: Props = $props();
 
 	const MAX_BODY_LENGTH = 5000;
 	const STORAGE_KEY_NAME = 'facet_comment_author_name';
@@ -68,7 +70,7 @@
 				payload.parent_id = parentId;
 			}
 
-			const resp = await fetch(`/api/comments/${contentType}/${contentId}`, {
+			const resp = await fetch(withFacet(`/api/comments/${contentType}/${contentId}`, fromView), {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify(payload)

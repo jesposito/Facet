@@ -20,7 +20,7 @@ export type NewsletterSend = {
 	created: string;
 };
 
-export type SmtpReadiness = 'ready' | 'not_ready' | 'not_configured';
+export type SmtpReadiness = 'checking' | 'ready' | 'not_ready' | 'not_configured' | 'unavailable';
 
 export type ResumeState = 'hidden' | 'blocked' | 'available';
 
@@ -34,6 +34,9 @@ export function smtpReadiness(data: unknown): SmtpReadiness {
 		configured?: unknown;
 		ready?: unknown;
 	};
+	if (typeof status.configured !== 'boolean' || typeof status.ready !== 'boolean') {
+		return 'unavailable';
+	}
 	if (status.ready === true) return 'ready';
 	return status.configured === true ? 'not_ready' : 'not_configured';
 }

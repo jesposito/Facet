@@ -525,3 +525,60 @@
 	display: block;
 	width: 100%;
 }
+
+/* A provider page plays on its own site, so the player frame holds a link instead of media. The
+   frame stays dark in every tone, theme and design, so the link keeps one palette too. */
+.project-experience .experience-player .experience-provider-page {
+	position: relative;
+	display: grid;
+	place-items: center;
+	aspect-ratio: 16 / 9;
+	padding: 1rem;
+}
+.project-experience .experience-player .experience-provider-page img {
+	position: absolute;
+	inset: 0;
+	height: 100%;
+	object-fit: cover;
+	border-radius: 0;
+}
+.project-experience .experience-player a.experience-provider-link {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	min-height: 44px;
+	padding: 0.65rem 1rem;
+	border-radius: 4px;
+	background: #e5efce;
+	color: #203532 !important;
+	font-weight: 650;
+}
+.project-experience .experience-player a.experience-provider-link:focus-visible {
+	outline: 3px solid #e6f0e9;
+	outline-offset: 3px;
+	box-shadow: 0 0 0 3px #102326;
+}
+@media print {
+	.project-experience .experience-player:has(.experience-provider-page) {
+		background: none;
+	}
+	.project-experience .experience-player .experience-provider-page {
+		display: block;
+		aspect-ratio: auto;
+		padding: 0;
+	}
+	.project-experience .experience-player .experience-provider-page img {
+		display: none;
+	}
+	.project-experience .experience-player a.experience-provider-link {
+		display: block;
+		min-height: 0;
+		padding: 0;
+		background: none;
+		color: black !important;
+	}
+	.project-experience .experience-player a.experience-provider-link::after {
+		content: ' ' attr(href);
+	}
+}

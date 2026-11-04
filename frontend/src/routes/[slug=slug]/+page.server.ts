@@ -10,6 +10,7 @@
  * Token flow:
  * - Share tokens: Set by /s/[token], stored in me_share_token cookie
  * - Password JWTs: Set via form action, stored in me_password_token cookie
+ * - Legacy ?t= links: Redirected to /s/[token] before any other work
  */
 
 import type { PageServerLoad, Actions } from './$types';
@@ -18,7 +19,6 @@ import {
 	getShareToken,
 	getPasswordToken,
 	setPasswordToken,
-	setShareToken,
 	getShareVisit,
 	storeShareVisit,
 	SHARE_VISIT_HEADER,
@@ -40,6 +40,13 @@ export const load: PageServerLoad = async ({
 	const { slug } = params;
 	if (url.searchParams.has('t')) {
 		setHeaders({ 'Cache-Control': 'private, no-store', 'Referrer-Policy': 'no-referrer' });
+
+		// /s/ owns the whole token check, so a legacy link recovers the same way.
+		// An empty value is no token, and `.` or `..` would vanish from the path.
+		const urlToken = url.searchParams.get('t');
+		if (urlToken && urlToken !== '.' && urlToken !== '..') {
+			throw redirect(302, `/s/${encodeURIComponent(urlToken)}`);
+		}
 	}
 
 	const shareToken = getShareToken(cookies);
@@ -47,36 +54,17 @@ export const load: PageServerLoad = async ({
 
 	const pbAuthToken = locals.pb?.authStore?.isValid ? locals.pb.authStore.token : null;
 
-	// Check for URL token (legacy ?t= parameter)
-	// If present, validate and redirect to clean URL
-	const urlToken = url.searchParams.get('t');
-	if (urlToken) {
-		// Validate the token via API
-		const validateResponse = await fetch(`${pbUrl}/api/share/validate`, {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ token: urlToken })
-		});
-
-		if (validateResponse.ok) {
-			const result = await validateResponse.json();
-			if (result.valid) {
-				// Store token in cookie and redirect to clean URL
-				const secure = isSecureRequest(url, request);
-				setShareToken(cookies, urlToken, 7 * 24 * 60 * 60, secure);
-				storeShareVisit(cookies, validateResponse, secure);
-				throw redirect(302, `/${slug}`);
-			}
-		}
-		// If token invalid, continue without it (will fail below if needed)
-	}
-
 	const effectiveShareToken = shareToken;
 
 	try {
 		const accessHeaders: Record<string, string> = internalApiHeaders(request);
 		if (pbAuthToken) {
 			accessHeaders['Authorization'] = `Bearer ${pbAuthToken}`;
+		}
+		if (effectiveShareToken) {
+			accessHeaders['X-Share-Token'] = effectiveShareToken;
+			const shareVisit = getShareVisit(cookies);
+			if (shareVisit) accessHeaders[SHARE_VISIT_HEADER] = shareVisit;
 		}
 
 		const response = await fetch(`${pbUrl}/api/view/${slug}/access`, {

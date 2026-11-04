@@ -95,7 +95,7 @@ If the archive came from a different machine and you set `ENCRYPTION_KEY` in `.e
 
 ### From a built-in backup
 
-Go to **Settings → About Facet**, choose a backup, and confirm the restore. Facet swaps in the backed-up database and restarts its backend. Everyone is signed out, including you, and the page returns you to the login screen once the server is back.
+Go to **Settings → About Facet**, choose a backup, and confirm the restore. Facet swaps in the backed-up database and restarts its backend. The restore page signs you out and returns you to the login screen once the server is back. Other sessions are not automatically revoked; they follow the account state in the restored database.
 
 A built-in restore rolls back the database only. Files uploaded after that backup stay in `/uploads` but nothing refers to them, and files deleted since the backup won't come back. The **Media Library** can find and clean up unreferenced files ([Media](MEDIA.md)).
 

@@ -28,7 +28,7 @@ make dev
 - **Add or update tests** for behaviour you change: Go tests next to the code, Playwright tests in `frontend/tests/`.
 - **Add translation keys to `en.json`**, then to the other locale files (an English placeholder is acceptable if you can't translate).
 - **Update the docs** in the same pull request if you change behaviour, configuration or commands. Describe what the code does, and say plainly when something is only partly built.
-- **Don't edit `CHANGELOG.md`.** The release workflow writes it.
+- **Let the release workflow write version entries in `CHANGELOG.md`.** Add operator-facing migration notices under `### Upgrade notes` in `## [Unreleased]`; the workflow moves those notes into the release.
 
 ## Check your change
 

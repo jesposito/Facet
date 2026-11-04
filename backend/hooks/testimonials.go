@@ -79,7 +79,7 @@ func RegisterTestimonialHooks(app *pocketbase.PocketBase, testimonial *services.
 				"token": rawToken,
 				"label": req.Label,
 			})
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		se.Router.GET("/api/testimonials/lists", func(e *core.RequestEvent) error {
 			// Distinct, non-empty list labels across requests and testimonials, so
@@ -99,7 +99,7 @@ func RegisterTestimonialHooks(app *pocketbase.PocketBase, testimonial *services.
 				}
 			}
 			return e.JSON(http.StatusOK, map[string]interface{}{"lists": lists})
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		se.Router.GET("/api/testimonials/requests", func(e *core.RequestEvent) error {
 			records, err := app.FindRecordsByFilter(
@@ -131,7 +131,7 @@ func RegisterTestimonialHooks(app *pocketbase.PocketBase, testimonial *services.
 			}
 
 			return e.JSON(http.StatusOK, result)
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		se.Router.DELETE("/api/testimonials/requests/{id}", func(e *core.RequestEvent) error {
 			id := e.Request.PathValue("id")
@@ -145,7 +145,7 @@ func RegisterTestimonialHooks(app *pocketbase.PocketBase, testimonial *services.
 			}
 
 			return e.JSON(http.StatusOK, map[string]string{"status": "deleted"})
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		// Regenerate token for an existing request (issue #284)
 		se.Router.POST("/api/testimonials/requests/{id}/regenerate", func(e *core.RequestEvent) error {
@@ -177,7 +177,7 @@ func RegisterTestimonialHooks(app *pocketbase.PocketBase, testimonial *services.
 				"token": rawToken,
 				"label": record.GetString("label"),
 			})
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		se.Router.GET("/api/testimonials/request/{token}", RateLimitMiddleware(rl, "moderate")(func(e *core.RequestEvent) error {
 			token := e.Request.PathValue("token")
@@ -402,7 +402,7 @@ func RegisterTestimonialHooks(app *pocketbase.PocketBase, testimonial *services.
 			}
 
 			return e.JSON(http.StatusOK, result)
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		se.Router.POST("/api/testimonials/{id}/approve", func(e *core.RequestEvent) error {
 			id := e.Request.PathValue("id")
@@ -419,7 +419,7 @@ func RegisterTestimonialHooks(app *pocketbase.PocketBase, testimonial *services.
 			}
 
 			return e.JSON(http.StatusOK, map[string]string{"status": "approved"})
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		se.Router.POST("/api/testimonials/{id}/reject", func(e *core.RequestEvent) error {
 			id := e.Request.PathValue("id")
@@ -442,7 +442,7 @@ func RegisterTestimonialHooks(app *pocketbase.PocketBase, testimonial *services.
 			}
 
 			return e.JSON(http.StatusOK, map[string]string{"status": "rejected"})
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		se.Router.PATCH("/api/testimonials/{id}", func(e *core.RequestEvent) error {
 			id := e.Request.PathValue("id")
@@ -487,7 +487,7 @@ func RegisterTestimonialHooks(app *pocketbase.PocketBase, testimonial *services.
 			}
 
 			return e.JSON(http.StatusOK, map[string]string{"status": "updated"})
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		se.Router.DELETE("/api/testimonials/{id}", func(e *core.RequestEvent) error {
 			id := e.Request.PathValue("id")
@@ -501,7 +501,7 @@ func RegisterTestimonialHooks(app *pocketbase.PocketBase, testimonial *services.
 			}
 
 			return e.JSON(http.StatusOK, map[string]string{"status": "deleted"})
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		se.Router.GET("/api/testimonials/pending-count", func(e *core.RequestEvent) error {
 			records, err := app.FindRecordsByFilter(
@@ -516,7 +516,7 @@ func RegisterTestimonialHooks(app *pocketbase.PocketBase, testimonial *services.
 			}
 
 			return e.JSON(http.StatusOK, map[string]int{"count": len(records)})
-		}).Bind(apis.RequireAuth())
+		}).Bind(apis.RequireAuth("users", core.CollectionNameSuperusers))
 
 		se.Router.GET("/api/public/testimonials", func(e *core.RequestEvent) error {
 			records, err := app.FindRecordsByFilter(

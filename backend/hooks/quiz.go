@@ -63,7 +63,7 @@ func RegisterQuizHooks(app *pocketbase.PocketBase, planConfig *services.PlanConf
 				"quiz_questions",
 				"quiz = {:quiz}",
 				"sort_order",
-				500,
+				0,
 				0,
 				map[string]interface{}{"quiz": quiz.Id},
 			)
@@ -197,7 +197,7 @@ func RegisterQuizHooks(app *pocketbase.PocketBase, planConfig *services.PlanConf
 				"quiz_questions",
 				"quiz = {:quiz}",
 				"sort_order",
-				500,
+				0,
 				0,
 				map[string]interface{}{"quiz": quiz.Id},
 			)
@@ -342,42 +342,22 @@ func RegisterQuizHooks(app *pocketbase.PocketBase, planConfig *services.PlanConf
 			courseID := e.Request.PathValue("courseId")
 			lessonID := e.Request.PathValue("lessonId")
 
-			// Verify course exists
-			_, err := app.FindRecordById("courses", courseID)
+			// A failed lookup answers 500 here, because a false "no quiz" would
+			// open a blank editor whose next save could replace the real quiz.
+			if _, err := findQuizLesson(app, courseID, lessonID); err != nil {
+				return respondQuizError(e, err, "failed to load quiz")
+			}
+			quiz, err := findLessonQuiz(app, lessonID)
 			if err != nil {
-				return e.JSON(http.StatusNotFound, map[string]string{"error": "course not found"})
+				return respondQuizError(e, err, "failed to load quiz")
 			}
-
-			// Find lesson and verify it belongs to course
-			lesson, err := app.FindRecordById("lessons", lessonID)
-			if err != nil {
-				return e.JSON(http.StatusNotFound, map[string]string{"error": "lesson not found"})
-			}
-			lessonModule, err := app.FindRecordById("modules", lesson.GetString("module"))
-			if err != nil || lessonModule.GetString("course") != courseID {
-				return e.JSON(http.StatusNotFound, map[string]string{"error": "lesson not found in this course"})
-			}
-
-			// Find quiz
-			quizRecords, err := app.FindRecordsByFilter(
-				"quizzes",
-				"lesson = {:lesson}",
-				"",
-				1,
-				0,
-				map[string]interface{}{"lesson": lessonID},
-			)
-			if err != nil || len(quizRecords) == 0 {
-				return e.JSON(http.StatusNotFound, map[string]string{"error": "no quiz found for this lesson"})
-			}
-			quiz := quizRecords[0]
 
 			// Fetch questions with full answers
 			questionRecords, err := app.FindRecordsByFilter(
 				"quiz_questions",
 				"quiz = {:quiz}",
 				"sort_order",
-				500,
+				0,
 				0,
 				map[string]interface{}{"quiz": quiz.Id},
 			)
@@ -415,119 +395,17 @@ func RegisterQuizHooks(app *pocketbase.PocketBase, planConfig *services.PlanConf
 				return err
 			}
 
-			courseID := e.Request.PathValue("courseId")
-			lessonID := e.Request.PathValue("lessonId")
+			var req adminQuizRequest
+			bindErr := e.BindBody(&req)
 
-			// Verify course exists
-			_, err := app.FindRecordById("courses", courseID)
+			var quiz *core.Record
+			err := app.RunInTransaction(func(txApp core.App) error {
+				var err error
+				quiz, err = createAdminQuiz(txApp, e.Request.PathValue("courseId"), e.Request.PathValue("lessonId"), req, bindErr)
+				return err
+			})
 			if err != nil {
-				return e.JSON(http.StatusNotFound, map[string]string{"error": "course not found"})
-			}
-
-			// Find lesson and verify it belongs to course
-			lesson, err := app.FindRecordById("lessons", lessonID)
-			if err != nil {
-				return e.JSON(http.StatusNotFound, map[string]string{"error": "lesson not found"})
-			}
-			lessonModule, err := app.FindRecordById("modules", lesson.GetString("module"))
-			if err != nil || lessonModule.GetString("course") != courseID {
-				return e.JSON(http.StatusNotFound, map[string]string{"error": "lesson not found in this course"})
-			}
-
-			// Check if quiz already exists
-			existingQuiz, _ := app.FindRecordsByFilter(
-				"quizzes",
-				"lesson = {:lesson}",
-				"",
-				1,
-				0,
-				map[string]interface{}{"lesson": lessonID},
-			)
-			if len(existingQuiz) > 0 {
-				return e.JSON(http.StatusConflict, map[string]string{"error": "quiz already exists for this lesson"})
-			}
-
-			// Parse request
-			var req struct {
-				Title              string                   `json:"title"`
-				PassingScore       float64                  `json:"passing_score"`
-				RandomizeQuestions bool                     `json:"randomize_questions"`
-				MaxAttempts        int                      `json:"max_attempts"`
-				Questions          []map[string]interface{} `json:"questions"`
-			}
-			if err := e.BindBody(&req); err != nil {
-				return e.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request"})
-			}
-
-			if req.Title == "" {
-				return e.JSON(http.StatusBadRequest, map[string]string{"error": "title is required"})
-			}
-
-			// Create quiz record
-			quizCollection, err := app.FindCollectionByNameOrId("quizzes")
-			if err != nil {
-				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "collection not found"})
-			}
-
-			quiz := core.NewRecord(quizCollection)
-			quiz.Set("lesson", lessonID)
-			quiz.Set("title", req.Title)
-			passingScore := req.PassingScore
-			if passingScore == 0 {
-				passingScore = 70
-			}
-			quiz.Set("passing_score", passingScore)
-			quiz.Set("randomize_questions", req.RandomizeQuestions)
-			quiz.Set("max_attempts", req.MaxAttempts)
-
-			if err := app.Save(quiz); err != nil {
-				app.Logger().Error("Failed to create quiz", "error", err)
-				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to create quiz"})
-			}
-
-			// Create questions
-			questionCollection, err := app.FindCollectionByNameOrId("quiz_questions")
-			if err != nil {
-				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "collection not found"})
-			}
-
-			for i, qData := range req.Questions {
-				question := core.NewRecord(questionCollection)
-				question.Set("quiz", quiz.Id)
-				if text, ok := qData["question_text"].(string); ok {
-					question.Set("question_text", text)
-				}
-				if qType, ok := qData["question_type"].(string); ok {
-					question.Set("question_type", qType)
-				}
-				if options, ok := qData["options"]; ok {
-					question.Set("options", options)
-				}
-				if explanation, ok := qData["explanation"].(string); ok {
-					question.Set("explanation", explanation)
-				}
-				if points, ok := qData["points"].(float64); ok && points > 0 {
-					question.Set("points", int(points))
-				} else {
-					question.Set("points", 10)
-				}
-				if sortOrder, ok := qData["sort_order"].(float64); ok {
-					question.Set("sort_order", int(sortOrder))
-				} else {
-					question.Set("sort_order", i+1)
-				}
-
-				if err := app.Save(question); err != nil {
-					app.Logger().Error("Failed to create quiz question", "error", err)
-					return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to create question"})
-				}
-			}
-
-			// Update lesson content_type to "quiz" and link quiz relation
-			lesson.Set("content_type", "quiz")
-			lesson.Set("quiz", quiz.Id)
-			if err := app.Save(lesson); err != nil {
-				app.Logger().Error("Failed to update lesson", "error", err)
+				return respondQuizError(e, err, "failed to create quiz")
 			}
 
 			return e.JSON(http.StatusCreated, map[string]interface{}{
@@ -542,174 +420,18 @@ func RegisterQuizHooks(app *pocketbase.PocketBase, planConfig *services.PlanConf
 				return err
 			}
 
-			courseID := e.Request.PathValue("courseId")
-			lessonID := e.Request.PathValue("lessonId")
+			var req adminQuizRequest
+			bindErr := e.BindBody(&req)
 
-			// Verify course exists
-			_, err := app.FindRecordById("courses", courseID)
+			var quiz *core.Record
+			err := app.RunInTransaction(func(txApp core.App) error {
+				var err error
+				quiz, err = updateAdminQuiz(txApp, e.Request.PathValue("courseId"), e.Request.PathValue("lessonId"), req, bindErr)
+				return err
+			})
 			if err != nil {
-				return e.JSON(http.StatusNotFound, map[string]string{"error": "course not found"})
+				return respondQuizError(e, err, "failed to update quiz")
 			}
-
-			// Find lesson and verify it belongs to course
-			lesson, err := app.FindRecordById("lessons", lessonID)
-			if err != nil {
-				return e.JSON(http.StatusNotFound, map[string]string{"error": "lesson not found"})
-			}
-			lessonModule, err := app.FindRecordById("modules", lesson.GetString("module"))
-			if err != nil || lessonModule.GetString("course") != courseID {
-				return e.JSON(http.StatusNotFound, map[string]string{"error": "lesson not found in this course"})
-			}
-
-			// Find existing quiz
-			quizRecords, err := app.FindRecordsByFilter(
-				"quizzes",
-				"lesson = {:lesson}",
-				"",
-				1,
-				0,
-				map[string]interface{}{"lesson": lessonID},
-			)
-			if err != nil || len(quizRecords) == 0 {
-				return e.JSON(http.StatusNotFound, map[string]string{"error": "no quiz found for this lesson"})
-			}
-			quiz := quizRecords[0]
-
-			// Parse request
-			var req struct {
-				Title              *string                  `json:"title"`
-				PassingScore       *float64                 `json:"passing_score"`
-				RandomizeQuestions *bool                    `json:"randomize_questions"`
-				MaxAttempts        *int                     `json:"max_attempts"`
-				Questions          []map[string]interface{} `json:"questions"`
-			}
-			if err := e.BindBody(&req); err != nil {
-				return e.JSON(http.StatusBadRequest, map[string]string{"error": "invalid request"})
-			}
-
-			// Update quiz fields
-			if req.Title != nil {
-				quiz.Set("title", *req.Title)
-			}
-			if req.PassingScore != nil {
-				quiz.Set("passing_score", *req.PassingScore)
-			}
-			if req.RandomizeQuestions != nil {
-				quiz.Set("randomize_questions", *req.RandomizeQuestions)
-			}
-			if req.MaxAttempts != nil {
-				quiz.Set("max_attempts", *req.MaxAttempts)
-			}
-
-			if err := app.Save(quiz); err != nil {
-				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to update quiz"})
-			}
-
-			// Update questions if provided
-			if req.Questions != nil {
-				// Fetch existing questions
-				existingQuestions, _ := app.FindRecordsByFilter(
-					"quiz_questions",
-					"quiz = {:quiz}",
-					"sort_order",
-					500,
-					0,
-					map[string]interface{}{"quiz": quiz.Id},
-				)
-
-				// Build map of existing question IDs
-				existingMap := make(map[string]*core.Record)
-				for _, q := range existingQuestions {
-					existingMap[q.Id] = q
-				}
-
-				// Track which IDs are in the update
-				updatedIDs := make(map[string]bool)
-
-				questionCollection, err := app.FindCollectionByNameOrId("quiz_questions")
-				if err != nil {
-					return e.JSON(http.StatusInternalServerError, map[string]string{"error": "collection not found"})
-				}
-
-				for i, qData := range req.Questions {
-					qID, hasID := qData["id"].(string)
-					if hasID && qID != "" {
-						// Update existing question
-						updatedIDs[qID] = true
-						existing, exists := existingMap[qID]
-						if !exists {
-							continue
-						}
-
-						if text, ok := qData["question_text"].(string); ok {
-							existing.Set("question_text", text)
-						}
-						if qType, ok := qData["question_type"].(string); ok {
-							existing.Set("question_type", qType)
-						}
-						if options, ok := qData["options"]; ok {
-							existing.Set("options", options)
-						}
-						if explanation, ok := qData["explanation"].(string); ok {
-							existing.Set("explanation", explanation)
-						}
-						if points, ok := qData["points"].(float64); ok && points > 0 {
-							existing.Set("points", int(points))
-						}
-						if sortOrder, ok := qData["sort_order"].(float64); ok {
-							existing.Set("sort_order", int(sortOrder))
-						} else {
-							existing.Set("sort_order", i+1)
-						}
-
-						if err := app.Save(existing); err != nil {
-							app.Logger().Error("Failed to update quiz question", "error", err)
-						}
-					} else {
-						// Create new question
-						question := core.NewRecord(questionCollection)
-						question.Set("quiz", quiz.Id)
-						if text, ok := qData["question_text"].(string); ok {
-							question.Set("question_text", text)
-						}
-						if qType, ok := qData["question_type"].(string); ok {
-							question.Set("question_type", qType)
-						}
-						if options, ok := qData["options"]; ok {
-							question.Set("options", options)
-						}
-						if explanation, ok := qData["explanation"].(string); ok {
-							question.Set("explanation", explanation)
-						}
-						if points, ok := qData["points"].(float64); ok && points > 0 {
-							question.Set("points", int(points))
-						} else {
-							question.Set("points", 10)
-						}
-						if sortOrder, ok := qData["sort_order"].(float64); ok {
-							question.Set("sort_order", int(sortOrder))
-						} else {
-							question.Set("sort_order", i+1)
-						}
-
-						if err := app.Save(question); err != nil {
-							app.Logger().Error("Failed to create quiz question", "error", err)
-						}
-					}
-				}
-
-				// Delete questions not in update
-				for id, record := range existingMap {
-					if !updatedIDs[id] {
-						if err := app.Delete(record); err != nil {
-							app.Logger().Error("Failed to delete quiz question", "error", err)
-						}
-					}
-				}
-			}
-
-			// Suppress unused variable warning for lesson
-			_ = lesson
 
 			return e.JSON(http.StatusOK, map[string]interface{}{
 				"id":    quiz.Id,
@@ -723,50 +445,11 @@ func RegisterQuizHooks(app *pocketbase.PocketBase, planConfig *services.PlanConf
 				return err
 			}
 
-			courseID := e.Request.PathValue("courseId")
-			lessonID := e.Request.PathValue("lessonId")
-
-			// Verify course exists
-			_, err := app.FindRecordById("courses", courseID)
+			err := app.RunInTransaction(func(txApp core.App) error {
+				return deleteAdminQuiz(txApp, e.Request.PathValue("courseId"), e.Request.PathValue("lessonId"))
+			})
 			if err != nil {
-				return e.JSON(http.StatusNotFound, map[string]string{"error": "course not found"})
-			}
-
-			// Find lesson and verify it belongs to course
-			lesson, err := app.FindRecordById("lessons", lessonID)
-			if err != nil {
-				return e.JSON(http.StatusNotFound, map[string]string{"error": "lesson not found"})
-			}
-			lessonModule, err := app.FindRecordById("modules", lesson.GetString("module"))
-			if err != nil || lessonModule.GetString("course") != courseID {
-				return e.JSON(http.StatusNotFound, map[string]string{"error": "lesson not found in this course"})
-			}
-
-			// Find quiz
-			quizRecords, err := app.FindRecordsByFilter(
-				"quizzes",
-				"lesson = {:lesson}",
-				"",
-				1,
-				0,
-				map[string]interface{}{"lesson": lessonID},
-			)
-			if err != nil || len(quizRecords) == 0 {
-				return e.JSON(http.StatusNotFound, map[string]string{"error": "no quiz found for this lesson"})
-			}
-			quiz := quizRecords[0]
-
-			// Delete quiz (cascade will handle questions and attempts via DB)
-			if err := app.Delete(quiz); err != nil {
-				app.Logger().Error("Failed to delete quiz", "error", err)
-				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to delete quiz"})
-			}
-
-			// Reset lesson content_type and clear quiz relation
-			lesson.Set("content_type", "text")
-			lesson.Set("quiz", "")
-			if err := app.Save(lesson); err != nil {
-				app.Logger().Error("Failed to update lesson after quiz delete", "error", err)
+				return respondQuizError(e, err, "failed to delete quiz")
 			}
 
 			return e.JSON(http.StatusOK, map[string]string{"status": "deleted"})

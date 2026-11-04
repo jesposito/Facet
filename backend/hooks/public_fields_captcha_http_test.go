@@ -1,7 +1,6 @@
 package hooks
 
 import (
-	"encoding/json"
 	"net/http"
 	"testing"
 )
@@ -32,23 +31,20 @@ func TestCaptchaContactValueNeverReachesPublicResponses(t *testing.T) {
 		})
 	}
 
-	for _, url := range []string{
-		"/api/collections/contact_methods/records",
-		"/api/collections/contact_methods/records/" + captcha.Id,
+	for _, tc := range []struct {
+		url    string
+		status int
+	}{
+		{"/api/collections/contact_methods/records", http.StatusUnauthorized},
+		{"/api/collections/contact_methods/records/" + captcha.Id, http.StatusNotFound},
 	} {
-		t.Run("anonymous "+url, func(t *testing.T) {
-			rec := do(t, h, testRequest{url: url})
+		t.Run("anonymous "+tc.url, func(t *testing.T) {
+			rec := do(t, h, testRequest{url: tc.url})
+			assertStatus(t, rec, tc.status)
 			assertNotContains(t, rec, "hidden@example.com")
-			if rec.Code == http.StatusOK {
-				var list struct {
-					Items []any `json:"items"`
-				}
-				if err := json.Unmarshal(rec.Body.Bytes(), &list); err != nil || len(list.Items) != 0 {
-					t.Fatalf("anonymous collection read returned records: %s", rec.Body.String())
-				}
-			} else if rec.Code != http.StatusForbidden && rec.Code != http.StatusNotFound {
-				t.Fatalf("anonymous collection read status = %d: %s", rec.Code, rec.Body.String())
-			}
+			assertNotContains(t, rec, "override-leak@example.com")
+			assertNotContains(t, rec, "private@example.com")
+			assertNotContains(t, rec, `"items"`)
 		})
 	}
 }

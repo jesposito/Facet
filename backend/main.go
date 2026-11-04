@@ -46,6 +46,7 @@ func main() {
 
 	// Register custom hooks
 	// Note: PocketBase v0.23+ has a built-in /api/health endpoint
+	hooks.RegisterRequestLogPrivacy(app)  // Redact bearer URLs before activity logs are emitted
 	hooks.RegisterClientIPMiddleware(app) // Real client address behind Caddy; drops spoofed X-Internal
 	hooks.RegisterCollectionRules(app)    // Ensure proper access rules on all collections
 	hooks.RegisterFileCacheHeaders(app)   // Protected files are never cached
@@ -74,6 +75,7 @@ func main() {
 	hooks.RegisterDuplicateHooks(app)
 	hooks.RegisterProjectExperienceHooks(app)
 	hooks.RegisterExperienceHooks(app)
+	hooks.RegisterLivePreviewHooks(app)
 	hooks.RegisterCustomContentHooks(app)
 	hooks.RegisterFeaturedValidationHooks(app)
 	hooks.RegisterMediaCleanupHooks(app)
@@ -81,7 +83,7 @@ func main() {
 	hooks.RegisterBackupHooks(app)     // Automated database backup system
 	hooks.RegisterContentRecovery(app) // One-time recovery of editor-flattened content (#443)
 	hooks.RegisterTOTPHooks(app, cryptoService, rateLimitService)
-	hooks.RegisterCommentHooks(app, planConfig, rateLimitService)
+	hooks.RegisterCommentHooks(app, planConfig, cryptoService, shareService, rateLimitService)
 	hooks.RegisterNewsletterHooks(app, cryptoService, rateLimitService, planConfig)
 	hooks.RegisterNewsletterListHooks(app) // Multi-list segment support (admin CRUD + count recompute)
 	hooks.RegisterPurchaseHooks(app, cryptoService, rateLimitService)

@@ -7,6 +7,7 @@ const sourceUnitTests = [
 	'accent-aaa-clamp.spec.ts',
 	'access-context.spec.ts',
 	'api-key-scopes.spec.ts',
+	'calendar-dates.spec.ts',
 	'custom-css-contrast.spec.ts',
 	'google-analytics.spec.ts',
 	'health-route.spec.ts',
