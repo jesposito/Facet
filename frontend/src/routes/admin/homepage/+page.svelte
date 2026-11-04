@@ -2,6 +2,7 @@
 	import { preventDefault } from 'svelte/legacy';
 
 	import { browser } from '$app/env';
+	import { afterNavigate } from '$app/navigation';
 	import { onMount, onDestroy, tick, untrack } from 'svelte';
 	import { t } from 'svelte-i18n';
 	import { brandName } from '$lib/stores/plan';
@@ -30,49 +31,67 @@
 	let navOpen = $state(false);
 	let sectionOpen = $state(false);
 	let visibilityOpen = $state(false);
-	onMount(() => {
-		// Auto-expand sections on hash deep-link (cloud parity)
-		if (typeof window === 'undefined') return;
-		const hash = window.location.hash;
-		const hashTargets: Record<string, () => void> = {
-			'#profile-section': () => {
-				profileOpen = true;
-			},
-			'#brand-section': () => {
-				brandOpen = true;
-			},
-			'#hero-section': () => {
-				heroOpen = true;
-			},
-			'#nav-section': () => {
-				navOpen = true;
-			},
-			'#section-order': () => {
-				sectionOpen = true;
-			},
-			'#visibility-section': () => {
-				visibilityOpen = true;
-			}
-		};
-		const expand = hashTargets[hash];
-		if (expand) {
-			expand();
-			queueMicrotask(() => {
-				const target = document.getElementById(hash.slice(1));
-				target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-				// SC 2.4.3 — move keyboard focus to the deep-link target so AT users
-				// don't have to tab from the top of the page after following the hash.
-				// The accordion's disclosure button is the right landing spot; falling
-				// back to a tabindex-injected wrapper preserves focus even on plain divs.
-				const trigger = target?.querySelector<HTMLButtonElement>('button[aria-expanded]');
-				if (trigger) {
-					trigger.focus();
-				} else if (target) {
-					target.setAttribute('tabindex', '-1');
-					target.focus();
-				}
-			});
+	let pendingHash = $state('');
+	const hashTargets: Partial<Record<string, () => void>> = {
+		'#profile-section': () => {
+			profileOpen = true;
+		},
+		'#brand-section': () => {
+			brandOpen = true;
+		},
+		'#hero-section': () => {
+			heroOpen = true;
+		},
+		'#nav-section': () => {
+			navOpen = true;
+		},
+		'#section-order': () => {
+			sectionOpen = true;
+		},
+		'#visibility-section': () => {
+			visibilityOpen = true;
 		}
+	};
+	function queueHashTarget(hash: string) {
+		const expand = hashTargets[hash];
+		pendingHash = expand ? hash : '';
+		expand?.();
+	}
+	// Client-only admin pages can mount after the router's initial enter callback.
+	onMount(() => queueHashTarget(window.location.hash));
+	afterNavigate(({ from, to }) => {
+		// New page entries are handled by onMount; retained pages handle hash changes here.
+		if (from?.url.pathname === to?.url.pathname) queueHashTarget(to?.url.hash ?? '');
+	});
+
+	$effect(() => {
+		const hash = pendingHash;
+		if (!browser || profileLoading || !profileReady || !hash) return;
+		let active = true;
+		// The form does not exist while the profile is loading. Wait for its
+		// render and for navigation's own scroll/focus restoration to finish.
+		void tick().then(() => {
+			if (!active || pendingHash !== hash || window.location.hash !== hash) return;
+			const target = document.getElementById(hash.slice(1));
+			if (!target) return;
+			pendingHash = '';
+			const trigger = target.querySelector<HTMLButtonElement>('button[aria-expanded]');
+			if (trigger) {
+				trigger.focus({ preventScroll: true });
+			} else {
+				target.setAttribute('tabindex', '-1');
+				target.focus({ preventScroll: true });
+			}
+			target.scrollIntoView({
+				behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches
+					? 'instant'
+					: 'smooth',
+				block: 'start'
+			});
+		});
+		return () => {
+			active = false;
+		};
 	});
 
 	// Import DnD safely - only in browser (for site navigation reordering)
@@ -1140,6 +1159,8 @@
 	}
 </script>
 
+<svelte:window onhashchange={() => queueHashTarget(window.location.hash)} />
+
 <svelte:head>
 	<title>{$t('admin.homepage.page_title')} | {$brandName}</title>
 </svelte:head>
@@ -1280,7 +1301,7 @@
 	{:else}
 		<form onsubmit={preventDefault(handleSubmit)} class="space-y-6">
 			<!-- Profile & Contact (default OPEN) -->
-			<div id="profile-section">
+			<div id="profile-section" class="scroll-mt-40">
 				<AccordionSection
 					title="Profile & Contact"
 					description="Your name, headline, summary, contact links, and call-to-action."
@@ -1561,7 +1582,7 @@
 			</div>
 
 			<!-- Brand: accent color + typography (collapsible) -->
-			<div id="brand-section" hidden={!profileReady}>
+			<div id="brand-section" class="scroll-mt-40" hidden={!profileReady}>
 				<AccordionSection
 					title={$t('admin.homepage.brand_title')}
 					description={$t('admin.homepage.brand_description')}
@@ -1630,7 +1651,7 @@
 			</div>
 
 			<!-- Hero Section (collapsible) -->
-			<div id="hero-section" hidden={!profileReady}>
+			<div id="hero-section" class="scroll-mt-40" hidden={!profileReady}>
 				<AccordionSection
 					title="Hero Section"
 					description="Avatar, hero image, layout, spacing, and background."
@@ -1851,7 +1872,7 @@
 			</div>
 
 			<!-- Site Navigation (collapsible) -->
-			<div id="nav-section">
+			<div id="nav-section" class="scroll-mt-40">
 				<AccordionSection
 					title="Site Navigation"
 					description="Turn your Facet into a multi-page website. Navigation buttons appear on your homepage and all public facets."
@@ -2182,7 +2203,7 @@
 			</div>
 
 			<!-- Section Order (collapsible) -->
-			<div id="section-order">
+			<div id="section-order" class="scroll-mt-40">
 				<AccordionSection
 					title="Section Order"
 					description="Choose which content sections appear on your homepage and in what order."
@@ -2212,7 +2233,7 @@
 			</div>
 
 			<!-- Visibility (collapsible) -->
-			<div id="visibility-section">
+			<div id="visibility-section" class="scroll-mt-40">
 				<AccordionSection
 					title="Visibility"
 					description="Control homepage visibility, avatar display, and login button."

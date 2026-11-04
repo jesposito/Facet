@@ -171,6 +171,188 @@ test.describe('Facet versatility guidance and dashboard resilience', () => {
 		});
 	}
 
+	for (const entry of ['fresh hash', 'guide click', 'profile retry'] as const) {
+		test(`${entry} reveals and focuses navigation after the actual profile read`, async ({
+			page
+		}) => {
+			await page.setViewportSize(
+				entry === 'fresh hash' ? { width: 390, height: 844 } : { width: 1440, height: 900 }
+			);
+			await page.emulateMedia({
+				reducedMotion: entry === 'fresh hash' ? 'reduce' : 'no-preference'
+			});
+			if (entry === 'guide click') {
+				await page.goto('/admin/views');
+				await guidance(page).locator('summary').click();
+			}
+
+			let releaseSupporting!: () => void;
+			const supportingReleased = new Promise<void>((resolve) => (releaseSupporting = resolve));
+			let supportingHeld = false;
+			let supportingCompleted = false;
+			await page.route(records('skills'), async (route) => {
+				if (
+					route.request().method() !== 'GET' ||
+					new URL(route.request().url()).searchParams.get('perPage') !== '100'
+				)
+					return route.continue();
+				const response = await route.fetch();
+				expect(response.ok()).toBe(true);
+				supportingHeld = true;
+				await supportingReleased;
+				await route.fulfill({ response });
+				supportingCompleted = true;
+			});
+
+			let releaseProfile!: () => void;
+			const released = new Promise<void>((resolve) => (releaseProfile = resolve));
+			let profileHeld = false;
+			let profileAttempts = 0;
+			await page.route(records('profile'), async (route) => {
+				if (
+					route.request().method() !== 'GET' ||
+					new URL(route.request().url()).searchParams.get('perPage') !== '100'
+				)
+					return route.continue();
+				const response = await route.fetch();
+				expect(response.ok()).toBe(true);
+				profileHeld = true;
+				const fail = entry === 'profile retry' && ++profileAttempts === 1;
+				await released;
+				if (fail) return fulfillJson(route, { error: 'Profile temporarily unavailable' }, 503);
+				await route.fulfill({ response });
+			});
+
+			try {
+				if (entry === 'guide click') {
+					await guidance(page).locator('a[href="/admin/homepage#nav-section"]').click();
+				} else {
+					await page.goto(
+						entry === 'profile retry'
+							? '/admin/homepage#brand-section'
+							: '/admin/homepage#nav-section'
+					);
+				}
+				await expect.poll(() => profileHeld).toBe(true);
+				await expect(page.getByText('Loading profile...', { exact: true })).toBeVisible();
+				await expect(page.locator('#nav-section')).toHaveCount(0);
+				releaseProfile();
+
+				const section = page.locator(entry === 'profile retry' ? '#brand-section' : '#nav-section');
+				const trigger = section.getByRole('button', {
+					includeHidden: true,
+					name: entry === 'profile retry' ? /^Brand\b/ : /^Site Navigation\b/
+				});
+				if (entry === 'profile retry') {
+					const alert = page.getByRole('alert').filter({ hasText: "Couldn't load your profile" });
+					await expect(alert).toBeVisible();
+					await expect(section).not.toBeVisible();
+					await expect(trigger).not.toBeFocused();
+					await alert.getByRole('button', { name: 'Retry', exact: true }).click();
+				}
+
+				// These assertions precede any test action that could focus or scroll the target.
+				await expect(page).toHaveURL(
+					entry === 'profile retry'
+						? /\/admin\/homepage#brand-section$/
+						: /\/admin\/homepage#nav-section$/
+				);
+				await expect(trigger).toHaveAttribute('aria-expanded', 'true');
+				await expect(trigger).toBeFocused();
+				await expect(trigger).toBeInViewport({ ratio: 1 });
+				await expect(section).toBeInViewport();
+				const [target, controls] = await Promise.all([
+					trigger.boundingBox(),
+					page.locator('main .sticky').first().boundingBox()
+				]);
+				expect(target).not.toBeNull();
+				expect(controls).not.toBeNull();
+				expect(target!.y).toBeGreaterThanOrEqual(controls!.y + controls!.height);
+
+				// Settling other reads must not repeat the deep-link focus or overwrite a draft.
+				const name = page.locator('#name');
+				await name.fill(`Unsaved navigation draft ${fixture.name}`);
+				await expect.poll(() => supportingHeld).toBe(true);
+				await expect(
+					page.getByRole('button', { name: 'Save Homepage', exact: true })
+				).toBeDisabled();
+				releaseSupporting();
+				await expect.poll(() => supportingCompleted).toBe(true);
+				await expect(
+					page.getByRole('button', { name: 'Save Homepage', exact: true })
+				).toBeEnabled();
+				await expect(name).toHaveValue(`Unsaved navigation draft ${fixture.name}`);
+				await expect(name).toBeFocused();
+			} finally {
+				releaseProfile();
+				releaseSupporting();
+			}
+		});
+	}
+
+	test('retained Homepage anchors preserve an unsaved draft across all six sections', async ({
+		page
+	}) => {
+		await page.setViewportSize({ width: 1440, height: 900 });
+		await page.emulateMedia({ reducedMotion: 'reduce' });
+		let profileReads = 0;
+		await page.route(records('profile'), (route) => {
+			if (
+				route.request().method() === 'GET' &&
+				new URL(route.request().url()).searchParams.get('perPage') === '100'
+			)
+				profileReads++;
+			return route.continue();
+		});
+		await page.goto('/admin/homepage');
+		await expect(page.getByRole('button', { name: 'Save Homepage', exact: true })).toBeEnabled();
+		const name = page.locator('#name');
+		const draft = `Retained navigation draft ${fixture.name}`;
+		await name.fill(draft);
+		const originalReads = profileReads;
+		expect(originalReads).toBeGreaterThan(0);
+		const anchors = [
+			{ id: 'profile-section', title: 'Profile & Contact' },
+			{ id: 'brand-section', title: 'Brand' },
+			{ id: 'hero-section', title: 'Hero Section' },
+			{ id: 'nav-section', title: 'Site Navigation' },
+			{ id: 'section-order', title: 'Section Order' },
+			{ id: 'visibility-section', title: 'Visibility' }
+		];
+		await page.evaluate((anchors) => {
+			const nav = document.createElement('nav');
+			nav.setAttribute('aria-label', 'Deep-link test links');
+			nav.style.cssText =
+				'position:fixed;bottom:0;left:0;z-index:1000;background:white;display:flex;gap:8px';
+			for (const { id, title } of anchors) {
+				const link = document.createElement('a');
+				link.href = `#${id}`;
+				link.textContent = `Jump to ${title}`;
+				nav.append(link);
+			}
+			document.body.append(nav);
+		}, anchors);
+		for (const { id, title } of anchors) {
+			await page.getByRole('link', { name: `Jump to ${title}`, exact: true }).click();
+			const section = page.locator(`#${id}`);
+			const trigger = section.getByRole('button', { name: new RegExp(`^${title}\\b`) });
+			await expect(page).toHaveURL(new RegExp(`#${id}$`));
+			await expect(trigger).toHaveAttribute('aria-expanded', 'true');
+			await expect(trigger).toBeFocused();
+			await expect(trigger).toBeInViewport({ ratio: 1 });
+			await expect(section).toBeInViewport();
+			const [target, controls] = await Promise.all([
+				trigger.boundingBox(),
+				page.locator('main .sticky').first().boundingBox()
+			]);
+			expect(target).not.toBeNull();
+			expect(controls).not.toBeNull();
+			expect(target!.y).toBeGreaterThanOrEqual(controls!.y + controls!.height);
+			await expect(name).toHaveValue(draft);
+			expect(profileReads).toBe(originalReads);
+		}
+	});
+
 	test('mobile owner work sits above the fold, below the backup warning', async ({ page }) => {
 		await page.setViewportSize({ width: 390, height: 844 });
 		await page.route('**/api/system/encryption-status', (route) =>
