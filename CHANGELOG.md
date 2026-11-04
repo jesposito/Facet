@@ -2,7 +2,28 @@
 
 All notable changes to Facet will be documented in this file.
 
-## [Unreleased]
+
+## v3.8.0 - November 04, 2026
+
+**New Features:**
+- Explain standalone résumés, proposals and resources alongside website pages as flexible uses of the same Facet
+- Preserve drafts and record identity through failed or malformed reads, partial operations and uncertain creates
+- Add complete pagination, bounded requests and explicit Retry states
+- Make course/quiz persistence and cleanup transactional, retain free self-hosted courses, and keep all email on operator-configured SMTP
+- Tighten owner permissions across custom APIs and native default record rules
+- Preserve explicit operator policies and reject incomplete sessions without pretending their catalogs are empty
+- Keep private/unlisted content out of publication webhooks
+- Recover legacy and canonical share entry consistently
+- Replace links atomically, retain visitor client addresses, and stop hover preloading from spending uses
+- Redact bearer URLs and proof headers from request logs
+- Improve keyboard access, dialogs, mobile navigation, contrast, populated Media Library controls, local fonts, native project playback links and print behavior
+- Keep toolbar controls at stable geometry during hover and press
+- Apply shared disabled styles after pointer-feedback rules
+
+**Other Changes:**
+- Refresh current documentation, add concrete Facet examples and a glossary, and preserve manual upgrade notes in releases
+
+**Pull Requests:** [#522](https://github.com/jesposito/Facet/pull/522),[#523](https://github.com/jesposito/Facet/pull/523),
 
 ### Upgrade notes
 
@@ -12,18 +33,7 @@ All notable changes to Facet will be documented in this file.
 - Default record permissions now require a Facet owner account in `users` or a PocketBase superuser. Other authentication collections do not grant owner access. Custom filtered rules are preserved. Startup stops if the required permission update cannot be saved; see the security guide before retrying.
 - `post.published` webhooks now send only updates to public, non-draft content. Private and unlisted content no longer sends publication events.
 
-### Changes
-
-- Show practical standalone-page and website uses of the same Facet, with guidance on sharing and navigation.
-- Keep private item selection, preview, visitor detail pages, comments and downloads consistent with the Facet's saved access.
-- Replace share links atomically and distinguish invalid links from temporary failures and rate limits.
-- Preserve drafts through failed reads and uncertain creates; report partial operations and provide Retry where recovery is possible.
-- Improve keyboard access, mobile navigation, dialog focus, bulk selection, contrast and populated Media Library controls.
-- Save quizzes and delete courses, modules and lessons transactionally, preserving records and files if an operation fails.
-- Repair missing subscriber timestamps while retaining unknown dates on historical records, and keep résumé calendar dates stable across visitor time zones.
-- Show a Watch Video link for YouTube, Vimeo and Bunny Stream pages in project video chapters, in place of a native player that can't play them.
-- Refresh the installation, configuration, owner, feature, security, recovery and development documentation.
-
+---
 
 ## v3.7.0 - November 03, 2026
 
