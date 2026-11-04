@@ -3,6 +3,16 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v3.8.1 - November 04, 2026
+
+**Bugs Fixed:**
+- Align published image metadata with its release
+
+**Pull Requests:** [#524](https://github.com/jesposito/Facet/pull/524),
+
+---
+
+
 ## v3.8.0 - November 04, 2026
 
 **New Features:**
