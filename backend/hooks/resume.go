@@ -119,7 +119,8 @@ func RegisterResumeHooks(app *pocketbase.PocketBase, crypto *services.CryptoServ
 			view := views[0]
 
 			// Generating doesn't use up a share token; opening the view did.
-			if _, denial := checkViewAccess(app, crypto, share, e, view); denial != nil {
+			_, denial := checkViewAccess(app, crypto, share, e, view)
+			if denial = publicViewDenial(view, denial); denial != nil {
 				return e.JSON(denial.status, map[string]string{"error": denial.message})
 			}
 
@@ -408,23 +409,11 @@ func collectViewData(app *pocketbase.PocketBase, view *core.Record, access conte
 			continue
 		}
 
-		// Check if specific items are selected
-		// Only show items that are explicitly selected - if none selected, section is empty
-		items, hasItems := section["items"].([]interface{})
-		var records []*core.Record
-
-		if hasItems && len(items) > 0 {
-			// Fetch specific items in order
-			for _, itemID := range items {
-				if id, ok := itemID.(string); ok {
-					record, err := app.FindRecordById(collectionName, id)
-					if err == nil && isRecordVisibleForSection(record, sectionName, view.Id) {
-						records = append(records, record)
-					}
-				}
-			}
+		// Same records as /api/view/{slug}/data, so the resume matches the page.
+		records, err := resolveSectionRecords(app, collectionName, sectionName, section, view.Id)
+		if err != nil {
+			return nil, err
 		}
-		// If no items selected (len(items) == 0), section remains empty - nothing shown
 
 		// Extract item configs for overrides
 		itemConfig := make(map[string]map[string]interface{})

@@ -677,9 +677,10 @@ func findCompletedPurchase(app core.App, purchaseService *services.PurchaseServi
 // the item can still be listed and sold. Posts keep a short preview of their
 // content instead of losing it entirely. Inline and gallery media are paid
 // too, both the stored references and the URLs projections expand them into.
+// has_downloads goes too, so a locked page doesn't ask for files it can't get.
 var paidContentFields = map[string][]string{
-	"posts":          withPaidMedia("content"),
-	"projects":       withPaidMedia("description", "experience"),
+	"posts":          withPaidMedia("content", "has_downloads"),
+	"projects":       withPaidMedia("description", "experience", "has_downloads"),
 	"talks":          withPaidMedia("description", "slides_url", "video_url"),
 	"custom_content": withPaidMedia("content"),
 }

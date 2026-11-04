@@ -194,7 +194,7 @@ func TestCoursesAndDiscussionsSwitchesClosePublicRoutes(t *testing.T) {
 	f := newSecurityFixture(t)
 	RegisterSiteSettingsHooks(f.pb, f.crypto)
 	RegisterCourseHooks(f.pb, &services.PlanConfig{}, f.crypto, f.rl)
-	RegisterCommentHooks(f.pb, &services.PlanConfig{}, f.rl)
+	RegisterCommentHooks(f.pb, &services.PlanConfig{}, f.crypto, f.share, f.rl)
 	h := f.serve(t)
 
 	routes := []testRequest{

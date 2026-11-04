@@ -2,10 +2,13 @@ package hooks
 
 import (
 	"crypto/subtle"
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -119,6 +122,9 @@ func contactVisibleInView(record *core.Record, viewID string) bool {
 // a draft.
 func isRecordVisibleForSection(record *core.Record, section string, viewId string) bool {
 	if section == "contacts" && !contactVisibleInView(record, viewId) {
+		return false
+	}
+	if section == "testimonials" && record.GetString("status") != "approved" {
 		return false
 	}
 	if record.GetBool("is_draft") {
@@ -337,19 +343,69 @@ func containsString(slice []string, str string) bool {
 	return false
 }
 
+// The frontend keeps a visitor's view credentials in HttpOnly cookies. Its
+// server forwards them as headers, but the browser's own API calls can only
+// send the cookies. They identify a visitor to one view and never sign in the
+// owner.
+const (
+	passwordTokenCookie = "me_password_token"
+	shareTokenCookie    = "me_share_token"
+	shareVisitCookie    = "me_share_visit"
+	visitorCookieMaxLen = 2048
+)
+
+// crossOriginBrowserRequest reports whether a browser says a request came from
+// another origin. SameSite=Lax alone isn't enough, because a sibling subdomain
+// counts as the same site. Non-browser clients send neither header.
+func crossOriginBrowserRequest(e *core.RequestEvent) bool {
+	if site := e.Request.Header.Get("Sec-Fetch-Site"); site != "" {
+		return site != "same-origin" && site != "none"
+	}
+	origin := e.Request.Header.Get("Origin")
+	if origin == "" {
+		return false
+	}
+	parsed, err := url.Parse(origin)
+	return err != nil || parsed.Host != e.Request.Host
+}
+
+// visitorCookie reads a visitor credential, ignoring it on a request from
+// another origin so a foreign page can't act with the visitor's access.
+func visitorCookie(e *core.RequestEvent, name string) string {
+	if crossOriginBrowserRequest(e) {
+		return ""
+	}
+	cookie, err := e.Request.Cookie(name)
+	if err != nil || len(cookie.Value) > visitorCookieMaxLen {
+		return ""
+	}
+	return cookie.Value
+}
+
 func extractPasswordToken(e *core.RequestEvent) string {
 	authHeader := e.Request.Header.Get("Authorization")
 	if strings.HasPrefix(authHeader, "Bearer ") {
 		return strings.TrimPrefix(authHeader, "Bearer ")
 	}
-	return e.Request.Header.Get("X-Password-Token")
+	if token := e.Request.Header.Get("X-Password-Token"); token != "" {
+		return token
+	}
+	return visitorCookie(e, passwordTokenCookie)
 }
 
-func extractShareToken(e *core.RequestEvent) string {
+// explicitShareToken is a share token the caller presented on purpose.
+func explicitShareToken(e *core.RequestEvent) string {
 	if shareToken := e.Request.Header.Get("X-Share-Token"); shareToken != "" {
 		return shareToken
 	}
 	return e.Request.URL.Query().Get("token")
+}
+
+func extractShareToken(e *core.RequestEvent) string {
+	if shareToken := explicitShareToken(e); shareToken != "" {
+		return shareToken
+	}
+	return visitorCookie(e, shareTokenCookie)
 }
 
 func validateShareToken(app *pocketbase.PocketBase, share *services.ShareService, token string, viewID string) (bool, *core.Record) {
@@ -416,6 +472,9 @@ const (
 
 func extractShareVisitProof(e *core.RequestEvent) string {
 	proof := e.Request.Header.Get(shareVisitHeader)
+	if proof == "" {
+		return visitorCookie(e, shareVisitCookie)
+	}
 	if len(proof) > shareVisitProofHeaderMaxLen {
 		return ""
 	}
@@ -483,7 +542,7 @@ type viewAccessDenial struct {
 // already counted; it is admitted with no record, so nothing is spent again.
 // The site owner can read every view.
 func checkViewAccess(app *pocketbase.PocketBase, crypto *services.CryptoService, share *services.ShareService, e *core.RequestEvent, view *core.Record) (*core.Record, *viewAccessDenial) {
-	if e.Auth != nil {
+	if isSuperuser(e) {
 		return nil, nil
 	}
 
@@ -710,4 +769,252 @@ func getSectionList(settings *services.SiteSettings, sectionKey string) string {
 		return ""
 	}
 	return config.List
+}
+
+const sectionRecordBatchSize = 500
+
+// sectionUsesAllPublic reports whether a section explicitly opted into
+// all_public. A missing or unknown value means selected, so a section saved
+// before itemSelection existed never shows more than its picks.
+func sectionUsesAllPublic(section map[string]interface{}) bool {
+	mode, _ := section["itemSelection"].(string)
+	return mode == "all_public"
+}
+
+// allPublicQuery returns what all_public publishes for a section: the rules
+// and order the homepage uses, with id breaking ties so the editor preview can
+// match. ALL_PUBLIC_SORT in frontend/src/lib/facet-content.ts keeps the same sorts.
+func allPublicQuery(section string) (filter string, sort string) {
+	const published = "visibility = 'public' && is_draft = false"
+	switch section {
+	case "experience":
+		return published, "-sort_order,-start_date,id"
+	case "projects":
+		return published, "-is_featured,-sort_order,id"
+	case "education":
+		return published, "-sort_order,-end_date,id"
+	case "certifications":
+		return published, "issuer,sort_order,-issue_date,id"
+	case "awards":
+		return published, "-sort_order,-awarded_at,id"
+	case "skills":
+		return "visibility = 'public'", "category,sort_order,id"
+	case "posts":
+		return published, "-published_at,id"
+	case "talks":
+		return published, "-sort_order,-date,id"
+	case "testimonials":
+		return "status = 'approved' && (visibility = 'public' || visibility = '')", "-featured,-sort_order,id"
+	case "contacts":
+		return "", "-is_primary,-sort_order,id"
+	default:
+		return published, "id"
+	}
+}
+
+// findRecordsInBatches reads every match a batch at a time, so a section isn't
+// cut off at a fixed record limit.
+func findRecordsInBatches(app core.App, collection, filter, sort string, params dbx.Params) ([]*core.Record, error) {
+	var records []*core.Record
+	for offset := 0; ; offset += sectionRecordBatchSize {
+		batch, err := app.FindRecordsByFilter(collection, filter, sort, sectionRecordBatchSize, offset, params)
+		if err != nil {
+			return nil, err
+		}
+		records = append(records, batch...)
+		if len(batch) < sectionRecordBatchSize {
+			return records, nil
+		}
+	}
+}
+
+// findAllPublicRecords returns a section's all_public records. Contacts have no
+// visibility field, so their page scope decides what is available here.
+func findAllPublicRecords(app core.App, collection, section, viewID string) ([]*core.Record, error) {
+	filter, sort := allPublicQuery(section)
+	records, err := findRecordsInBatches(app, collection, filter, sort, nil)
+	if err != nil || section != "contacts" {
+		return records, err
+	}
+	var available []*core.Record
+	for _, record := range records {
+		if contactVisibleInView(record, viewID) {
+			available = append(available, record)
+		}
+	}
+	return available, nil
+}
+
+// resolveSectionRecords returns what a view's section publishes, in published
+// order. A testimonial list decides first, then all_public, then the section's
+// visible picks. The data endpoint, the AI resume and view memberships read
+// through here so they can't drift apart.
+func resolveSectionRecords(app core.App, collection, sectionName string, section map[string]interface{}, viewID string) ([]*core.Record, error) {
+	if list, _ := section["list"].(string); sectionName == "testimonials" && list != "" {
+		filter, sort := allPublicQuery(sectionName)
+		return findRecordsInBatches(app, collection, filter+" && list = {:list}", sort, dbx.Params{"list": list})
+	}
+	if sectionUsesAllPublic(section) {
+		return findAllPublicRecords(app, collection, sectionName, viewID)
+	}
+	items, _ := section["items"].([]interface{})
+	var records []*core.Record
+	for _, item := range items {
+		id, ok := item.(string)
+		if !ok {
+			continue
+		}
+		record, err := app.FindRecordById(collection, id)
+		if err == nil && isRecordVisibleForSection(record, sectionName, viewID) {
+			records = append(records, record)
+		}
+	}
+	return records, nil
+}
+
+// viewSelectsRecord reports whether an enabled section of view picks the record
+// right now. A private override alone proves nothing: it outlives deselecting
+// the item, and a pick kept behind all_public isn't on the page. A custom
+// section has no picks: its name carries the one record it shows, and callers
+// ask for that record under its collection, custom_content.
+func viewSelectsRecord(view *core.Record, sectionName, recordID string) bool {
+	var sections []map[string]interface{}
+	if err := json.Unmarshal([]byte(view.GetString("sections")), &sections); err != nil {
+		return false
+	}
+	for _, section := range sections {
+		name, _ := section["section"].(string)
+		enabled, _ := section["enabled"].(bool)
+		if sectionName == "custom_content" {
+			if enabled && getCustomContentId(name) == recordID {
+				return true
+			}
+			continue
+		}
+		if name != sectionName || !enabled || sectionUsesAllPublic(section) {
+			continue
+		}
+		items, _ := section["items"].([]interface{})
+		for _, item := range items {
+			if id, _ := item.(string); id == recordID {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// privateRecordOpensFromView reports whether a visitor may open a private
+// record from the Facet they came from.
+func privateRecordOpensFromView(app *pocketbase.PocketBase, crypto *services.CryptoService, share *services.ShareService, e *core.RequestEvent, record *core.Record, sectionName, fromSlug string) bool {
+	return privateRecordFacet(app, crypto, share, e, record, sectionName, fromSlug) != ""
+}
+
+// privateRecordFacet returns the id of the Facet named by fromSlug if it opens
+// the record for this visitor, otherwise "".
+func privateRecordFacet(app *pocketbase.PocketBase, crypto *services.CryptoService, share *services.ShareService, e *core.RequestEvent, record *core.Record, sectionName, fromSlug string) string {
+	if fromSlug == "" {
+		return ""
+	}
+	views, err := app.FindRecordsByFilter(getTableName(app, "views"), "slug = {:slug} && is_active = true", "", 1, 0, dbx.Params{"slug": fromSlug})
+	if err != nil || len(views) == 0 || !privateRecordOpensInView(app, crypto, share, e, record, sectionName, views[0]) {
+		return ""
+	}
+	return views[0].Id
+}
+
+// privateRecordOpensInView reports whether a Facet opens a private record right
+// now: it's active, the visitor can read it, it selects the record, and the
+// record holds its override. Drafts never open. Opening a record doesn't count
+// as another use of a share token; the visit to the Facet already did.
+func privateRecordOpensInView(app *pocketbase.PocketBase, crypto *services.CryptoService, share *services.ShareService, e *core.RequestEvent, record *core.Record, sectionName string, view *core.Record) bool {
+	if record.GetBool("is_draft") || !view.GetBool("is_active") {
+		return false
+	}
+	if _, denial := checkViewAccess(app, crypto, share, e, view); denial != nil {
+		return false
+	}
+	return isVisibleInView(record, view.Id) && viewSelectsRecord(view, sectionName, record.Id)
+}
+
+var errGrantViewNotFound = errors.New("view not found")
+
+// grantSelectedPrivateRecords gives the private items a Facet selects right now
+// their override on that Facet, and returns how many it changed. It reads the
+// saved sections and records inside one transaction, which holds SQLite's only
+// write connection, so two saves can't overwrite each other's grants. Any
+// failure rolls every grant back.
+func grantSelectedPrivateRecords(app core.App, viewID string) (int, error) {
+	granted := 0
+	err := app.RunInTransaction(func(txApp core.App) error {
+		view, err := txApp.FindRecordById(getTableName(txApp, "views"), viewID)
+		if errors.Is(err, sql.ErrNoRows) {
+			return errGrantViewNotFound
+		}
+		if err != nil {
+			return err
+		}
+		raw := view.GetString("sections")
+		if raw == "" {
+			return nil
+		}
+		var sections []map[string]interface{}
+		if err := json.Unmarshal([]byte(raw), &sections); err != nil {
+			return err
+		}
+		for _, section := range sections {
+			name, _ := section["section"].(string)
+			enabled, _ := section["enabled"].(bool)
+			list, _ := section["list"].(string)
+			collection := getCollectionName(name)
+			// Contacts keep their own page scope. Custom sections need an explicit
+			// selection marker first. A list or all_public ignores the kept picks.
+			if !enabled || collection == "" || name == "contacts" || isCustomContentSection(name) ||
+				sectionUsesAllPublic(section) || (name == "testimonials" && list != "") {
+				continue
+			}
+			items, _ := section["items"].([]interface{})
+			for _, item := range items {
+				id, _ := item.(string)
+				changed, err := grantPrivateRecord(txApp, getTableName(txApp, collection), name, id, view.Id)
+				if err != nil {
+					return err
+				}
+				if changed {
+					granted++
+				}
+			}
+		}
+		return nil
+	})
+	return granted, err
+}
+
+// grantPrivateRecord adds one pick's override for viewID, merging into the
+// stored map so another Facet's override survives. A deleted pick, or one that
+// isn't a published private item, is left alone.
+func grantPrivateRecord(txApp core.App, collection, sectionName, id, viewID string) (bool, error) {
+	record, err := txApp.FindRecordById(collection, id)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	if record.GetString("visibility") != "private" || record.GetBool("is_draft") || isVisibleInView(record, viewID) ||
+		(sectionName == "testimonials" && record.GetString("status") != "approved") {
+		return false, nil
+	}
+	var overrides map[string]interface{}
+	if raw := record.GetString("view_visibility"); raw != "" {
+		if err := json.Unmarshal([]byte(raw), &overrides); err != nil {
+			return false, err
+		}
+	}
+	if overrides == nil {
+		overrides = map[string]interface{}{}
+	}
+	overrides[viewID] = true
+	record.Set("view_visibility", overrides)
+	return true, txApp.Save(record)
 }

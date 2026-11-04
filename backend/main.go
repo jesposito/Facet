@@ -81,7 +81,7 @@ func main() {
 	hooks.RegisterBackupHooks(app)     // Automated database backup system
 	hooks.RegisterContentRecovery(app) // One-time recovery of editor-flattened content (#443)
 	hooks.RegisterTOTPHooks(app, cryptoService, rateLimitService)
-	hooks.RegisterCommentHooks(app, planConfig, rateLimitService)
+	hooks.RegisterCommentHooks(app, planConfig, cryptoService, shareService, rateLimitService)
 	hooks.RegisterNewsletterHooks(app, cryptoService, rateLimitService, planConfig)
 	hooks.RegisterNewsletterListHooks(app) // Multi-list segment support (admin CRUD + count recompute)
 	hooks.RegisterPurchaseHooks(app, cryptoService, rateLimitService)

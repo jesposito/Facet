@@ -19,6 +19,7 @@ import (
 // RegisterDownloadHooks registers digital download endpoints
 func RegisterDownloadHooks(app *pocketbase.PocketBase, crypto *services.CryptoService, rl *services.RateLimitService) {
 	purchaseService := services.NewPurchaseService(crypto)
+	share := services.NewShareService(crypto)
 	downloadService := services.NewDownloadService(crypto)
 
 	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
@@ -39,7 +40,13 @@ func RegisterDownloadHooks(app *pocketbase.PocketBase, crypto *services.CryptoSe
 			if err != nil {
 				return e.JSON(http.StatusNotFound, map[string]string{"error": "content not found"})
 			}
-			if status, reason := downloadAccess(app, purchaseService, e, contentType, record); status != 0 {
+			// A private record's files follow the Facet it was opened from. The
+			// link carries that Facet, so redeeming it asks the same question.
+			facetID := ""
+			if !isSuperuser(e) && !isRecordVisible(record) {
+				facetID = privateRecordFacet(app, crypto, share, e, record, contentType, e.Request.URL.Query().Get("from"))
+			}
+			if status, reason := downloadAccess(app, purchaseService, e, contentType, record, facetID != ""); status != 0 {
 				return e.JSON(status, map[string]string{"error": reason})
 			}
 
@@ -57,7 +64,7 @@ func RegisterDownloadHooks(app *pocketbase.PocketBase, crypto *services.CryptoSe
 
 			files := make([]map[string]interface{}, 0, len(downloadableFiles))
 			for _, filename := range downloadableFiles {
-				token, expiresAt := downloadService.GenerateSignedURL(contentType, contentID, filename)
+				token, expiresAt := downloadService.GenerateFacetSignedURL(contentType, contentID, filename, facetID)
 
 				// Try to get file size from storage
 				fileSize := getFileSize(app, collectionID, recordID, filename)
@@ -90,7 +97,7 @@ func RegisterDownloadHooks(app *pocketbase.PocketBase, crypto *services.CryptoSe
 			}
 
 			// Validate the signed token
-			contentType, contentID, filename, err := downloadService.ValidateSignedURL(token)
+			contentType, contentID, filename, facetID, err := downloadService.ValidateSignedURL(token)
 			if err != nil {
 				return respondForbidden(e, "invalid or expired download link")
 			}
@@ -105,7 +112,14 @@ func RegisterDownloadHooks(app *pocketbase.PocketBase, crypto *services.CryptoSe
 			if err != nil {
 				return e.JSON(http.StatusNotFound, map[string]string{"error": "content not found"})
 			}
-			if status, reason := downloadAccess(app, purchaseService, e, contentType, record); status != 0 {
+			// A link issued through a Facet works only while that Facet still
+			// opens the record for this visitor.
+			privateOpens := false
+			if facetID != "" {
+				view, err := app.FindRecordById(getTableName(app, "views"), facetID)
+				privateOpens = err == nil && privateRecordOpensInView(app, crypto, share, e, record, contentType, view)
+			}
+			if status, reason := downloadAccess(app, purchaseService, e, contentType, record, privateOpens); status != 0 {
 				return e.JSON(status, map[string]string{"error": reason})
 			}
 
@@ -235,12 +249,15 @@ func isDownloadableType(contentType string) bool {
 //
 // The site owner may see hidden records, as elsewhere, but still needs a
 // purchase for paid files.
-func downloadAccess(app *pocketbase.PocketBase, purchaseService *services.PurchaseService, e *core.RequestEvent, contentType string, record *core.Record) (int, string) {
+//
+// privateOpens says a Facet opens this hidden record for the visitor right now.
+// Paid and drip rules apply to it as they do to anyone.
+func downloadAccess(app *pocketbase.PocketBase, purchaseService *services.PurchaseService, e *core.RequestEvent, contentType string, record *core.Record, privateOpens bool) (int, string) {
 	if contentType == "lessons" {
 		return lessonDownloadAccess(app, purchaseService, e, record)
 	}
 
-	if !isSuperuser(e) && !isRecordVisible(record) {
+	if !isSuperuser(e) && !isRecordVisible(record) && !privateOpens {
 		return http.StatusNotFound, "content not found"
 	}
 	if record.GetBool("drip_enabled") {

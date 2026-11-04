@@ -25,7 +25,10 @@ func newShareVisitFixture(t *testing.T) *shareVisitFixture {
 	RegisterShareHooks(f.pb, f.share, f.crypto, f.rl)
 	view := f.create(t, "views", map[string]any{"name": "Pitch", "slug": "pitch", "visibility": "unlisted", "is_active": true})
 	other := f.create(t, "views", map[string]any{"name": "Other", "slug": "other-pitch", "visibility": "unlisted", "is_active": true})
-	f.create(t, "projects", map[string]any{"title": "Private project", "slug": "private-project", "description": "PRIVATE WRITEUP", "visibility": "private", "view_visibility": map[string]bool{view.Id: true, other.Id: true}})
+	project := f.create(t, "projects", map[string]any{"title": "Private project", "slug": "private-project", "description": "PRIVATE WRITEUP", "visibility": "private", "view_visibility": map[string]bool{view.Id: true, other.Id: true}})
+	for _, v := range []*core.Record{view, other} {
+		setViewSection(t, f, v, `{"section":"projects","enabled":true,"items":`+idList(t, project.Id)+`}`)
+	}
 	return &shareVisitFixture{f: f, h: f.serve(t), view: view, other: other, project: "/api/project/private-project?from=pitch"}
 }
 

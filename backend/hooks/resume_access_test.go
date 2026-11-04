@@ -133,8 +133,8 @@ func TestResumeGenerationFollowsViewAccess(t *testing.T) {
 		want    int
 	}{
 		{"password view without its password", "password-view", nil, http.StatusUnauthorized},
-		{"unlisted view without a share token", "unlisted-view", nil, http.StatusUnauthorized},
-		{"unlisted view with a wrong share token", "unlisted-view", map[string]string{"X-Share-Token": "guess"}, http.StatusUnauthorized},
+		{"unlisted view without a share token", "unlisted-view", nil, http.StatusNotFound},
+		{"unlisted view with a wrong share token", "unlisted-view", map[string]string{"X-Share-Token": "guess"}, http.StatusNotFound},
 		{"private view", "private-view", nil, http.StatusNotFound},
 		{"inactive view", "inactive-view", nil, http.StatusNotFound},
 	} {

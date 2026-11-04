@@ -3,6 +3,7 @@ package hooks
 import (
 	"encoding/json"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -252,12 +253,14 @@ type viewRef struct {
 	Slug string `json:"slug"`
 }
 
-// buildViewMemberships returns a map of itemID -> views that explicitly include that item.
+// buildViewMemberships returns a map of itemID -> views that explicitly include that item,
+// or that publish it through an all_public section.
 // If collectionFilter is provided (non-empty), only that collection is processed.
 func buildViewMemberships(app *pocketbase.PocketBase, collectionFilter string) (map[string][]viewRef, error) {
 	result := make(map[string][]viewRef)
 
-	viewRecords, err := app.FindRecordsByFilter("views", "", "", 200, 0, nil)
+	// Sorting by id keeps the batches stable, so no view falls between them.
+	viewRecords, err := findRecordsInBatches(app, "views", "", "id", nil)
 	if err != nil {
 		return result, err
 	}
@@ -304,6 +307,19 @@ func buildViewMemberships(app *pocketbase.PocketBase, collectionFilter string) (
 				continue
 			}
 			if collectionFilter != "" && collectionFilter != collectionName {
+				continue
+			}
+			// An all_public section's members are what it publishes today. Picks
+			// kept behind the mode aren't on the page, so they don't count.
+			if sectionUsesAllPublic(section) {
+				records, err := resolveSectionRecords(app, collectionName, sectionName, section, view.Id)
+				if err != nil {
+					return result, err
+				}
+				ref := viewRef{Id: view.Id, Name: view.GetString("name"), Slug: view.GetString("slug")}
+				for _, record := range records {
+					result[record.Id] = append(result[record.Id], ref)
+				}
 				continue
 			}
 
@@ -373,7 +389,7 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 
 			visibility := view.GetString("visibility")
 
-			isAuthenticated := e.Auth != nil
+			isAuthenticated := isSuperuser(e)
 			// Match /data: a private view doesn't exist for visitors, so its
 			// ID and name stay hidden too.
 			if visibility == "private" && !isAuthenticated {
@@ -437,7 +453,9 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				return e.JSON(denial.status, map[string]string{"error": denial.message})
 			}
 			if tokenRecord != nil {
-				if !consumeShareTokenUse(app, tokenRecord.Id) {
+				// Only a token presented on purpose spends a use. Cookies ride along
+				// on every same-origin request.
+				if explicitShareToken(e) == "" || !consumeShareTokenUse(app, tokenRecord.Id) {
 					return e.JSON(http.StatusNotFound, map[string]string{"error": "view not found"})
 				}
 				issueShareVisitProof(e, crypto, tokenRecord)
@@ -638,7 +656,6 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 					continue
 				}
 
-				items, ok := section["items"].([]interface{})
 				collectionName := getCollectionName(sectionName)
 				if collectionName == "" {
 					continue
@@ -658,41 +675,12 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 					}
 				}
 
-				// Testimonials list filter (#283): if this view's testimonials section
-				// points at a list, auto-include approved testimonials from that list
-				// (parity with the homepage facet), rather than explicit per-item picks.
-				if sectionName == "testimonials" {
-					if listVal, ok := section["list"].(string); ok && listVal != "" {
-						recs, err := app.FindRecordsByFilter(
-							collectionName,
-							"status = 'approved' && (visibility = 'public' || visibility = '') && list = {:list}",
-							"-featured,-sort_order",
-							100,
-							0,
-							dbx.Params{"list": listVal},
-						)
-						if err == nil {
-							sectionData[sectionName] = serializeRecordsWithOverrides(app, recs, itemConfig, sectionName, access)
-						}
-						continue
-					}
+				// The AI resume reads the same records, so it can't disagree with
+				// the page about what this section holds.
+				records, err := resolveSectionRecords(app, collectionName, sectionName, section, view.Id)
+				if err == nil && len(records) > 0 {
+					sectionData[sectionName] = serializeRecordsWithOverrides(app, records, itemConfig, sectionName, access)
 				}
-
-				// Only show items that are explicitly selected
-				// If no items are selected, the section is empty (nothing shown)
-				if ok && len(items) > 0 {
-					var itemRecords []*core.Record
-					for _, itemID := range items {
-						if id, ok := itemID.(string); ok {
-							record, err := app.FindRecordById(collectionName, id)
-							if err == nil && isRecordVisibleForSection(record, sectionName, view.Id) {
-								itemRecords = append(itemRecords, record)
-							}
-						}
-					}
-					sectionData[sectionName] = serializeRecordsWithOverrides(app, itemRecords, itemConfig, sectionName, access)
-				}
-				// If no items selected (len(items) == 0), section remains empty - nothing shown
 			}
 
 			// Fallback to global category order from site settings if not set per-section
@@ -924,6 +912,27 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				"memberships": memberships,
 			})
 		}).Bind(apis.RequireAuth())
+
+		// Owner only. Grants the private items this Facet selects right now, all
+		// or none. The request body is ignored: the saved Facet decides.
+		se.Router.POST("/api/view/{id}/private-items", RateLimitMiddleware(rl, "normal")(func(e *core.RequestEvent) error {
+			if err := requireSuperuser(e); err != nil {
+				return err
+			}
+			viewID := e.Request.PathValue("id")
+			granted, err := grantSelectedPrivateRecords(app, viewID)
+			if errors.Is(err, errGrantViewNotFound) {
+				return e.JSON(http.StatusNotFound, map[string]string{"error": "view not found"})
+			}
+			if err != nil {
+				app.Logger().Error("failed to grant private items", "error", err, "view_id", viewID)
+				return e.JSON(http.StatusInternalServerError, map[string]string{"error": "failed to grant private items"})
+			}
+			if granted > 0 {
+				writeAuditLog(app, "update", "views", viewID, e.Auth.Email(), getIP(e), getUserAgent(e), map[string]any{"private_grants": granted})
+			}
+			return e.JSON(http.StatusOK, map[string]int{"granted": granted})
+		}))
 
 		// Get homepage data (public content aggregation)
 		// DEPRECATED: Use /api/default-view + /api/view/{slug}/data instead
@@ -1874,9 +1883,10 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 
 			visibility := post.GetString("visibility")
 			isDraft := post.GetBool("is_draft")
-			isAuthenticated := e.Auth != nil
+			isAuthenticated := isSuperuser(e)
 
-			if !isAuthenticated && ((visibility != "public" && visibility != "unlisted") || isDraft) {
+			if !isAuthenticated && ((visibility != "public" && visibility != "unlisted") || isDraft) &&
+				!privateRecordOpensFromView(app, crypto, share, e, post, "posts", e.Request.URL.Query().Get("from")) {
 				return e.JSON(http.StatusNotFound, map[string]string{"error": "post not found"})
 			}
 
@@ -1899,6 +1909,8 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				// no comment thread.
 				"comments_enabled": post.GetBool("comments_enabled"),
 			}
+			// Whether files exist, never their names. A page with none skips the read.
+			response["has_downloads"] = len(post.GetStringSlice("downloadable_files")) > 0
 			if mediaRefs, ok := post.Get("media_refs").([]string); ok && len(mediaRefs) > 0 {
 				response["media_refs"] = mediaRefs
 				if expanded, err := fetchExternalMedia(app, mediaRefs); err == nil {
@@ -1992,7 +2004,6 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 
 			// Use demo-aware collection name
 			projectsCollection := getTableName(app, "projects")
-			viewsCollection := getTableName(app, "views")
 
 			// Find project by slug
 			records, err := app.FindRecordsByFilter(
@@ -2012,33 +2023,11 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 
 			visibility := project.GetString("visibility")
 			isDraft := project.GetBool("is_draft")
-			isAuthenticated := e.Auth != nil
+			isAuthenticated := isSuperuser(e)
 
-			// A private project can be opened from a view that shows it, but
-			// only by someone who can open that view. Drafts are never public.
-			if !isAuthenticated && ((visibility != "public" && visibility != "unlisted") || isDraft) {
-				allowed := false
-				if fromViewSlug != "" && !isDraft {
-					viewRecords, err := app.FindRecordsByFilter(
-						viewsCollection,
-						"slug = {:slug} && is_active = true",
-						"",
-						1,
-						0,
-						map[string]interface{}{"slug": fromViewSlug},
-					)
-					if err == nil && len(viewRecords) > 0 {
-						fromView := viewRecords[0]
-						// Opening a project doesn't count as another use of a
-						// share token; the visit to the view already did.
-						if _, denial := checkViewAccess(app, crypto, share, e, fromView); denial == nil {
-							allowed = isVisibleInView(project, fromView.Id)
-						}
-					}
-				}
-				if !allowed {
-					return e.JSON(http.StatusNotFound, map[string]string{"error": "project not found"})
-				}
+			if !isAuthenticated && ((visibility != "public" && visibility != "unlisted") || isDraft) &&
+				!privateRecordOpensFromView(app, crypto, share, e, project, "projects", fromViewSlug) {
+				return e.JSON(http.StatusNotFound, map[string]string{"error": "project not found"})
 			}
 
 			response := map[string]interface{}{
@@ -2057,6 +2046,8 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 				"is_authenticated": isAuthenticated,
 				"comments_enabled": project.GetBool("comments_enabled"),
 			}
+			// Whether files exist, never their names. A page with none skips the read.
+			response["has_downloads"] = len(project.GetStringSlice("downloadable_files")) > 0
 			if mediaRefs, ok := project.Get("media_refs").([]string); ok && len(mediaRefs) > 0 {
 				response["media_refs"] = mediaRefs
 				if expanded, err := fetchExternalMedia(app, mediaRefs); err == nil {
@@ -2172,9 +2163,10 @@ func RegisterViewHooks(app *pocketbase.PocketBase, crypto *services.CryptoServic
 
 			visibility := talk.GetString("visibility")
 			isDraft := talk.GetBool("is_draft")
-			isAuthenticated := e.Auth != nil
+			isAuthenticated := isSuperuser(e)
 
-			if !isAuthenticated && ((visibility != "public" && visibility != "unlisted") || isDraft) {
+			if !isAuthenticated && ((visibility != "public" && visibility != "unlisted") || isDraft) &&
+				!privateRecordOpensFromView(app, crypto, share, e, talk, "talks", e.Request.URL.Query().Get("from")) {
 				return e.JSON(http.StatusNotFound, map[string]string{"error": "talk not found"})
 			}
 
