@@ -233,13 +233,27 @@ test.describe('Reliable admin bulk selection', () => {
 							'SichtbarkeitsänderungsoptionenFürAlleAusgewähltenEinträge gleichzeitig ändern';
 					}
 				});
-				const overflowing = await bar.evaluate(
-					(element) =>
-						[element, ...element.querySelectorAll('*')].filter(
-							(node) => node.clientWidth > 0 && node.scrollWidth > node.clientWidth + 1
-						).length
-				);
-				expect(overflowing).toBe(0);
+				// Every action must stay inside the bar after its hover transition,
+				// including disabled actions. Pointer position must not hide overflow.
+				for (const action of await bar.getByRole('button').all()) {
+					await action.hover();
+					await action.evaluate(async (element) => {
+						await Promise.all(
+							element.getAnimations().map((animation) => animation.finished.catch(() => undefined))
+						);
+					});
+					const overflowing = await bar.evaluate((element) =>
+						[element, ...element.querySelectorAll('*')]
+							.filter((node) => node.clientWidth > 0 && node.scrollWidth > node.clientWidth + 1)
+							.map((node) => ({
+								tag: node.tagName,
+								classes: node.getAttribute('class'),
+								width: node.clientWidth,
+								scroll: node.scrollWidth
+							}))
+					);
+					expect(overflowing).toEqual([]);
+				}
 				expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
 					390
 				);
