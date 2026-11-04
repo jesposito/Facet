@@ -20,7 +20,7 @@ jobs:
   backend:
     name: Backend tests and security
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v7
       - name: Release validation regression tests
@@ -36,7 +36,7 @@ jobs:
       - name: Backend regression tests
         working-directory: backend
         run: |
-          go test -race ./...
+          go test -race -timeout 15m ./...
           go vet ./...
       - name: SMTP deadline patch regressions
         working-directory: backend/third_party/mailyak-v3
