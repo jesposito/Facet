@@ -80,9 +80,11 @@ jobs:
       attestations: write
 
     outputs:
-      # Pass digests to merge job
+      # Pass digests and checked-out identity to the merge job
       digest-amd64: ${{ steps.build.outputs.digest }}
       digest-arm64: ${{ steps.build.outputs.digest }}
+      version: ${{ steps.version.outputs.FACET_VERSION }}
+      full_sha: ${{ steps.identity.outputs.full_sha }}
 
     steps:
       - name: Checkout repository
@@ -129,6 +131,8 @@ jobs:
           tags: |
             type=raw,value=build-${{ matrix.suffix }}
           labels: |
+            org.opencontainers.image.version=${{ steps.version.outputs.FACET_VERSION }}
+            org.opencontainers.image.revision=${{ steps.identity.outputs.full_sha }}
             org.opencontainers.image.title=Facet
             org.opencontainers.image.description=Self-hosted personal profile platform
             org.opencontainers.image.vendor=jesposito
@@ -172,8 +176,12 @@ jobs:
         if: github.event_name == 'pull_request' && inputs.tag == ''
         env:
           IMAGE: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:build-${{ matrix.suffix }}
+          EXPECTED_VERSION: ${{ steps.version.outputs.FACET_VERSION }}
+          EXPECTED_SHA: ${{ steps.identity.outputs.full_sha }}
         run: |
           set -euo pipefail
+          test "$(docker image inspect --format '{{ index .Config.Labels "org.opencontainers.image.version" }}' "$IMAGE")" = "$EXPECTED_VERSION"
+          test "$(docker image inspect --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}' "$IMAGE")" = "$EXPECTED_SHA"
           container=$(docker run -d --memory=1g --cpus=2 \
             -e ENCRYPTION_KEY=0000000000000000000000000000000000000000000000000000000000000000 \
             "$IMAGE")
@@ -284,8 +292,13 @@ jobs:
       - name: Extract Docker metadata
         id: meta
         uses: docker/metadata-action@v6
+        env:
+          DOCKER_METADATA_ANNOTATIONS_LEVELS: index
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          annotations: |
+            org.opencontainers.image.version=${{ needs.build.outputs.version }}
+            org.opencontainers.image.revision=${{ needs.build.outputs.full_sha }}
           tags: |
             # For workflow_call: use the parsed version tags
             type=raw,value=latest,enable=${{ inputs.tag != '' }}
@@ -317,12 +330,18 @@ jobs:
             TAG_ARGS+=("-t" "$tag")
           done
 
+          mapfile -t ANNOTATIONS < <(jq -r '.annotations[]' <<< "$DOCKER_METADATA_OUTPUT_JSON")
+          ANNOTATION_ARGS=()
+          for annotation in "${ANNOTATIONS[@]}"; do
+            ANNOTATION_ARGS+=("--annotation" "$annotation")
+          done
+
           SOURCES=()
           for digest_file in *; do
             SOURCES+=("${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@sha256:${digest_file}")
           done
 
-          docker buildx imagetools create "${TAG_ARGS[@]}" "${SOURCES[@]}"
+          docker buildx imagetools create "${TAG_ARGS[@]}" "${ANNOTATION_ARGS[@]}" "${SOURCES[@]}"
 
           PRIMARY_TAG="${TAGS[0]}"
           DIGEST=$(docker buildx imagetools inspect "$PRIMARY_TAG" | awk '/^Digest:/ {print $2; exit}')
