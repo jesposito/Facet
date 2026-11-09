@@ -3,6 +3,19 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v3.8.4 - November 09, 2026
+
+**Bugs Fixed:**
+- Fix reachable proxy advisory and inherited APT packages reported by scheduled security scans
+- Upgrade Caddy from 2.11.7 to 2.11.9
+- Upgrade compress from 1.20.1 to 1.20.2
+- Explicitly install APT, upgrading apt and libapt-pkg6.0 to 2.6.2
+
+**Pull Requests:** [#528](https://github.com/jesposito/Facet/pull/528),
+
+---
+
+
 ## v3.8.3 - November 04, 2026
 
 **Bugs Fixed:**
