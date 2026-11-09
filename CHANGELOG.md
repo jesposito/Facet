@@ -3,6 +3,21 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v3.8.5 - November 09, 2026
+
+**Bugs Fixed:**
+- Fix Anthropic-backed AI features due to retired model IDs
+- Read only text blocks from responses to avoid empty Content[0].Text
+
+**New Features:**
+- Default to claude-sonnet-5-5 as replacement for Sonnet 4
+- List models from GET /v1/models instead of a hard-coded list
+
+**Pull Requests:** [#527](https://github.com/jesposito/Facet/pull/527),
+
+---
+
+
 ## v3.8.4 - November 09, 2026
 
 **Bugs Fixed:**
