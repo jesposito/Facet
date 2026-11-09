@@ -366,7 +366,7 @@ func autoConfigureFromEnv(app *pocketbase.PocketBase, crypto *services.CryptoSer
 
 	// Check for Anthropic
 	if apiKey := os.Getenv("ANTHROPIC_API_KEY"); apiKey != "" {
-		if err := createProviderFromEnv(app, crypto, "anthropic", "Claude (Auto)", apiKey, "", "claude-sonnet-4-20250514", isFirstProvider); err != nil {
+		if err := createProviderFromEnv(app, crypto, "anthropic", "Claude (Auto)", apiKey, "", services.DefaultAnthropicModel, isFirstProvider); err != nil {
 			log.Printf("[AI] Failed to auto-configure Anthropic: %v", err)
 		} else {
 			isFirstProvider = false
@@ -757,17 +757,7 @@ func fetchModelsForProvider(providerType, apiKey, baseURL string) ([]string, err
 	case "openai", "custom":
 		return fetchOpenAIModels(client, apiKey, baseURL)
 	case "anthropic":
-		// Anthropic doesn't have a public model listing API
-		// Return curated list of available models
-		return []string{
-			"claude-sonnet-4-20250514",
-			"claude-opus-4-20250514",
-			"claude-3-5-sonnet-20241022",
-			"claude-3-5-haiku-20241022",
-			"claude-3-opus-20240229",
-			"claude-3-sonnet-20240229",
-			"claude-3-haiku-20240307",
-		}, nil
+		return fetchAnthropicModels(client, apiKey, baseURL)
 	case "ollama":
 		return fetchOllamaModels(client, baseURL)
 	default:
@@ -867,6 +857,54 @@ func fetchOpenAIModels(client *http.Client, apiKey, baseURL string) ([]string, e
 	}
 
 	return unique, nil
+}
+
+// fetchAnthropicModels lists the models the key can use, newest first, so the
+// picker never offers a retired model.
+func fetchAnthropicModels(client *http.Client, apiKey, baseURL string) ([]string, error) {
+	if apiKey == "" {
+		return nil, fmt.Errorf("API key is required")
+	}
+
+	url := "https://api.anthropic.com/v1/models?limit=100"
+	if baseURL != "" {
+		url = strings.TrimSuffix(baseURL, "/") + "/models?limit=100"
+	}
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("x-api-key", apiKey)
+	req.Header.Set("anthropic-version", "2023-06-01")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusUnauthorized {
+		return nil, fmt.Errorf("invalid API key")
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("API error: %d", resp.StatusCode)
+	}
+
+	var result struct {
+		Data []struct {
+			ID string `json:"id"`
+		} `json:"data"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to parse response: %w", err)
+	}
+
+	models := make([]string, 0, len(result.Data))
+	for _, m := range result.Data {
+		models = append(models, m.ID)
+	}
+	return models, nil
 }
 
 // fetchOllamaModels fetches locally available models from Ollama

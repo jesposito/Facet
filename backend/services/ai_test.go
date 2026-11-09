@@ -290,3 +290,20 @@ func TestEnrichProject_UnsupportedProvider(t *testing.T) {
 		t.Fatal("Expected error for unsupported provider")
 	}
 }
+
+func TestParseAnthropicTextSkipsThinkingBlocks(t *testing.T) {
+	body := []byte(`{"stop_reason":"end_turn","content":[{"type":"thinking","thinking":""},{"type":"text","text":"Hello"},{"type":"text","text":" world"}]}`)
+	got, err := parseAnthropicText(body)
+	if err != nil || got != "Hello world" {
+		t.Fatalf("got %q, %v; want %q", got, err, "Hello world")
+	}
+
+	for _, body := range []string{
+		`{"stop_reason":"refusal","content":[]}`,
+		`{"stop_reason":"max_tokens","content":[{"type":"thinking","thinking":""}]}`,
+	} {
+		if _, err := parseAnthropicText([]byte(body)); err == nil {
+			t.Errorf("expected error for %s", body)
+		}
+	}
+}

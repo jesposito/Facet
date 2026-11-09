@@ -41,10 +41,9 @@
 	const fallbackModelOptions: Record<string, string[]> = {
 		openai: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo', 'o1', 'o1-mini'],
 		anthropic: [
-			'claude-sonnet-4-20250514',
-			'claude-opus-4-20250514',
-			'claude-3-5-sonnet-20241022',
-			'claude-3-5-haiku-20241022'
+			'claude-sonnet-5-5',
+			'claude-opus-5-5',
+			'claude-haiku-5-5'
 		],
 		ollama: ['llama3.2', 'llama3.1', 'mistral', 'codellama', 'phi3'],
 		custom: []
@@ -52,7 +51,7 @@
 
 	const defaultModels: Record<string, string> = {
 		openai: 'gpt-4o-mini',
-		anthropic: 'claude-sonnet-4-20250514',
+		anthropic: 'claude-sonnet-5-5',
 		ollama: 'llama3.2',
 		custom: ''
 	};
