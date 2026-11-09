@@ -138,7 +138,8 @@ class ReleaseValidationTests(unittest.TestCase):
 class OptionalChangelogTests(unittest.TestCase):
     def test_optional_services_cannot_abort_release(self):
         workflow = SCRIPT.parents[2] / ".github/workflows/auto-tag.yml"
-        source = workflow.read_text().split("          # Try GitHub Models (Copilot) first", 1)[1]
+        source = workflow.read_text()
+        source = source.split("          # Try OpenAI API", 1)[1]
         source = source.split("          # Process AI response if successful", 1)[0]
         source = textwrap.dedent(source.split("\n", 1)[1])
         for scenario in ("dns", "timeout", "html", "bad-json", "wrong-shape", "valid", "openai-fallback"):
@@ -146,7 +147,10 @@ class OptionalChangelogTests(unittest.TestCase):
                 mock = Path(directory) / "curl"
                 mock.write_text('''#!/usr/bin/env python3
 import json, os, sys
+from pathlib import Path
 scenario = os.environ["MOCK_SCENARIO"]
+with (Path(os.environ["MOCK_ROOT"]) / "calls").open("a") as log:
+    log.write(json.dumps(sys.argv[1:]) + "\\n")
 if scenario == "dns": sys.exit(6)
 if scenario == "timeout": sys.exit(28)
 if scenario == "html": print("<html>Bad gateway</html>"); sys.exit(0)
@@ -158,7 +162,7 @@ print(json.dumps({"choices":[{"message":{"content": content}}]}))
 ''')
                 mock.chmod(0o755)
                 env = dict(os.environ, PATH=f"{directory}:{os.environ['PATH']}",
-                           MOCK_SCENARIO=scenario, GH_TOKEN="fixture-token",
+                           MOCK_SCENARIO=scenario, MOCK_ROOT=directory, GH_TOKEN="fixture-token",
                            OPENAI_API_KEY="fixture-token", PROMPT="fixture-prompt")
                 script = 'AI_SUCCESS=false\nAI_SOURCE=""\n' + source + '\nprintf "RESULT=%s\\n" "$AI_SUCCESS"\n'
                 result = subprocess.run(["bash", "-e", "-o", "pipefail", "-c", script],
@@ -166,6 +170,17 @@ print(json.dumps({"choices":[{"message":{"content": content}}]}))
                 self.assertEqual(result.returncode, 0, result.stderr)
                 expected = "true" if scenario in ("valid", "openai-fallback") else "false"
                 self.assertIn(f"RESULT={expected}", result.stdout)
+
+                if scenario in ("valid", "openai-fallback"):
+                    calls = [json.loads(line) for line in (Path(directory) / "calls").read_text().splitlines()]
+                    self.assertTrue(calls)
+                    for call in calls:
+                        self.assertIn("https://api.openai.com/v1/chat/completions", call)
+                        payload = json.loads(call[call.index("-d") + 1])
+                        self.assertEqual(payload["model"], "gpt-6-luna")
+                        self.assertEqual(payload["max_completion_tokens"], 2000)
+                        self.assertNotIn("max_tokens", payload)
+                        self.assertNotIn("temperature", payload)
 
 
 if __name__ == "__main__":

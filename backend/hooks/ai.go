@@ -375,7 +375,7 @@ func autoConfigureFromEnv(app *pocketbase.PocketBase, crypto *services.CryptoSer
 
 	// Check for OpenAI
 	if apiKey := os.Getenv("OPENAI_API_KEY"); apiKey != "" {
-		if err := createProviderFromEnv(app, crypto, "openai", "OpenAI (Auto)", apiKey, "", "gpt-4o", isFirstProvider); err != nil {
+		if err := createProviderFromEnv(app, crypto, "openai", "OpenAI (Auto)", apiKey, "", services.DefaultOpenAIModel, isFirstProvider); err != nil {
 			log.Printf("[AI] Failed to auto-configure OpenAI: %v", err)
 		} else {
 			isFirstProvider = false
@@ -810,7 +810,7 @@ func fetchOpenAIModels(client *http.Client, apiKey, baseURL string) ([]string, e
 
 	// Filter to chat/completion models and sort by relevance
 	var models []string
-	preferredPrefixes := []string{"gpt-4o", "gpt-4", "gpt-3.5", "o1", "o3"}
+	preferredPrefixes := []string{"gpt-6"}
 	otherModels := []string{}
 
 	for _, m := range result.Data {

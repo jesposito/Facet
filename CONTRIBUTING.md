@@ -63,7 +63,7 @@ If you touched the UI, run the relevant browser tests too ([frontend/tests/READM
 Releases are automatic ([auto-tag workflow](.github/workflows/auto-tag.yml)). When a pull request is merged into `main`:
 
 1. The workflow picks the version bump from the pull request title.
-2. It writes a `CHANGELOG.md` entry and updates `LATEST_VERSION`. It first tries to group merged pull requests into "Bugs Fixed", "New Features" and "Other Changes" with a language model (GitHub Models, falling back to OpenAI if a key is configured), keeps only entries whose pull request numbers really exist, and falls back to sorting by title keywords if that doesn't work.
+2. It writes a `CHANGELOG.md` entry and updates `LATEST_VERSION`. If an OpenAI key is configured, it first tries to group merged pull requests into "Bugs Fixed", "New Features" and "Other Changes" with `gpt-6-luna`, keeps only entries whose pull request numbers really exist, and falls back to sorting by title keywords if that doesn't work.
 3. Before pushing to `main`, it validates that exact commit on a temporary branch with the full test workflow ([script](scripts/ci/push-validated-release.sh)).
 4. It tags the commit (`vX.Y.Z`) and triggers the image build.
 5. The image is built for `linux/amd64` and `linux/arm64`, scanned, signed with cosign, given SBOM and provenance attestations, and published to `ghcr.io/jesposito/facet` as `X.Y.Z`, `X.Y`, `X` and `latest`.
