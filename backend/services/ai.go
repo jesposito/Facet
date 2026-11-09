@@ -207,6 +207,15 @@ func (a *AIService) callOpenAIRaw(ctx context.Context, provider *AIProvider, pro
 // DefaultOpenAIModel is used when an OpenAI provider has no model set.
 const DefaultOpenAIModel = "gpt-6-luna"
 
+func isOpenAIReasoningModel(model string) bool {
+	for _, prefix := range []string{"gpt-5", "gpt-6", "o1", "o3", "o4"} {
+		if strings.HasPrefix(model, prefix) {
+			return true
+		}
+	}
+	return false
+}
+
 func (a *AIService) callOpenAIRawWithTokens(ctx context.Context, provider *AIProvider, prompt string, maxTokens int) (string, error) {
 	baseURL := "https://api.openai.com/v1"
 	if provider.BaseURL != "" {
@@ -225,7 +234,11 @@ func (a *AIService) callOpenAIRawWithTokens(ctx context.Context, provider *AIPro
 		},
 	}
 
-	if strings.HasPrefix(model, "gpt-6") {
+	if isOpenAIReasoningModel(model) {
+		if strings.HasPrefix(model, "gpt-6-luna") {
+			reqBody["reasoning_effort"] = "none"
+			reqBody["temperature"] = 0.7
+		}
 		if maxTokens > 0 {
 			reqBody["max_completion_tokens"] = maxTokens
 		}
@@ -269,6 +282,7 @@ func (a *AIService) callOpenAIRawWithTokens(ctx context.Context, provider *AIPro
 			Message struct {
 				Content string `json:"content"`
 			} `json:"message"`
+			FinishReason string `json:"finish_reason"`
 		} `json:"choices"`
 	}
 
@@ -280,7 +294,15 @@ func (a *AIService) callOpenAIRawWithTokens(ctx context.Context, provider *AIPro
 		return "", fmt.Errorf("no response from OpenAI")
 	}
 
-	return openAIResp.Choices[0].Message.Content, nil
+	choice := openAIResp.Choices[0]
+	if strings.TrimSpace(choice.Message.Content) == "" {
+		if choice.FinishReason == "length" {
+			return "", fmt.Errorf("OpenAI hit the token limit before answering")
+		}
+		return "", fmt.Errorf("no response from OpenAI")
+	}
+
+	return choice.Message.Content, nil
 }
 
 func (a *AIService) callAnthropic(ctx context.Context, provider *AIProvider, prompt string) (*EnrichmentResult, error) {

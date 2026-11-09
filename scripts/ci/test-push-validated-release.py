@@ -179,8 +179,9 @@ print(json.dumps({"choices":[{"message":{"content": content}}]}))
                         payload = json.loads(call[call.index("-d") + 1])
                         self.assertEqual(payload["model"], "gpt-6-luna")
                         self.assertEqual(payload["max_completion_tokens"], 2000)
+                        self.assertEqual(payload.get("reasoning_effort"), "none")
+                        self.assertEqual(payload["temperature"], 0.3)
                         self.assertNotIn("max_tokens", payload)
-                        self.assertNotIn("temperature", payload)
 
 
 if __name__ == "__main__":

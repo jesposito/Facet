@@ -48,8 +48,25 @@ func TestOpenAIRequestUsesReasoningParametersForGPT6(t *testing.T) {
 	if got := body["model"]; got != "gpt-6-luna" {
 		t.Errorf("model = %v, want gpt-6-luna", got)
 	}
+	if got := body["reasoning_effort"]; got != "none" {
+		t.Errorf("reasoning_effort = %v, want none", got)
+	}
+	if got := body["temperature"]; got != 0.7 {
+		t.Errorf("temperature = %v, want 0.7 when reasoning is disabled", got)
+	}
+	if _, ok := body["max_tokens"]; ok {
+		t.Errorf("max_tokens = %v, want omitted", body["max_tokens"])
+	}
+	if got := body["max_completion_tokens"]; got != float64(512) {
+		t.Errorf("max_completion_tokens = %v, want 512", got)
+	}
+}
+
+func TestOpenAIRequestUsesReasoningParametersForGPT5(t *testing.T) {
+	body := captureOpenAIRequest(t, &AIProvider{Type: "openai", Model: "gpt-5.6-terra"})
+
 	if _, ok := body["temperature"]; ok {
-		t.Errorf("temperature = %v, want omitted for GPT-6 reasoning", body["temperature"])
+		t.Errorf("temperature = %v, want omitted for GPT-5 reasoning", body["temperature"])
 	}
 	if _, ok := body["max_tokens"]; ok {
 		t.Errorf("max_tokens = %v, want omitted", body["max_tokens"])
@@ -72,6 +89,22 @@ func TestOpenAIRequestKeepsLegacyParametersForCustomModels(t *testing.T) {
 		t.Errorf("max_tokens = %v, want 512", got)
 	}
 	if _, ok := body["max_completion_tokens"]; ok {
-		t.Errorf("max_completion_tokens = %v, want omitted for a custom non-GPT-6 model", body["max_completion_tokens"])
+		t.Errorf("max_completion_tokens = %v, want omitted for a custom non-reasoning model", body["max_completion_tokens"])
+	}
+}
+
+func TestOpenAIRequestRejectsEmptyLengthLimitedResponse(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if _, err := w.Write([]byte(`{"choices":[{"message":{"content":""},"finish_reason":"length"}]}`)); err != nil {
+			t.Errorf("write response: %v", err)
+		}
+	}))
+	defer server.Close()
+
+	ai := &AIService{client: server.Client()}
+	provider := &AIProvider{Type: "openai", BaseURL: server.URL}
+	if _, err := ai.ImproveContentWithTokens(context.Background(), provider, "Improve this", 512); err == nil {
+		t.Fatal("ImproveContentWithTokens() error = nil, want token-limit error")
 	}
 }
