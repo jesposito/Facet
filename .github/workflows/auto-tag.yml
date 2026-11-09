@@ -231,6 +231,8 @@ jobs:
               -d "$(jq -n --arg prompt "$PROMPT" '{
                 "model": "gpt-6-luna",
                 "messages": [{"role": "user", "content": $prompt}],
+                "reasoning_effort": "none",
+                "temperature": 0.3,
                 "max_completion_tokens": 2000
               }')" 2>/dev/null || true)
 
