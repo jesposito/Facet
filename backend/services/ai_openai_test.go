@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -104,7 +105,11 @@ func TestOpenAIRequestRejectsEmptyLengthLimitedResponse(t *testing.T) {
 
 	ai := &AIService{client: server.Client()}
 	provider := &AIProvider{Type: "openai", BaseURL: server.URL}
-	if _, err := ai.ImproveContentWithTokens(context.Background(), provider, "Improve this", 512); err == nil {
+	_, err := ai.ImproveContentWithTokens(context.Background(), provider, "Improve this", 512)
+	if err == nil {
 		t.Fatal("ImproveContentWithTokens() error = nil, want token-limit error")
+	}
+	if !strings.Contains(err.Error(), `finish_reason "length"`) {
+		t.Fatalf("ImproveContentWithTokens() error = %q, want finish reason", err)
 	}
 }

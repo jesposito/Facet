@@ -296,10 +296,7 @@ func (a *AIService) callOpenAIRawWithTokens(ctx context.Context, provider *AIPro
 
 	choice := openAIResp.Choices[0]
 	if strings.TrimSpace(choice.Message.Content) == "" {
-		if choice.FinishReason == "length" {
-			return "", fmt.Errorf("OpenAI hit the token limit before answering")
-		}
-		return "", fmt.Errorf("no response from OpenAI")
+		return "", fmt.Errorf("no response from OpenAI (finish_reason %q)", choice.FinishReason)
 	}
 
 	return choice.Message.Content, nil
