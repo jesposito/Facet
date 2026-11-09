@@ -104,7 +104,7 @@ func (a *AIService) ImproveContent(ctx context.Context, provider *AIProvider, pr
 	return a.ImproveContentWithTokens(ctx, provider, prompt, 2048)
 }
 
-// ImproveContentWithTokens improves content with a custom max_tokens limit
+// ImproveContentWithTokens improves content with a custom completion token limit
 func (a *AIService) ImproveContentWithTokens(ctx context.Context, provider *AIProvider, prompt string, maxTokens int) (string, error) {
 	switch provider.Type {
 	case "openai", "custom":
@@ -204,6 +204,9 @@ func (a *AIService) callOpenAIRaw(ctx context.Context, provider *AIProvider, pro
 	return a.callOpenAIRawWithTokens(ctx, provider, prompt, 0) // 0 means use API default
 }
 
+// DefaultOpenAIModel is used when an OpenAI provider has no model set.
+const DefaultOpenAIModel = "gpt-6-luna"
+
 func (a *AIService) callOpenAIRawWithTokens(ctx context.Context, provider *AIProvider, prompt string, maxTokens int) (string, error) {
 	baseURL := "https://api.openai.com/v1"
 	if provider.BaseURL != "" {
@@ -212,7 +215,7 @@ func (a *AIService) callOpenAIRawWithTokens(ctx context.Context, provider *AIPro
 
 	model := provider.Model
 	if model == "" {
-		model = "gpt-4o-mini"
+		model = DefaultOpenAIModel
 	}
 
 	reqBody := map[string]interface{}{
@@ -220,12 +223,17 @@ func (a *AIService) callOpenAIRawWithTokens(ctx context.Context, provider *AIPro
 		"messages": []map[string]string{
 			{"role": "user", "content": prompt},
 		},
-		"temperature": 0.7,
 	}
 
-	// Add max_tokens if specified
-	if maxTokens > 0 {
-		reqBody["max_tokens"] = maxTokens
+	if strings.HasPrefix(model, "gpt-6") {
+		if maxTokens > 0 {
+			reqBody["max_completion_tokens"] = maxTokens
+		}
+	} else {
+		reqBody["temperature"] = 0.7
+		if maxTokens > 0 {
+			reqBody["max_tokens"] = maxTokens
+		}
 	}
 
 	body, err := json.Marshal(reqBody)
