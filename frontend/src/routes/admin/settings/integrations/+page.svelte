@@ -40,11 +40,7 @@
 	// Fallback model options per provider type (used when API fetch fails or is unavailable)
 	const fallbackModelOptions: Record<string, string[]> = {
 		openai: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo', 'o1', 'o1-mini'],
-		anthropic: [
-			'claude-sonnet-5-5',
-			'claude-opus-5-5',
-			'claude-haiku-5-5'
-		],
+		anthropic: ['claude-sonnet-5-5', 'claude-opus-5-5', 'claude-haiku-5-5'],
 		ollama: ['llama3.2', 'llama3.1', 'mistral', 'codellama', 'phi3'],
 		custom: []
 	};
