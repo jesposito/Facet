@@ -32,21 +32,21 @@
 		type: 'openai' as 'openai' | 'anthropic' | 'ollama' | 'custom',
 		api_key: '',
 		base_url: '',
-		model: 'gpt-4o-mini',
+		model: 'gpt-6-luna',
 		is_active: true,
 		is_default: false
 	});
 
 	// Fallback model options per provider type (used when API fetch fails or is unavailable)
 	const fallbackModelOptions: Record<string, string[]> = {
-		openai: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo', 'o1', 'o1-mini'],
+		openai: ['gpt-6-luna'],
 		anthropic: ['claude-sonnet-5-5', 'claude-opus-5-5', 'claude-haiku-5-5'],
 		ollama: ['llama3.2', 'llama3.1', 'mistral', 'codellama', 'phi3'],
 		custom: []
 	};
 
 	const defaultModels: Record<string, string> = {
-		openai: 'gpt-4o-mini',
+		openai: 'gpt-6-luna',
 		anthropic: 'claude-sonnet-5-5',
 		ollama: 'llama3.2',
 		custom: ''
@@ -233,7 +233,7 @@
 				type: 'openai',
 				api_key: '',
 				base_url: '',
-				model: 'gpt-4o-mini',
+				model: 'gpt-6-luna',
 				is_active: true,
 				is_default: false
 			};

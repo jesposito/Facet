@@ -208,8 +208,7 @@ jobs:
           PR_COUNT=$(echo "$FILTERED_PRS" | jq 'length')
           echo "New PRs to document: $PR_COUNT"
 
-          # Try AI-powered changelog generation
-          # Priority: 1) GitHub Models (Copilot), 2) OpenAI API, 3) Keyword fallback
+          # Try AI-powered changelog generation, then fall back to keywords
           AI_SUCCESS=false
           AI_SOURCE=""
 
@@ -223,40 +222,18 @@ jobs:
           PROMPT_TEMPLATE=$(cat .github/prompts/changelog-prompt.txt)
           PROMPT=$(printf '%s\n\nRecent changelog (DO NOT duplicate these entries):\n%s\n\nNew PRs to document:\n%s\n\nOutput only valid JSON, no markdown or explanation.' "$PROMPT_TEMPLATE" "$RECENT_CHANGELOG" "$PR_LIST")
 
-          # Try GitHub Models (Copilot) first - uses GITHUB_TOKEN
-          echo "Trying GitHub Models (Copilot)..."
-          GH_MODELS_RESPONSE=$(curl -s --connect-timeout 10 --max-time 60 "https://models.inference.ai.azure.com/chat/completions" \
-            -H "Content-Type: application/json" \
-            -H "Authorization: Bearer $GH_TOKEN" \
-            -d "$(jq -n --arg prompt "$PROMPT" '{
-              "model": "gpt-4o-mini",
-              "messages": [{"role": "user", "content": $prompt}],
-              "temperature": 0.3,
-              "max_tokens": 2000
-            }')" 2>/dev/null || true)
-
-          GH_CONTENT=$(echo "$GH_MODELS_RESPONSE" | jq -r '.choices[0].message.content // empty' 2>/dev/null || true)
-
-          if [ -n "$GH_CONTENT" ] && [ "$GH_CONTENT" != "null" ]; then
-            AI_JSON=$(echo "$GH_CONTENT" | sed 's/^```json//; s/^```//; s/```$//' | jq -ce 'select(type == "array" and length > 0) | select(all(.[]; type == "object" and (.number | type == "number") and (.category | type == "string") and (.description | type == "string")))' 2>/dev/null || true)
-            if [ -n "$AI_JSON" ]; then
-              echo "GitHub Models (Copilot) categorization successful"
-              AI_SUCCESS=true
-              AI_SOURCE="GitHub Copilot"
-            fi
-          fi
-
-          # Fallback to OpenAI if GitHub Models failed and API key is available
-          if [ "$AI_SUCCESS" = false ] && [ -n "$OPENAI_API_KEY" ]; then
+          # Try OpenAI API when a key is available
+          if [ -n "$OPENAI_API_KEY" ]; then
             echo "Trying OpenAI API..."
             AI_RESPONSE=$(curl -s --connect-timeout 10 --max-time 60 https://api.openai.com/v1/chat/completions \
               -H "Content-Type: application/json" \
               -H "Authorization: Bearer $OPENAI_API_KEY" \
               -d "$(jq -n --arg prompt "$PROMPT" '{
-                "model": "gpt-4o-mini",
+                "model": "gpt-6-luna",
                 "messages": [{"role": "user", "content": $prompt}],
+                "reasoning_effort": "none",
                 "temperature": 0.3,
-                "max_tokens": 2000
+                "max_completion_tokens": 2000
               }')" 2>/dev/null || true)
 
             AI_CONTENT=$(echo "$AI_RESPONSE" | jq -r '.choices[0].message.content // empty' 2>/dev/null || true)
