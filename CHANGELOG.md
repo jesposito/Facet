@@ -3,6 +3,25 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v3.8.6 - November 09, 2026
+
+**Bugs Fixed:**
+- Return an error with finish_reason when an OpenAI reply is empty
+- Remove the retired GitHub Models service from the release workflow while retaining OpenAI and keyword-sorting fallback
+
+**New Features:**
+- Update OpenAI defaults to gpt-6-luna as the replacement for gpt-4o and gpt-4o-mini
+- Configure gpt-6-luna to use reasoning_effort none while keeping temperature
+- Use max_completion_tokens instead of max_tokens and omit temperature for other GPT-5, GPT-6, and o-series models
+
+**Other Changes:**
+- Add a technology inventory with 133 notes covering locked versions, sources, and security status
+
+**Pull Requests:** [#531](https://github.com/jesposito/Facet/pull/531),
+
+---
+
+
 ## v3.8.5 - November 09, 2026
 
 **Bugs Fixed:**
