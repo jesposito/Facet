@@ -296,7 +296,7 @@ func (a *AIService) callAnthropicRawWithTokens(ctx context.Context, provider *AI
 
 	model := provider.Model
 	if model == "" {
-		model = "claude-sonnet-4-20250514"
+		model = DefaultAnthropicModel
 	}
 
 	reqBody := map[string]interface{}{
@@ -336,8 +336,21 @@ func (a *AIService) callAnthropicRawWithTokens(ctx context.Context, provider *AI
 		return "", fmt.Errorf("Anthropic API error: %d - %s", resp.StatusCode, string(respBody))
 	}
 
+	return parseAnthropicText(respBody)
+}
+
+// DefaultAnthropicModel is used when an Anthropic provider has no model set.
+// Check https://platform.claude.com/docs/en/about-claude/model-deprecations when it nears retirement.
+const DefaultAnthropicModel = "claude-sonnet-5-5"
+
+// parseAnthropicText joins the text blocks of a Messages API response.
+// Current Claude models think by default, so the first content block is often
+// a thinking block with no text; only "text" blocks carry the answer.
+func parseAnthropicText(respBody []byte) (string, error) {
 	var anthropicResp struct {
-		Content []struct {
+		StopReason string `json:"stop_reason"`
+		Content    []struct {
+			Type string `json:"type"`
 			Text string `json:"text"`
 		} `json:"content"`
 	}
@@ -346,11 +359,25 @@ func (a *AIService) callAnthropicRawWithTokens(ctx context.Context, provider *AI
 		return "", err
 	}
 
-	if len(anthropicResp.Content) == 0 {
+	if anthropicResp.StopReason == "refusal" {
+		return "", fmt.Errorf("Anthropic declined the request")
+	}
+
+	var sb strings.Builder
+	for _, block := range anthropicResp.Content {
+		if block.Type == "text" {
+			sb.WriteString(block.Text)
+		}
+	}
+
+	if sb.Len() == 0 {
+		if anthropicResp.StopReason == "max_tokens" {
+			return "", fmt.Errorf("Anthropic hit the token limit before answering")
+		}
 		return "", fmt.Errorf("no response from Anthropic")
 	}
 
-	return anthropicResp.Content[0].Text, nil
+	return sb.String(), nil
 }
 
 func (a *AIService) callOllama(ctx context.Context, provider *AIProvider, prompt string) (*EnrichmentResult, error) {
