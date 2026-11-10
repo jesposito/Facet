@@ -196,8 +196,11 @@ func TestRequestLogPrivacyHonorsDisabledRetention(t *testing.T) {
 	h := f.serve(t)
 	h.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/privacy/disabled?token=SENTINEL", nil))
 	flushRequestPrivacyLogs(t, f)
-	if len(readRequestPrivacyLogs(t, f)) != 0 {
-		t.Fatal("request logging must respect disabled retention")
+	// Unrelated app logs (e.g. a notify-dir watcher failure on a host out of inotify instances) may exist.
+	for _, row := range readRequestPrivacyLogs(t, f) {
+		if strings.Contains(row.Message+row.Data, "/privacy/disabled") {
+			t.Fatal("request logging must respect disabled retention")
+		}
 	}
 }
 
