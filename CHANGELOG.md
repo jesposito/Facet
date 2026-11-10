@@ -3,6 +3,16 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v3.8.7 - November 10, 2026
+
+**Other Changes:**
+- Update the disabled-retention privacy test to fail only on log rows for the probed /privacy/disabled request
+
+**Pull Requests:** [#532](https://github.com/jesposito/Facet/pull/532),
+
+---
+
+
 ## v3.8.6 - November 09, 2026
 
 **Bugs Fixed:**
