@@ -1,7 +1,7 @@
 # Patched go-jose v3.0.5
 
-This directory is a copy of `github.com/go-jose/go-jose/v3` v3.0.5 with the RSA JWK
-security fix backported and an explicit Unicode parsing bound. `docker/caddy/go.mod` points the module at this copy
+This directory is a copy of `github.com/go-jose/go-jose/v3` v3.0.5 with three security fixes
+backported (see "Changes from v3.0.5") and an explicit Unicode parsing bound. `docker/caddy/go.mod` points the module at this copy
 with a `replace` directive.
 
 ## Why it exists
@@ -69,6 +69,22 @@ headers) is not part of this advisory and has not been backported.
 with a 16-bit bound instead of 64 bits. Four digits already limit the value to
 65535; making that bound explicit preserves behavior and makes the conversion
 to a rune provably safe for static analysis.
+
+`cipher/cbc_hmac.go` adds upstream commit
+[74114c2](https://github.com/go-jose/go-jose/commit/74114c2fa22669a2b2a296746eaa82e15566fd54)
+(go-jose v4.1.5, [GHSA-4w3g-jfj2-cw2q](https://github.com/advisories/GHSA-4w3g-jfj2-cw2q)).
+`unpadBuffer` rejects an empty buffer. Before this, a CBC-HMAC ciphertext with a
+valid tag and no content made it index an empty slice and panic.
+
+`json/scanner.go` adds upstream commit
+[a31af25](https://github.com/go-jose/go-jose/commit/a31af25836222f4c45d366d6e8f9b1049dd9935a)
+(go-jose v4.1.5, [GHSA-vvm8-gf78-28g4](https://github.com/advisories/GHSA-vvm8-gf78-28g4)).
+JSON nested deeper than 10,000 levels is a parse error instead of a stack
+overflow. This is the same limit Go's own `encoding/json` uses.
+
+Both commits applied cleanly with `git apply`. `cipher/cbc_hmac_empty_test.go`
+and `json/scanner_depth_test.go` are new, and each one fails against
+unpatched v3.0.5.
 
 `jwk_rsa_bounds_test.go` is new. It checks the size limit, the `p * q == n`
 check, and an ordinary RSA JWK round trip with RS256 signing.

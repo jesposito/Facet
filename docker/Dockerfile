@@ -13,7 +13,7 @@ ARG GIT_COMMIT=unknown
 # ============================================
 # Stage 1: Build Go backend
 # ============================================
-FROM golang:1.27.3-bookworm@sha256:972b4110ba0f47539a975c31e52c64765e1ff19f2d74469ae4a595c6676e80a5 AS backend-builder
+FROM golang:1.27.4-bookworm@sha256:4fa7c968ba93f1635670522dbb01a2c78150443e1385746924566079f36570ea AS backend-builder
 
 ARG FACET_VERSION=dev
 ARG BUILD_DATE=unknown
@@ -54,7 +54,7 @@ RUN npm run build
 
 # Build the proxy from pinned modules with the patched Go toolchain. The distro
 # Caddy package otherwise retains the old Go runtime embedded in its binary.
-FROM golang:1.27.3-bookworm@sha256:972b4110ba0f47539a975c31e52c64765e1ff19f2d74469ae4a595c6676e80a5 AS caddy-builder
+FROM golang:1.27.4-bookworm@sha256:4fa7c968ba93f1635670522dbb01a2c78150443e1385746924566079f36570ea AS caddy-builder
 WORKDIR /caddy-build
 COPY docker/caddy/go.mod docker/caddy/go.sum ./
 # go.mod replaces go-jose v3 with this patched local copy.

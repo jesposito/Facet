@@ -8,7 +8,7 @@ How to run Facet from source, make changes, and check them. For running Facet as
 |------|---------|-----|
 | Linux | any recent distribution, or WSL2 | The `make dev` supervisor reads `/proc`, so it only runs on Linux |
 | Python | 3 | Runs the development supervisor and its tests |
-| Go | 1.27.3, as in [`backend/go.mod`](../backend/go.mod) | Backend |
+| Go | 1.27.4, as in [`backend/go.mod`](../backend/go.mod) | Backend |
 | Node.js | 24, as in [`.nvmrc`](../.nvmrc). `package.json` accepts `>=24 <25`. | Frontend |
 | [Air](https://github.com/air-verse/air) | `go install github.com/air-verse/air@v1.67.4` | Rebuilds the backend when Go files change |
 | A C compiler (`gcc`) | | The PDF text extractor used for résumé import ([go-fitz](https://github.com/gen2brain/go-fitz)) is built with cgo. It bundles its own MuPDF library, so you don't need MuPDF installed. |
