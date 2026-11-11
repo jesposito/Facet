@@ -43,13 +43,15 @@ Sources: [`Makefile`](../Makefile), [`docs/DEV.md`](../docs/DEV.md), [`frontend/
 
 ## CI entry points
 
-- `.github/workflows/security-tests.yml`: Go tests/race detector/vet, backend and Caddy `govulncheck`, SMTP patch tests, npm audit, guarded-fork tests, Svelte checks, lint, translations, production frontend build and browser smoke tests.
+CI status and workflow details were updated **2026-11-11** against `main` at `07de104` and the open PR #533 workflow change.
+
+- `.github/workflows/security-tests.yml`: Go tests/race detector/vet, backend and Caddy `govulncheck`, SMTP patch tests, npm audit, guarded-fork tests, Svelte checks, lint, translations, production frontend build and browser smoke tests. Current `main` runs `go test ./...` for the proxy; PR #533 expands this to `go test ./... github.com/go-jose/go-jose/v3/...` so the replacement's regression tests run in CI.
 - `.github/workflows/supply-chain.yml`: Go module tidiness, npm lock reproducibility and production Docker digest pins.
 - `.github/workflows/docker-publish.yml`: multi-architecture build, Trivy scan, packaged-image smoke test, signing, SBOM and provenance.
 - `.github/workflows/published-image-security.yml`: scheduled rescan of the published image.
 - `.github/workflows/i18n-check.yml`: translation validation on relevant changes.
 
-Latest observed CI state on `f3d7a14`: [scheduled run 42568077807](https://github.com/jesposito/Facet/actions/runs/42568077807) (2026-11-09) passed frontend and backend tests but failed the Caddy vulnerability step. See `security-advisories.md`.
+Latest observed CI state on `main` at `07de104`: [security run 42754669718](https://github.com/jesposito/Facet/actions/runs/42754669718) (2026-11-10) passed frontend checks, backend tests and both reachable Go vulnerability steps. See `security-advisories.md`.
 
 ## Change conventions
 
