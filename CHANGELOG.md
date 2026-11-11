@@ -3,6 +3,16 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v3.8.9 - November 11, 2026
+
+**Other Changes:**
+- Refresh the technology inventory with current versions, verification limits, security advisories, and external-service lifecycle status
+
+**Pull Requests:** [#534](https://github.com/jesposito/Facet/pull/534),
+
+---
+
+
 ## v3.8.8 - November 11, 2026
 
 **Bugs Fixed:**
