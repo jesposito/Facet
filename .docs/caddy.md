@@ -10,7 +10,7 @@ The baseline proxy module graph also selected `github.com/klauspost/compress` **
 
 `go.step.sm/crypto` **0.92.0** is available and requires Go 1.26, which Facet satisfies. It selects go-jose/v4 4.1.9, but Caddy 2.11.9 and smallstep/certificates 0.30.2 still select go-jose/v3. A compatibility build on 2026-11-10 failed with certificates 0.30.2: `jwt.Builder.CompactSerialize` is undefined in `provisioner/aws.go`, and `jose.Expected.Audience` is missing in the Azure and OIDC provisioners. **Keep 0.91.0 plus the local v3 patch until smallstep/certificates supports the 0.92 API; do not take 0.92 as a routine update.**
 
-The local go-jose v3.0.5 replacement backports the RSA bounds fix for GHSA-mgcc-cww5-fp2q only. It does not claim to fix GHSA-4w3g-jfj2-cw2q or GHSA-vvm8-gf78-28g4. See `security-advisories.md`.
+On current `main`, the local go-jose v3.0.5 replacement backports the RSA bounds fix for GHSA-mgcc-cww5-fp2q. [PR #533](https://github.com/jesposito/Facet/pull/533) adds the CBC-HMAC and JSON-depth fixes for GHSA-4w3g-jfj2-cw2q and GHSA-vvm8-gf78-28g4, with regression tests and CI coverage for the replacement. Once merged, all three are backported; OSV will still match the upstream v3.0.5 version. The default plain-HTTP Caddyfile does not reach these PKI paths, although the code is compiled in. See `go-jose.md` and `security-advisories.md`.
 
 After changes, run `go test ./...` and `go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...` in `docker/caddy`, then the full security workflow and packaged-image scan.
 
