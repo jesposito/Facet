@@ -1,6 +1,6 @@
 # Node.js and npm
 
-Checked **2026-11-10**.
+Checked **2026-11-11**.
 
 - Facet selects **Node.js 24** in `.nvmrc`, requires `>=24 <25` in `frontend/package.json`, and uses `node:24-alpine` for the frontend build. The final image installs Node 24 from NodeSource. The host reports **24.22.1** with **npm 11.19.1**.
 - The official Node release index reports **24.22.2** as the latest Node 24 release and **26.13.0** as the latest Node 26 LTS release. Node 24.22.2 bundles npm 11.19.1. The npm registry reports **12.2.2** as the latest npm overall.
@@ -10,4 +10,4 @@ Checked **2026-11-10**.
 
 Action: update the host to Node 24.22.2 when convenient. Keep the runtime and types on major 24 until a deliberate runtime migration; do not install npm 12 merely because it is the latest registry release.
 
-Sources: [`.nvmrc`](../.nvmrc), [`frontend/package.json`](../frontend/package.json), [`frontend/package-lock.json`](../frontend/package-lock.json), [`docker/Dockerfile`](../docker/Dockerfile), [`docker-compose.dev.yml`](../docker-compose.dev.yml), [official Node release index](https://nodejs.org/dist/index.json), [official Node support schedule](https://raw.githubusercontent.com/nodejs/Release/main/schedule.json), [npm registry latest](https://registry.npmjs.org/npm/latest), [`@types/node` registry latest](https://registry.npmjs.org/%40types%2Fnode/latest), all checked 2026-11-10.
+Sources: [`.nvmrc`](../.nvmrc), [`frontend/package.json`](../frontend/package.json), [`frontend/package-lock.json`](../frontend/package-lock.json), [`docker/Dockerfile`](../docker/Dockerfile), [`docker-compose.dev.yml`](../docker-compose.dev.yml), [official Node release index](https://nodejs.org/dist/index.json), [official Node support schedule](https://raw.githubusercontent.com/nodejs/Release/main/schedule.json), [npm registry latest](https://registry.npmjs.org/npm/latest), [`@types/node` registry latest](https://registry.npmjs.org/%40types%2Fnode/latest), all checked 2026-11-11.
