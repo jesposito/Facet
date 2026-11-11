@@ -1,6 +1,6 @@
 # Repository architecture and checks
 
-Checked **2026-11-10** against the repository at `f3d7a14`.
+Architecture checked **2026-11-10**; versions and CI updated **2026-11-11** against `main` at `28a4daa` (`v3.8.8`).
 
 ## Shape
 
@@ -8,7 +8,7 @@ Facet is a self-hosted, single-owner personal site. The production container exp
 
 | Area                              | Path                  | Role                                                              |
 | --------------------------------- | --------------------- | ----------------------------------------------------------------- |
-| Backend                           | `backend/`            | Go 1.27.3 and PocketBase 0.40.6 as a framework                    |
+| Backend                           | `backend/`            | Go 1.27.4 and PocketBase 0.40.6 as a framework                    |
 | HTTP routes and record hooks      | `backend/hooks/`      | Feature endpoints, access rules and background jobs               |
 | Shared backend logic              | `backend/services/`   | AI, email, encryption, GitHub, media, backups and webhooks        |
 | Schema                            | `backend/migrations/` | Go migrations applied automatically at startup                    |
@@ -21,7 +21,7 @@ Facet is a self-hosted, single-owner personal site. The production container exp
 
 The public application does not expose raw PocketBase collections. Custom backend endpoints apply visibility, draft and share-link rules. Any signed-in `users` account is treated as the owner, with `ADMIN_EMAILS` restricting sign-in when configured.
 
-Sources: [`docs/ARCHITECTURE.md`](../docs/ARCHITECTURE.md), [`backend/main.go`](../backend/main.go), [`docker/start.sh`](../docker/start.sh), [`docker/Caddyfile`](../docker/Caddyfile), all checked 2026-11-10.
+Sources: [`docs/ARCHITECTURE.md`](../docs/ARCHITECTURE.md), [`backend/main.go`](../backend/main.go), [`docker/start.sh`](../docker/start.sh), [`docker/Caddyfile`](../docker/Caddyfile), architecture checked 2026-11-10; Go version checked 2026-11-11.
 
 ## Development commands
 
@@ -43,15 +43,13 @@ Sources: [`Makefile`](../Makefile), [`docs/DEV.md`](../docs/DEV.md), [`frontend/
 
 ## CI entry points
 
-CI status and workflow details were updated **2026-11-11** against `main` at `07de104` and the open PR #533 workflow change.
-
-- `.github/workflows/security-tests.yml`: Go tests/race detector/vet, backend and Caddy `govulncheck`, SMTP patch tests, npm audit, guarded-fork tests, Svelte checks, lint, translations, production frontend build and browser smoke tests. Current `main` runs `go test ./...` for the proxy; PR #533 expands this to `go test ./... github.com/go-jose/go-jose/v3/...` so the replacement's regression tests run in CI.
+- `.github/workflows/security-tests.yml`: Go tests/race detector/vet, backend and Caddy `govulncheck`, SMTP patch tests, npm audit, guarded-fork tests, Svelte checks, lint, translations, production frontend build and browser smoke tests. The proxy step runs `go test ./... github.com/go-jose/go-jose/v3/...`, so the local replacement's regression tests run alongside Caddy's tests.
 - `.github/workflows/supply-chain.yml`: Go module tidiness, npm lock reproducibility and production Docker digest pins.
 - `.github/workflows/docker-publish.yml`: multi-architecture build, Trivy scan, packaged-image smoke test, signing, SBOM and provenance.
 - `.github/workflows/published-image-security.yml`: scheduled rescan of the published image.
 - `.github/workflows/i18n-check.yml`: translation validation on relevant changes.
 
-Latest observed CI state on `main` at `07de104`: [security run 42754669718](https://github.com/jesposito/Facet/actions/runs/42754669718) (2026-11-10) passed frontend checks, backend tests and both reachable Go vulnerability steps. See `security-advisories.md`.
+Latest observed CI state on `main` at `28a4daa`: [security run 42941611668](https://github.com/jesposito/Facet/actions/runs/42941611668) (2026-11-11) passed frontend checks, backend tests and both reachable Go vulnerability steps. See `security-advisories.md`.
 
 ## Change conventions
 
@@ -61,4 +59,4 @@ Latest observed CI state on `main` at `07de104`: [security run 42754669718](http
 - Keep Node, `@types/node`, both Go modules and the Go container build images aligned with their selected majors.
 - Production base images require `tag@sha256:digest`; development-only floating bases carry an explicit marker.
 
-Sources: [`CONTRIBUTING.md`](../CONTRIBUTING.md), [`.github/dependabot.yml`](../.github/dependabot.yml), checked 2026-11-10.
+Sources: [`CONTRIBUTING.md`](../CONTRIBUTING.md), [`.github/dependabot.yml`](../.github/dependabot.yml), checked 2026-11-10; [`.github/workflows/security-tests.yml`](../.github/workflows/security-tests.yml) and current CI checked 2026-11-11.

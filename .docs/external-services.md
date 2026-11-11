@@ -1,6 +1,6 @@
 # External services overview
 
-Checked **2026-11-11** against repository commit `07de104` (`v3.8.7`) and the official primary sources linked below. The AI migration described as pending in older notes is merged on `main`.
+Checked **2026-11-11** against repository commit `28a4daa` (`v3.8.8`) and the official primary sources linked below. The AI migration described as pending in older notes is merged on `main`.
 
 ## Current findings
 

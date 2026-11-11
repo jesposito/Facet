@@ -17,17 +17,17 @@ Sources: local `docker version` and `docker compose version` (2026-11-11), [Dock
 
 Production uses a multi-stage Dockerfile:
 
-- `golang:1.27.3-bookworm` for backend and Caddy builds;
+- `golang:1.27.4-bookworm` for backend and Caddy builds;
 - `node:24-alpine` for the frontend build;
 - `debian:bookworm-slim` for the runtime.
 
-All three production bases are pinned to multi-architecture SHA-256 index digests. `scripts/check-docker-base-pins.sh` enforces that policy. Refresh a tag and digest together. Go 1.27.4 is now available with security fixes; [PR #533](https://github.com/jesposito/Facet/pull/533) updates both Go builder stages and `Facet-zl8` tracks it.
+All three production bases are pinned to multi-architecture SHA-256 index digests. `scripts/check-docker-base-pins.sh` enforces that policy. Refresh a tag and digest together. [PR #533](https://github.com/jesposito/Facet/pull/533) updated both Go builder stages to 1.27.4, merged as `25fe89f` and was released in v3.8.8. `Facet-zl8` is closed.
 
 The runtime installs Node 24 from NodeSource and Pandoc, LaTeX, `libheif-examples`, curl, wget, OpenSSL and other support packages from Debian apt. Those package versions are selected at image build time rather than locked separately in the Dockerfile. Rebuilding the same pinned base can therefore still select newer apt packages.
 
 [Published-image scan 42568088543](https://github.com/jesposito/Facet/actions/runs/42568088543) reported exactly two HIGH findings, `apt` and `libapt-pkg6.0`, for CVE-2026-109518. Debian's tracker lists Bookworm 2.6.1 as vulnerable and Bookworm security **2.6.2** as fixed. [PR #528](https://github.com/jesposito/Facet/pull/528), merged as `fde26de`, added an explicit APT upgrade; its disposable image contained both packages at 2.6.2 and both architecture scans and packaged smoke tests passed. The later [published-image scan 42724230846](https://github.com/jesposito/Facet/actions/runs/42724230846) passed, and subsequent releases published both architectures.
 
-Development-only `node:24-alpine` and `golang:1.27.3-alpine` bases intentionally float and carry `supply-chain: allow-floating-base` markers. PR #533 updates the Go development tag to 1.27.4. `docker-compose.dev.yml` also uses floating `node:24-alpine` for its frontend container.
+Development-only `node:24-alpine` and `golang:1.27.4-alpine` bases intentionally float and carry `supply-chain: allow-floating-base` markers. `docker-compose.dev.yml` also uses floating `node:24-alpine` for its frontend container.
 
 The production image runs Caddy, SvelteKit and PocketBase under one supervisor, exposes only port 8080, and stores persistent state in `/data` and `/uploads`.
 
