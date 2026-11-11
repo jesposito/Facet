@@ -3,6 +3,24 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v3.8.8 - November 11, 2026
+
+**Bugs Fixed:**
+- Patch go-jose v3 to prevent panics from empty CBC-HMAC ciphertexts with valid tags
+- Patch go-jose v3 to prevent stack overflows from deeply nested JSON
+
+**Other Changes:**
+- Update Go to 1.27.4 in both modules, builder stages, and the dev image
+- Update the Go version mentioned in the setup docs
+- Add tests for the go-jose v3 panic fixes
+- Run go-jose v3 tests in the proxy CI step
+- Document the go-jose v3 patches in FACET-PATCH.md
+
+**Pull Requests:** [#533](https://github.com/jesposito/Facet/pull/533),
+
+---
+
+
 ## v3.8.7 - November 10, 2026
 
 **Other Changes:**
