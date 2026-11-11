@@ -9,7 +9,7 @@
 FROM node:24-alpine AS node
 
 # supply-chain: allow-floating-base dev-only
-FROM golang:1.27.3-alpine
+FROM golang:1.27.4-alpine
 
 # Install dependencies (bash runs scripts/dev-backend.sh; libstdc++/libgcc
 # are runtime libraries for node)

@@ -13,7 +13,7 @@ Translations have their own guide: [CONTRIBUTING_TRANSLATIONS.md](CONTRIBUTING_T
 
 ## Set up
 
-Follow the [development guide](docs/DEV.md). In short, on Linux with Go 1.27.3, Node.js 24, Python 3, a C compiler and Air:
+Follow the [development guide](docs/DEV.md). In short, on Linux with Go 1.27.4, Node.js 24, Python 3, a C compiler and Air:
 
 ```bash
 make dev
