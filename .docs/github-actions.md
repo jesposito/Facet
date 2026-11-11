@@ -1,6 +1,6 @@
 # GitHub Actions
 
-Checked **2026-11-10** against `.github/workflows/` and official GitHub releases.
+Checked **2026-11-11** against `.github/workflows/` and official GitHub releases.
 
 | Action                            | Selected                | Latest | Note                      |
 | --------------------------------- | ----------------------- | ------ | ------------------------- |
@@ -22,8 +22,8 @@ Checked **2026-11-10** against `.github/workflows/` and official GitHub releases
 
 Except for Trivy, workflow actions use movable major-version tags rather than immutable commit SHAs. That is the current repository policy; this inventory does not silently treat those tags as exact minor versions. `ubuntu-latest` is also a moving runner image.
 
-The `codeql.yml` workflow is only a placeholder because GitHub's default CodeQL setup owns that analysis. The current migration branch removes the retired GitHub Models call documented in `github-models.md`.
+The `codeql.yml` workflow is only a placeholder because GitHub's default CodeQL setup owns that analysis. [PR #531](https://github.com/jesposito/Facet/pull/531), merged as `74c3e31` and released in v3.8.6, removed the retired GitHub Models call documented in `github-models.md`.
 
-Push run [42706080159](https://github.com/jesposito/Facet/actions/runs/42706080159) exposed a separate publication gate: AMD64 pushed successfully, while ARM64 failed with `permission_denied: write_package`. PR-local scans do not exercise that upload. See `ghcr.md` and `Facet-dcy`.
+Push run [42706080159](https://github.com/jesposito/Facet/actions/runs/42706080159) exposed intermittent GHCR denials during overlapping branch builds. Later releases published both architectures successfully, including [v3.8.7 run 42754619959](https://github.com/jesposito/Facet/actions/runs/42754619959). No configuration change was needed and `Facet-dcy` is closed. See `ghcr.md`.
 
-Sources: [workflow definitions](../.github/workflows), [cosign-installer 4.1.3](https://github.com/sigstore/cosign-installer/releases/tag/v4.1.3), [cosign 3.1.4](https://github.com/sigstore/cosign/releases/tag/v3.1.4), [Trivy action 0.36.0](https://github.com/aquasecurity/trivy-action/releases/tag/v0.36.0), and each action's official `https://github.com/<owner>/<repo>/releases/tag/<tag>` release listed in the table, all checked 2026-11-10. Individual action notes are linked from `INDEX.md`.
+Sources: [workflow definitions](../.github/workflows), [cosign-installer 4.1.3](https://github.com/sigstore/cosign-installer/releases/tag/v4.1.3), [cosign 3.1.4](https://github.com/sigstore/cosign/releases/tag/v3.1.4), [Trivy action 0.36.0](https://github.com/aquasecurity/trivy-action/releases/tag/v0.36.0), and each action's official `https://github.com/<owner>/<repo>/releases/tag/<tag>` release listed in the table, all checked 2026-11-11. Individual action notes are linked from `INDEX.md`.
