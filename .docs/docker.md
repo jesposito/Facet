@@ -1,17 +1,17 @@
 # Docker, Compose and runtime image
 
-Checked **2026-11-11**.
+Checked **2026-11-12**.
 
 ## Host tools
 
 | Tool           | Host                                   | Latest upstream | Status                                                                          |
 | -------------- | -------------------------------------- | --------------- | ------------------------------------------------------------------------------- |
 | Docker Engine  | 29.1.3 (`29.1.3-0ubuntu3~24.04.2`)     | 29.9.3          | Update through the host's supported Ubuntu package channel                      |
-| Docker Compose | 2.40.3 (`2.40.3+ds1-0ubuntu1~24.04.1`) | 5.7.0           | New major; review compatibility rather than replacing the distro package ad hoc |
+| Docker Compose | 2.40.3 (`2.40.3+ds1-0ubuntu1~24.04.1`) | 5.7.1           | New major; review compatibility rather than replacing the distro package ad hoc |
 
 Docker 29.9.3 includes fixes for crafted RSA-key CPU use, zstd decompression, Swarm overlay protections and BuildKit issues. That upstream release does not prove the Ubuntu host package is exploitable in Facet's configuration; it does make a supported host update prudent.
 
-Sources: local `docker version` and `docker compose version` (2026-11-11), [Docker Engine 29 release notes](https://docs.docker.com/engine/release-notes/29/), [Docker Compose 5.7.0 release](https://github.com/docker/compose/releases/tag/v5.7.0), checked 2026-11-11.
+Sources: local `docker version` and `docker compose version` (2026-11-12), [Docker Engine 29 release notes](https://docs.docker.com/engine/release-notes/29/), [Docker Compose 5.7.1 release](https://github.com/docker/compose/releases/tag/v5.7.1), checked 2026-11-12.
 
 ## Image inputs
 
