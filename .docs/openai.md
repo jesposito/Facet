@@ -1,6 +1,6 @@
 # OpenAI and compatible APIs
 
-Checked **2026-11-11**.
+Checked **2026-11-12**.
 
 Facet uses the chat-completions shape at `https://api.openai.com/v1/chat/completions` by default and allows a custom base URL.
 
@@ -22,6 +22,8 @@ OpenAI's official deprecation schedule reports:
 
 The baseline used aliases rather than dated GPT-4o snapshots. An authenticated Models API remains the way to verify an alias's target and `shutdown_date`; the deprecation page alone does not prove when a particular alias stops resolving. GPT-6 Luna is not listed in the current deprecation schedule.
 
+The newest notices also do not select a Facet model: GPT Image 2 was deprecated on **2026-11-10** for shutdown on **2027-02-10**, and GPT-5.5-Cyber Preview was deprecated on **2026-11-05** for shutdown on **2027-02-01**. Neither ID appears in the repository.
+
 ## GPT-6 Luna request compatibility
 
 OpenAI's model page supports Chat Completions and `reasoning_effort` values `none`, `low`, `medium` (default), `high`, `xhigh` and `max`.
@@ -31,4 +33,4 @@ OpenAI's model page supports Chat Completions and `reasoning_effort` values `non
 - The Chat Completions reference marks **`max_tokens` deprecated in favour of `max_completion_tokens`**. The newer parameter includes visible output and reasoning tokens.
 - OpenAI recommends the Responses API for new work. GPT-6 Luna remains available through Chat Completions; function calling there requires `reasoning_effort: "none"`.
 
-Sources: [`backend/services/ai.go`](../backend/services/ai.go), [`backend/hooks/ai.go`](../backend/hooks/ai.go), [`frontend/src/routes/admin/settings/integrations/+page.svelte`](../frontend/src/routes/admin/settings/integrations/+page.svelte), [`.github/workflows/auto-tag.yml`](../.github/workflows/auto-tag.yml), [official OpenAI deprecations](https://platform.openai.com/docs/deprecations), [GPT-6 Luna model](https://developers.openai.com/api/docs/models/gpt-6-luna), [GPT-6 migration parameters](https://developers.openai.com/api/docs/guides/latest-model#update-api-and-model-parameters), [Chat Completions reference](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create/), [PR #531](https://github.com/jesposito/Facet/pull/531), all checked 2026-11-11.
+Sources: [`backend/services/ai.go`](../backend/services/ai.go), [`backend/hooks/ai.go`](../backend/hooks/ai.go), [`frontend/src/routes/admin/settings/integrations/+page.svelte`](../frontend/src/routes/admin/settings/integrations/+page.svelte), [`.github/workflows/auto-tag.yml`](../.github/workflows/auto-tag.yml), [official OpenAI deprecations](https://platform.openai.com/docs/deprecations), [GPT-6 Luna model](https://developers.openai.com/api/docs/models/gpt-6-luna), [GPT-6 migration parameters](https://developers.openai.com/api/docs/guides/latest-model#update-api-and-model-parameters), [Chat Completions reference](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create/), [PR #531](https://github.com/jesposito/Facet/pull/531), all checked 2026-11-12.
