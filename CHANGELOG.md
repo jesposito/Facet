@@ -3,6 +3,18 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v3.8.10 - November 12, 2026
+
+**Other Changes:**
+- Rebuild the runtime image with Node 24.22.3
+- Update the frontend builder image to Node 24.22.3
+- Update minimatch from 11.0.4 to 11.0.8 in the lockfile
+
+**Pull Requests:** [#536](https://github.com/jesposito/Facet/pull/536),
+
+---
+
+
 ## v3.8.9 - November 11, 2026
 
 **Other Changes:**
