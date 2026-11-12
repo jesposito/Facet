@@ -10,7 +10,7 @@ All three production bases use `tag@sha256:digest`. The Go and Debian pins match
 | `node:24-alpine`         | `06d7adf3…`         | `sha256:116b800c3754b440ee0aa3ed2f20f5bf3d99a554bfd9adeea09ea8017f6e85f5` | 2026-11-11               |
 | `debian:bookworm-slim`   | `7ff6ba31…`         | `sha256:734a72b3d6142a71993b4bc580ca01d8ca687f77a2c422d96a961d3376b179bc` | 2026-11-04               |
 
-The current Node image's source revision sets `NODE_VERSION=24.22.3`. Commit [`e622136`](https://github.com/jesposito/Facet/commit/e622136e5ed4894c4d85e0c1dcb0c2831c4812d1) on `fix/node-24.22.3` updates Facet's Node builder pin to that digest and rebuilds the final image so NodeSource selects the same security patch at runtime. Merge and release it, then verify the packaged runtime version. See `node.md`.
+The current Node image's source revision sets `NODE_VERSION=24.22.3`. **Fixed in [PR #536](https://github.com/jesposito/Facet/pull/536):** Facet's Node builder pin selects that digest and the final-image rebuild installs the same security patch through NodeSource. Publish the PR image and verify the packaged runtime version. See `node.md`.
 
 [PR #533](https://github.com/jesposito/Facet/pull/533), merged as **`25fe89f`** and released in **v3.8.8**, updated both Go modules and the development and production Go tag+digest pairs. `Facet-zl8` is closed. [Release run 42946968507](https://github.com/jesposito/Facet/actions/runs/42946968507) passed both architecture builds and the merge job for v3.8.9, but shipped before the Node fix branch.
 
