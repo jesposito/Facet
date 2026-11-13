@@ -3,6 +3,16 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v3.8.11 - November 13, 2026
+
+**Other Changes:**
+- Update the development-only lockfile to postcss-selector-parser 7.2.1, replacing cssesc 3.0.0
+
+**Pull Requests:** [#537](https://github.com/jesposito/Facet/pull/537),
+
+---
+
+
 ## v3.8.10 - November 12, 2026
 
 **Other Changes:**
