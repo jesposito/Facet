@@ -1,6 +1,6 @@
 # Vite
 
-Checked **2026-11-12**. Locked **8.3.5**; latest **8.3.8**. Status: **patch updates available**. The npm registry's latest entry was not marked deprecated.
+Checked **2026-11-14**. Locked **8.3.5**; latest **8.3.8**. Status: **patch updates available**. The npm registry's latest entry was not marked deprecated.
 
 Vite drives the SvelteKit development server and production build. Facet's configuration:
 
@@ -14,4 +14,4 @@ Vite 8 uses Rolldown/Oxc. Facet does not set `build.target` or legacy `build.rol
 
 After updating to 8.3.8, run `npm run check`, `npm run build` and the canonical browser smoke script. The development proxy and server-side `POCKETBASE_URL` behaviour deserve a native and Docker development smoke check as well.
 
-Sources: [`frontend/package-lock.json`](../frontend/package-lock.json), [`frontend/vite.config.ts`](../frontend/vite.config.ts), [npm registry latest](https://registry.npmjs.org/vite/latest), [official Vite 8 migration guide](https://vite.dev/guide/migration), [Vite 8.3.8 release](https://github.com/vitejs/vite/releases/tag/v8.3.8), all checked 2026-11-12.
+Sources: [`frontend/package-lock.json`](../frontend/package-lock.json), [`frontend/vite.config.ts`](../frontend/vite.config.ts), [npm registry latest](https://registry.npmjs.org/vite/latest), [official Vite 8 migration guide](https://vite.dev/guide/migration), [Vite 8.3.8 release](https://github.com/vitejs/vite/releases/tag/v8.3.8), all checked 2026-11-14.
