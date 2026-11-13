@@ -1,6 +1,6 @@
 # PocketBase
 
-Checked **2026-11-12**.
+Checked **2026-11-14**.
 
 | Component                                  | Locked | Latest | Status                 |
 | ------------------------------------------ | ------ | ------ | ---------------------- |
@@ -17,4 +17,4 @@ SDK 0.29.0 automatically clears `pb.authStore` when a token expires or is extern
 
 Development serves the backend on port 8090. The Vite proxy forwards `/api` and `/_`; production Caddy controls whether the PocketBase dashboard at `/_/` is available.
 
-Sources: [`backend/go.mod`](../backend/go.mod), [`backend/main.go`](../backend/main.go), [`frontend/package-lock.json`](../frontend/package-lock.json), [`frontend/src/lib/pocketbase.ts`](../frontend/src/lib/pocketbase.ts), [`docs/ARCHITECTURE.md`](../docs/ARCHITECTURE.md), [`docs/DEV.md`](../docs/DEV.md), [Go module proxy: PocketBase](https://proxy.golang.org/github.com/pocketbase/pocketbase/@latest), [Go module proxy: dbx](https://proxy.golang.org/github.com/pocketbase/dbx/@latest), [Go module proxy: ozzo-validation](https://proxy.golang.org/github.com/pocketbase/ozzo-validation/v4/@latest), [npm registry: PocketBase JS](https://registry.npmjs.org/pocketbase/latest), [official 0.29.0 package tarball and changelog](https://registry.npmjs.org/pocketbase/-/pocketbase-0.29.0.tgz), all checked 2026-11-12.
+Sources: [`backend/go.mod`](../backend/go.mod), [`backend/main.go`](../backend/main.go), [`frontend/package-lock.json`](../frontend/package-lock.json), [`frontend/src/lib/pocketbase.ts`](../frontend/src/lib/pocketbase.ts), [`docs/ARCHITECTURE.md`](../docs/ARCHITECTURE.md), [`docs/DEV.md`](../docs/DEV.md), [Go module proxy: PocketBase](https://proxy.golang.org/github.com/pocketbase/pocketbase/@latest), [Go module proxy: dbx](https://proxy.golang.org/github.com/pocketbase/dbx/@latest), [Go module proxy: ozzo-validation](https://proxy.golang.org/github.com/pocketbase/ozzo-validation/v4/@latest), [npm registry: PocketBase JS](https://registry.npmjs.org/pocketbase/latest), [official 0.29.0 package tarball and changelog](https://registry.npmjs.org/pocketbase/-/pocketbase-0.29.0.tgz), all checked 2026-11-14.
