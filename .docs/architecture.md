@@ -49,7 +49,7 @@ Sources: [`Makefile`](../Makefile), [`docs/DEV.md`](../docs/DEV.md), [`frontend/
 - `.github/workflows/published-image-security.yml`: scheduled rescan of the published image.
 - `.github/workflows/i18n-check.yml`: translation validation on relevant changes.
 
-Latest observed CI state on `main` at `4cffe0e`: [security run 43968105029](https://github.com/jesposito/Facet/actions/runs/43968105029) passed frontend checks and browser smoke, backend tests and both reachable Go vulnerability steps. The `v3.8.12` tag points to `9d4df76`; release-image verification remains pending. See `security-advisories.md`.
+Latest observed CI state on `main` at `4cffe0e`: [security run 43968105029](https://github.com/jesposito/Facet/actions/runs/43968105029) passed frontend checks and browser smoke, backend tests and both reachable Go vulnerability steps. [Release run 43968108359](https://github.com/jesposito/Facet/actions/runs/43968108359) published v3.8.12 at `9d4df76`, and [published-image scan 43972163295](https://github.com/jesposito/Facet/actions/runs/43972163295) passed. See `security-advisories.md`.
 
 ## Change conventions
 
