@@ -151,7 +151,7 @@ This applies to new logs produced by Facet. It does not rewrite older logs or co
 
 If you add a Google Analytics measurement ID in **Site Settings**, Facet adds Google's tag to public pages while the Analytics switch is on ([layout](../frontend/src/routes/+layout.svelte)). With the switch off, visitors don't receive the ID at all, and turning it off mid-visit removes the script and sets Google's opt-out flag.
 
-The Content-Security-Policy shipped in the Docker image doesn't list Google's tag or collection domains ([Caddyfile](../docker/Caddyfile)), so browsers block those requests in a standard install. Optional Google Analytics doesn't work out of the box in this version. If you loosen the policy yourself, Google receives your visitors' data under Google's terms.
+The Content-Security-Policy shipped in the Docker image allows Google's tag script (`www.googletagmanager.com`) and the GA4 collection hosts (`*.google-analytics.com`, `*.analytics.google.com`, `*.googletagmanager.com`) ([Caddyfile](../docker/Caddyfile)). Allowing them in the policy loads nothing by itself: Google's tag only loads when you've saved a measurement ID and the Analytics switch is on. While it runs, Google receives your visitors' data under Google's terms.
 
 ## What leaves your server
 
@@ -165,7 +165,7 @@ These are all the outside connections the code makes. Most only happen when you 
 | YouTube, Vimeo, Loom, SoundCloud, Spotify, CodePen, Figma | Pages where you've embedded their media |
 | Images hosted elsewhere | Pages that use external image URLs |
 | Cloudflare Web Analytics | Allowed by the CSP so Cloudflare-injected beacons work. Facet doesn't add it itself. |
-| Google Analytics | Only if configured, and blocked by the default CSP (above) |
+| Google Analytics | Only with a measurement ID saved and the Analytics switch on (above) |
 
 **From your server**
 

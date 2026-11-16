@@ -1,17 +1,17 @@
 # Docker, Compose and runtime image
 
-Checked **2026-11-16**.
+Checked **2026-11-17**.
 
 ## Host tools
 
 | Tool           | Host                                   | Latest upstream | Status                                                                                         |
 | -------------- | -------------------------------------- | --------------- | ---------------------------------------------------------------------------------------------- |
-| Docker Engine  | 29.1.3 (`29.1.3-0ubuntu3~24.04.2`)     | 29.9.3          | Installed and candidate versions match Ubuntu `noble-security`; wait for the supported apt fix |
+| Docker Engine  | 29.1.3 (`29.1.3-0ubuntu3~24.04.2`)     | 29.10.0         | Installed and candidate versions match Ubuntu `noble-security`; wait for the supported apt fix |
 | Docker Compose | 2.40.3 (`2.40.3+ds1-0ubuntu1~24.04.1`) | 5.7.1           | New major; review compatibility rather than replacing the distro package ad hoc                |
 
-Upstream Docker 29.9.3 is a security release covering crafted RSA-key CPU use, zstd decompression, Swarm overlay protections and BuildKit issues. Ubuntu backports security fixes rather than shipping that upstream version as its package candidate. `apt-cache policy docker.io` confirms the installed `29.1.3-0ubuntu3~24.04.2` is also the current `noble-security` candidate, so there is no apt update to apply today. Swarm is inactive on this host, so CVE-2026-115538 and CVE-2026-115539 do not apply. `Facet-jjq` tracks applying Ubuntu's eventual fix through apt with Jed's sudo; do not install upstream 29.9.3 ad hoc.
+Upstream Docker 29.9.3 was a security release covering crafted RSA-key CPU use, zstd decompression, Swarm overlay protections and BuildKit issues. The new **29.10.0** feature release updates BuildKit to 0.35.0 and Go to 1.27.4; it also changes loopback-registry behavior when `insecure-registries` is explicitly configured. Ubuntu backports security fixes rather than shipping every upstream version as its package candidate. `apt-cache policy docker.io` confirms the installed `29.1.3-0ubuntu3~24.04.2` is also the current `noble-security` candidate, so there is no apt update to apply today. Swarm is inactive on this host, so CVE-2026-115538 and CVE-2026-115539 do not apply. `Facet-jjq` tracks applying Ubuntu's eventual fix through apt with Jed's sudo; do not install upstream 29.10.0 ad hoc.
 
-Sources: local `docker version`, `docker compose version` and `apt-cache policy docker.io` (2026-11-16), [Moby 29.9.3 release](https://github.com/moby/moby/releases/tag/docker-v29.9.3), [Docker Compose 5.7.1 release](https://github.com/docker/compose/releases/tag/v5.7.1), checked 2026-11-16.
+Sources: local `docker version`, `docker compose version` and `apt-cache policy docker.io` (2026-11-17), [Moby 29.9.3 security release](https://github.com/moby/moby/releases/tag/docker-v29.9.3), [Moby 29.10.0 release](https://github.com/moby/moby/releases/tag/docker-v29.10.0), [Docker Compose 5.7.1 release](https://github.com/docker/compose/releases/tag/v5.7.1), checked 2026-11-17.
 
 ## Image inputs
 
@@ -31,4 +31,4 @@ Development-only `node:24-alpine` and `golang:1.27.4-alpine` bases intentionally
 
 The production image runs Caddy, SvelteKit and PocketBase under one supervisor, exposes only port 8080, and stores persistent state in `/data` and `/uploads`.
 
-Sources: [`docker/Dockerfile`](../docker/Dockerfile), [`docker/Dockerfile.dev`](../docker/Dockerfile.dev), [`docker/start.sh`](../docker/start.sh), [`docker-compose.dev.yml`](../docker-compose.dev.yml), [`scripts/check-docker-base-pins.sh`](../scripts/check-docker-base-pins.sh), [`CONTRIBUTING.md`](../CONTRIBUTING.md), [PR #533](https://github.com/jesposito/Facet/pull/533), [PR #537](https://github.com/jesposito/Facet/pull/537), all checked 2026-11-16. Exact Node and apt package versions inside a freshly built local image were not resolved during this inventory; CI image evidence and the lead's published-image verification are cited instead.
+Sources: [`docker/Dockerfile`](../docker/Dockerfile), [`docker/Dockerfile.dev`](../docker/Dockerfile.dev), [`docker/start.sh`](../docker/start.sh), [`docker-compose.dev.yml`](../docker-compose.dev.yml), [`scripts/check-docker-base-pins.sh`](../scripts/check-docker-base-pins.sh), [`CONTRIBUTING.md`](../CONTRIBUTING.md), [PR #533](https://github.com/jesposito/Facet/pull/533), [PR #537](https://github.com/jesposito/Facet/pull/537), all checked 2026-11-17. Exact Node and apt package versions inside a freshly built local image were not resolved during this inventory; CI image evidence and the lead's published-image verification are cited instead.

@@ -1,6 +1,6 @@
 # Production container base images
 
-Checked **2026-11-16** against `main` at `43bf199` (`v3.8.11`).
+Checked **2026-11-17** against `main` at `9d4df76` (`v3.8.12`).
 
 All three production bases use `tag@sha256:digest`, and every pin matches Docker Hub's current multi-architecture tag digest. The Debian refresh from [PR #537](https://github.com/jesposito/Facet/pull/537) is released in v3.8.11; no base-digest update is pending. Digest drift alone would not prove a vulnerability, so future refreshes should use the normal image verification path.
 
@@ -16,4 +16,4 @@ The selected Node image's source revision sets `NODE_VERSION=24.22.3`. **Fixed i
 
 Refresh each tag and digest together, then run `bash scripts/check-docker-base-pins.sh`, the multi-architecture build, image smoke test and Trivy scan. [PR #528](https://github.com/jesposito/Facet/pull/528), merged as `fde26de`, added an explicit APT upgrade for the CVE-2026-109518 fix. Its disposable image check found apt and libapt-pkg6.0 at 2.6.2, and both architecture scans and packaged smoke tests passed.
 
-Sources: [`docker/Dockerfile`](../docker/Dockerfile), [`docker/Dockerfile.dev`](../docker/Dockerfile.dev), Docker Hub API for [Go 1.27.4](https://hub.docker.com/v2/repositories/library/golang/tags/1.27.4-bookworm), [Node](https://hub.docker.com/v2/repositories/library/node/tags/24-alpine) and [Debian](https://hub.docker.com/v2/repositories/library/debian/tags/bookworm-slim), [Node 24.22.3 release](https://nodejs.org/en/blog/release/v24.22.3), [Debian CVE tracker](https://security-tracker.debian.org/tracker/CVE-2026-109518), [PR #533](https://github.com/jesposito/Facet/pull/533), [PR #537](https://github.com/jesposito/Facet/pull/537), [v3.8.11 published-image scan](https://github.com/jesposito/Facet/actions/runs/43422619540), checked 2026-11-16.
+Sources: [`docker/Dockerfile`](../docker/Dockerfile), [`docker/Dockerfile.dev`](../docker/Dockerfile.dev), Docker Hub API for [Go 1.27.4](https://hub.docker.com/v2/repositories/library/golang/tags/1.27.4-bookworm), [Node](https://hub.docker.com/v2/repositories/library/node/tags/24-alpine) and [Debian](https://hub.docker.com/v2/repositories/library/debian/tags/bookworm-slim), [Node 24.22.3 release](https://nodejs.org/en/blog/release/v24.22.3), [Debian CVE tracker](https://security-tracker.debian.org/tracker/CVE-2026-109518), [PR #533](https://github.com/jesposito/Facet/pull/533), [PR #537](https://github.com/jesposito/Facet/pull/537), [v3.8.11 published-image scan](https://github.com/jesposito/Facet/actions/runs/43422619540), checked 2026-11-17.

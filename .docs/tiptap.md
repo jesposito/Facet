@@ -1,6 +1,6 @@
 # Tiptap editor
 
-Checked **2026-11-16**.
+Checked **2026-11-17**.
 
 All direct Tiptap packages are locked at **3.32.2**. The npm registry reports **3.34.0** for each, so a coordinated minor update is available.
 
@@ -18,4 +18,4 @@ All direct Tiptap packages are locked at **3.32.2**. The npm registry reports **
 
 `frontend/src/components/admin/MarkdownEditor.svelte` lazy-loads the editor and its extensions. Keep all Tiptap packages on the same release to avoid mixing core and extension versions. After an update, check Markdown round trips, links, images, tables, code blocks, XSS handling and the public rendering path, then run the dependency and browser tests.
 
-Sources: [`frontend/package.json`](../frontend/package.json), [`frontend/package-lock.json`](../frontend/package-lock.json), [`frontend/src/components/admin/MarkdownEditor.svelte`](../frontend/src/components/admin/MarkdownEditor.svelte), and the npm registry `/latest` endpoint for each package under [`@tiptap`](https://www.npmjs.com/org/tiptap), all checked 2026-11-16. Example primary registry record: [`@tiptap/core` 3.34.0](https://registry.npmjs.org/%40tiptap%2Fcore/latest).
+Sources: [`frontend/package.json`](../frontend/package.json), [`frontend/package-lock.json`](../frontend/package-lock.json), [`frontend/src/components/admin/MarkdownEditor.svelte`](../frontend/src/components/admin/MarkdownEditor.svelte), and the npm registry `/latest` endpoint for each package under [`@tiptap`](https://www.npmjs.com/org/tiptap), all checked 2026-11-17. Example primary registry record: [`@tiptap/core` 3.34.0](https://registry.npmjs.org/%40tiptap%2Fcore/latest).

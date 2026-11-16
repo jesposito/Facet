@@ -1,6 +1,6 @@
 # Repository architecture and checks
 
-Architecture checked **2026-11-10**; versions and CI updated **2026-11-16** against `main` at `43bf199` (`v3.8.11`).
+Architecture checked **2026-11-10**; versions and CI updated **2026-11-17** against `main` at `4cffe0e` (after v3.8.11).
 
 ## Shape
 
@@ -21,7 +21,7 @@ Facet is a self-hosted, single-owner personal site. The production container exp
 
 The public application does not expose raw PocketBase collections. Custom backend endpoints apply visibility, draft and share-link rules. Any signed-in `users` account is treated as the owner, with `ADMIN_EMAILS` restricting sign-in when configured.
 
-Sources: [`docs/ARCHITECTURE.md`](../docs/ARCHITECTURE.md), [`backend/main.go`](../backend/main.go), [`docker/start.sh`](../docker/start.sh), [`docker/Caddyfile`](../docker/Caddyfile), architecture checked 2026-11-10; Go version checked 2026-11-16.
+Sources: [`docs/ARCHITECTURE.md`](../docs/ARCHITECTURE.md), [`backend/main.go`](../backend/main.go), [`docker/start.sh`](../docker/start.sh), [`docker/Caddyfile`](../docker/Caddyfile), architecture checked 2026-11-10; Go version checked 2026-11-17.
 
 ## Development commands
 
@@ -49,7 +49,7 @@ Sources: [`Makefile`](../Makefile), [`docs/DEV.md`](../docs/DEV.md), [`frontend/
 - `.github/workflows/published-image-security.yml`: scheduled rescan of the published image.
 - `.github/workflows/i18n-check.yml`: translation validation on relevant changes.
 
-Latest observed CI state on `main` at `43bf199`: [security run 43419586783](https://github.com/jesposito/Facet/actions/runs/43419586783) passed frontend checks, backend tests and both reachable Go vulnerability steps. See `security-advisories.md`.
+Latest observed CI state on `main` at `4cffe0e`: [security run 43968105029](https://github.com/jesposito/Facet/actions/runs/43968105029) passed frontend checks and browser smoke, backend tests and both reachable Go vulnerability steps. [Release run 43968108359](https://github.com/jesposito/Facet/actions/runs/43968108359) published v3.8.12 at `9d4df76`, and [published-image scan 43972163295](https://github.com/jesposito/Facet/actions/runs/43972163295) passed. See `security-advisories.md`.
 
 ## Change conventions
 
@@ -59,4 +59,4 @@ Latest observed CI state on `main` at `43bf199`: [security run 43419586783](http
 - Keep Node, `@types/node`, both Go modules and the Go container build images aligned with their selected majors.
 - Production base images require `tag@sha256:digest`; development-only floating bases carry an explicit marker.
 
-Sources: [`CONTRIBUTING.md`](../CONTRIBUTING.md), [`.github/dependabot.yml`](../.github/dependabot.yml), checked 2026-11-10; [`.github/workflows/security-tests.yml`](../.github/workflows/security-tests.yml) and current CI checked 2026-11-16.
+Sources: [`CONTRIBUTING.md`](../CONTRIBUTING.md), [`.github/dependabot.yml`](../.github/dependabot.yml), checked 2026-11-10; [`.github/workflows/security-tests.yml`](../.github/workflows/security-tests.yml) and current CI checked 2026-11-17.

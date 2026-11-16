@@ -1,6 +1,6 @@
 # GitHub Actions
 
-Checked **2026-11-16** against `.github/workflows/` and official GitHub releases.
+Checked **2026-11-17** against `.github/workflows/` and official GitHub releases.
 
 | Action                            | Selected                | Latest | Note                      |
 | --------------------------------- | ----------------------- | ------ | ------------------------- |
@@ -28,4 +28,4 @@ The proxy security step runs `go test ./... github.com/go-jose/go-jose/v3/...`, 
 
 Push run [42706080159](https://github.com/jesposito/Facet/actions/runs/42706080159) exposed intermittent GHCR denials during overlapping branch builds. Later releases published both architectures successfully, including [v3.8.11 run 43419528949](https://github.com/jesposito/Facet/actions/runs/43419528949). No configuration change was needed and `Facet-dcy` is closed. See `ghcr.md`.
 
-Sources: [workflow definitions](../.github/workflows), [cosign-installer 4.1.3](https://github.com/sigstore/cosign-installer/releases/tag/v4.1.3), [cosign 3.1.4](https://github.com/sigstore/cosign/releases/tag/v3.1.4), [Trivy action 0.36.0](https://github.com/aquasecurity/trivy-action/releases/tag/v0.36.0), and each action's official `https://github.com/<owner>/<repo>/releases/tag/<tag>` release listed in the table, all checked 2026-11-16. Individual action notes are linked from `INDEX.md`.
+Sources: [workflow definitions](../.github/workflows), [cosign-installer 4.1.3](https://github.com/sigstore/cosign-installer/releases/tag/v4.1.3), [cosign 3.1.4](https://github.com/sigstore/cosign/releases/tag/v3.1.4), [Trivy action 0.36.0](https://github.com/aquasecurity/trivy-action/releases/tag/v0.36.0), and each action's official `https://github.com/<owner>/<repo>/releases/tag/<tag>` release listed in the table, all checked 2026-11-17. Individual action notes are linked from `INDEX.md`.

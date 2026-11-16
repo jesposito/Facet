@@ -37,7 +37,7 @@ These exist in the code but have a gap that affects how you can use them.
 | System alerts | Settings links to recovery, backup, restore and retention alerts | SMTP and webhook failures use their operation status and logs ([details](API.md#system-alerts)) |
 | Contact protection | Obfuscation and click-to-reveal | The CAPTCHA level hides the value from everyone, because no CAPTCHA check exists ([details](CONTACT_PROTECTION.md)) |
 | Analytics | Visits, referrers, campaigns, share links | The countries panel is always empty |
-| Google Analytics | Settings field and script injection | Blocked by the shipped Content-Security-Policy ([details](SECURITY.md#google-analytics)) |
+| Google Analytics | Settings field, script injection and Content-Security-Policy hosts | Not tested against a live Google property ([details](SECURITY.md#google-analytics)) |
 | API keys | Read and write scopes, allowed origins, expiry, revocation | Scopes and origins can't be changed after a key is created. Allowed origins only limit browsers; they aren't authentication ([details](API.md#allowed-origins)) |
 | Comment moderation | Spam heuristics, reports, moderation page | No control for "hold all comments for approval" |
 
