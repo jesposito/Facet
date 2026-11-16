@@ -3,6 +3,19 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v3.8.13 - November 16, 2026
+
+**Bugs Fixed:**
+- Allow optional Google Analytics scripts and collection requests through the shipped Content-Security-Policy
+
+**Other Changes:**
+- Update SECURITY, TROUBLESHOOTING, and ROADMAP to describe the Google Analytics behavior
+
+**Pull Requests:** [#542](https://github.com/jesposito/Facet/pull/542),
+
+---
+
+
 ## v3.8.12 - November 16, 2026
 
 **Bugs Fixed:**
