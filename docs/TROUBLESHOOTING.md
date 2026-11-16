@@ -59,7 +59,7 @@ curl -s http://localhost:8080/api/health  # backend only
 
 **Someone found an unlisted post.** Unlisted posts and talks stay off the `/posts` and `/talks` index pages, feeds and the sitemap, but anyone with the link can open them, and they show in any view that includes them. Make it private if it must stay hidden ([Visibility](FEATURES.md#visibility)).
 
-**Google Analytics shows nothing.** The default Content-Security-Policy blocks Google's script ([details](SECURITY.md#google-analytics)).
+**Google Analytics shows nothing.** Check that the measurement ID is saved in **Site Settings** and the Analytics switch is on. Ad blockers also stop Google's tag for many visitors ([details](SECURITY.md#google-analytics)).
 
 ## Uploads
 
