@@ -1,10 +1,10 @@
 # Go and development tools
 
-Checked **2026-11-16**.
+Checked **2026-11-17**.
 
 ## Go
 
-On `main` at `43bf199` (`v3.8.11`), both `backend/go.mod` and `docker/caddy/go.mod` select **Go 1.27.4**. The production backend and Caddy builders use the same `golang:1.27.4-bookworm` digest-pinned base. The development image uses `golang:1.27.4-alpine` and sets `GOFLAGS=-tags=musl` so go-fitz links the correct bundled MuPDF archive.
+On `main` at `9d4df76` (`v3.8.12`), both `backend/go.mod` and `docker/caddy/go.mod` select **Go 1.27.4**. The production backend and Caddy builders use the same `golang:1.27.4-bookworm` digest-pinned base. The development image uses `golang:1.27.4-alpine` and sets `GOFLAGS=-tags=musl` so go-fitz links the correct bundled MuPDF archive.
 
 The official download feed lists **Go 1.27.4**, released 2026-11-10, as the newest stable release, with Go 1.26.11 as the other supported line. The selected toolchain is current. Go 1.27.4 includes security fixes to cgo, the Go command, compiler, linker and `net/http`, plus runtime and crypto bug fixes. The release note alone does not establish that every fixed path was reachable in Facet.
 
@@ -21,4 +21,4 @@ The local host does not have `go` installed. Native backend tests and vulnerabil
 | GCC         | required for cgo; host 13.3.0                      | distribution-provided | go-fitz bundles MuPDF; no separate MuPDF installation is needed                                |
 | govulncheck | CI runs `golang.org/x/vuln/cmd/govulncheck@v1.9.0` | 1.9.0 latest          | Standalone binary absent on host; CI runs it for both Go modules                               |
 
-Sources: [`backend/go.mod`](../backend/go.mod), [`docker/caddy/go.mod`](../docker/caddy/go.mod), [`docker/Dockerfile`](../docker/Dockerfile), [`docker/Dockerfile.dev`](../docker/Dockerfile.dev), [`docs/DEV.md`](../docs/DEV.md), [`.github/workflows/security-tests.yml`](../.github/workflows/security-tests.yml), [official Go download feed](https://go.dev/dl/?mode=json), [Go release history](https://go.dev/doc/devel/release), [Go 1.27.4 Bookworm image](https://hub.docker.com/v2/repositories/library/golang/tags/1.27.4-bookworm), [PR #533](https://github.com/jesposito/Facet/pull/533), [v3.8.11 release run](https://github.com/jesposito/Facet/actions/runs/43419528949), [Air module latest](https://proxy.golang.org/github.com/air-verse/air/@latest), [govulncheck module latest](https://proxy.golang.org/golang.org/x/vuln/@latest), all checked 2026-11-16. Host command results were collected on the same date.
+Sources: [`backend/go.mod`](../backend/go.mod), [`docker/caddy/go.mod`](../docker/caddy/go.mod), [`docker/Dockerfile`](../docker/Dockerfile), [`docker/Dockerfile.dev`](../docker/Dockerfile.dev), [`docs/DEV.md`](../docs/DEV.md), [`.github/workflows/security-tests.yml`](../.github/workflows/security-tests.yml), [official Go download feed](https://go.dev/dl/?mode=json), [Go release history](https://go.dev/doc/devel/release), [Go 1.27.4 Bookworm image](https://hub.docker.com/v2/repositories/library/golang/tags/1.27.4-bookworm), [PR #533](https://github.com/jesposito/Facet/pull/533), [v3.8.11 release run](https://github.com/jesposito/Facet/actions/runs/43419528949), [Air module latest](https://proxy.golang.org/github.com/air-verse/air/@latest), [govulncheck module latest](https://proxy.golang.org/golang.org/x/vuln/@latest), all checked 2026-11-17. Host command results were collected on the same date.

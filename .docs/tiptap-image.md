@@ -1,5 +1,5 @@
 # @tiptap/extension-image
 
-Checked **2026-11-16**. Locked **3.32.2**; latest **3.34.0**. The Markdown editor lazy-loads this image extension. Keep it aligned with Tiptap core and test media and sanitisation paths after updates.
+Checked **2026-11-17**. Locked **3.32.2**; latest **3.34.0**. The Markdown editor lazy-loads this image extension. Keep it aligned with Tiptap core and test media and sanitisation paths after updates.
 
-Sources: [`frontend/package-lock.json`](../frontend/package-lock.json), [`MarkdownEditor.svelte`](../frontend/src/components/admin/MarkdownEditor.svelte), [npm registry latest](https://registry.npmjs.org/%40tiptap%2Fextension-image/latest), checked 2026-11-16.
+Sources: [`frontend/package-lock.json`](../frontend/package-lock.json), [`MarkdownEditor.svelte`](../frontend/src/components/admin/MarkdownEditor.svelte), [npm registry latest](https://registry.npmjs.org/%40tiptap%2Fextension-image/latest), checked 2026-11-17.
