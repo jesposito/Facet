@@ -3,6 +3,20 @@
 All notable changes to Facet will be documented in this file.
 
 
+## v3.8.12 - November 16, 2026
+
+**Bugs Fixed:**
+- Fix the OpenTelemetry attribute-length limit bypass involving valid U+FFFD runes
+
+**Other Changes:**
+- Update OpenTelemetry core, log, metric, SDK, and trace modules to version 1.47.0
+- Update the technology inventory with releases, lifecycle, base images, and advisories
+
+**Pull Requests:** [#541](https://github.com/jesposito/Facet/pull/541),
+
+---
+
+
 ## v3.8.11 - November 13, 2026
 
 **Other Changes:**
